@@ -18,7 +18,7 @@ export default function Contact() {
   return (
     <section
       id="contact"
-      className="py-24 px-6"
+      className="py-16 sm:py-24 px-4 sm:px-6"
       style={{ background: "linear-gradient(180deg, #050a0e 0%, #071a12 50%, #050a0e 100%)" }}
     >
       <div className="max-w-5xl mx-auto">
@@ -36,7 +36,7 @@ export default function Contact() {
           </h2>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-12">
+        <div className="grid md:grid-cols-2 gap-8 sm:gap-12">
           {/* Info */}
           <motion.div
             initial={{ opacity: 0, x: -40 }}
@@ -94,7 +94,7 @@ export default function Contact() {
             ) : (
               <form
                 onSubmit={handleSubmit}
-                className="space-y-4 bg-[#0a1628]/80 border border-slate-800 rounded-2xl p-6"
+                className="space-y-4 bg-[#0a1628]/80 border border-slate-800 rounded-2xl p-4 sm:p-6"
               >
                 <div>
                   <label className="block text-sm text-slate-400 mb-1.5">İsim</label>

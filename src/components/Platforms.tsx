@@ -47,7 +47,7 @@ export default function Platforms() {
   return (
     <section
       id="platforms"
-      className="py-24 px-6"
+      className="py-16 sm:py-24 px-4 sm:px-6"
       style={{ background: "linear-gradient(180deg, #050a0e 0%, #071a12 50%, #050a0e 100%)" }}
     >
       <div className="max-w-5xl mx-auto">
@@ -73,7 +73,7 @@ export default function Platforms() {
               initial={{ opacity: 0, y: 40 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.15 * i }}
-              className={`relative bg-[#0a1628]/80 border rounded-2xl p-8 ${
+              className={`relative bg-[#0a1628]/80 border rounded-2xl p-5 sm:p-8 ${
                 p.color === "emerald"
                   ? "border-emerald-900/50 hover:border-emerald-700/70"
                   : "border-orange-900/50 hover:border-orange-700/70"

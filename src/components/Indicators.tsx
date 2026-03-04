@@ -12,7 +12,7 @@ export default function Indicators() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="indicators" className="py-24 px-6">
+    <section id="indicators" className="py-16 sm:py-24 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
         <motion.div
           ref={ref}

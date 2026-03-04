@@ -82,7 +82,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="bg-gradient-to-br from-emerald-950/60 to-slate-900/60 border border-emerald-800/40 rounded-2xl px-6 py-6 max-w-2xl mx-auto mb-8 text-left space-y-5"
+          className="bg-gradient-to-br from-emerald-950/60 to-slate-900/60 border border-emerald-800/40 rounded-2xl px-4 sm:px-6 py-5 sm:py-6 max-w-2xl mx-auto mb-8 text-left space-y-5"
         >
           <div className="flex items-start gap-3">
             <span className="mt-1 shrink-0 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]" />
@@ -132,7 +132,7 @@ export default function Hero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="flex flex-wrap items-center justify-center gap-8 text-sm"
+          className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm"
         >
           {[
             { label: "İndikatör", value: "10+" },

@@ -24,7 +24,7 @@ export default async function IndicatorPage({ params }: { params: Promise<{ slug
   if (!ind) notFound();
 
   return (
-    <main className="min-h-screen pt-24 pb-20 px-6" style={{ background: "#050a0e" }}>
+    <main className="min-h-screen pt-24 pb-20 px-4 sm:px-6" style={{ background: "#050a0e" }}>
       <div className="max-w-4xl mx-auto">
         {/* Back */}
         <Link
@@ -64,8 +64,8 @@ export default async function IndicatorPage({ params }: { params: Promise<{ slug
               </span>
             )}
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold mb-4">{ind.title}</h1>
-          <p className="text-slate-400 text-lg leading-relaxed">{ind.shortDesc}</p>
+          <h1 className="text-2xl sm:text-4xl font-extrabold mb-4">{ind.title}</h1>
+          <p className="text-slate-400 text-base sm:text-lg leading-relaxed">{ind.shortDesc}</p>
           <div className="flex flex-wrap gap-2 mt-4">
             {ind.tags.map((tag) => (
               <span
@@ -98,7 +98,7 @@ export default async function IndicatorPage({ params }: { params: Promise<{ slug
         )}
 
         {/* Description */}
-        <div className="bg-[#0a1628]/80 border border-slate-800 rounded-2xl p-8 mb-8">
+        <div className="bg-[#0a1628]/80 border border-slate-800 rounded-2xl p-5 sm:p-8 mb-8">
           <h2 className="text-xl font-bold mb-4 text-emerald-400">Açıklama</h2>
           {ind.description === "Bu indikatör hakkında detaylı açıklama yakında eklenecek." ? (
             <p className="text-slate-500 italic">Detaylı açıklama yakında eklenecek...</p>

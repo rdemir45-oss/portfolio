@@ -16,7 +16,7 @@ export default function About() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="about" className="py-24 px-6">
+    <section id="about" className="py-16 sm:py-24 px-4 sm:px-6">
       <div className="max-w-5xl mx-auto">
         <motion.div
           ref={ref}
@@ -29,9 +29,9 @@ export default function About() {
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold mb-12">Kim Miyim?</h2>
 
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="grid md:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
-              <div className="w-48 h-48 rounded-2xl mx-auto md:mx-0 flex items-center justify-center text-5xl font-black border border-emerald-800/50 shadow-2xl shadow-emerald-950/30"
+              <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-2xl mx-auto md:mx-0 flex items-center justify-center text-4xl sm:text-5xl font-black border border-emerald-800/50 shadow-2xl shadow-emerald-950/30"
                 style={{ background: "linear-gradient(135deg, #064e3b, #0a1628)" }}>
                 <span className="text-emerald-400">TBS</span>
               </div>
