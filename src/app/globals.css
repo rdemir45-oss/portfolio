@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030712;
-  --foreground: #f9fafb;
+  --background: #050a0e;
+  --foreground: #e2e8f0;
 }
 
 body {
@@ -14,19 +14,26 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #111827;
+  background: #0a1628;
 }
 ::-webkit-scrollbar-thumb {
-  background: #6366f1;
+  background: #10b981;
   border-radius: 3px;
 }
 
-/* Section padding */
 section {
   scroll-margin-top: 80px;
+}
+
+/* Candlestick decorative flicker */
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.live-dot {
+  animation: pulse-green 1.5s ease-in-out infinite;
 }

@@ -2,6 +2,14 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef } from "react";
+import { TbBrandTwitter, TbChartCandle, TbCode, TbZoomMoney } from "react-icons/tb";
+
+const facts = [
+  { icon: <TbChartCandle size={20} />, text: "Teknik analiz & price action odaklı geliştirme" },
+  { icon: <TbCode size={20} />, text: "Pine Script v5 ve Matriks yazılım dilleri" },
+  { icon: <TbZoomMoney size={20} />, text: "BIST, Forex ve Kripto piyasaları için araçlar" },
+  { icon: <TbBrandTwitter size={20} />, text: "Twitter'da analiz ve indikatör paylaşımları" },
+];
 
 export default function About() {
   const ref = useRef(null);
@@ -16,45 +24,51 @@ export default function About() {
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
         >
-          <p className="text-indigo-400 font-medium uppercase tracking-widest text-sm mb-2">
+          <p className="text-emerald-400 font-medium uppercase tracking-widest text-sm mb-2">
             Hakkımda
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold mb-12">Kim Miyim?</h2>
 
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Avatar placeholder */}
-            <div className="flex justify-center">
-              <div className="w-56 h-56 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-7xl font-bold text-white shadow-2xl">
-                RD
+            <div>
+              <div className="w-48 h-48 rounded-2xl mx-auto md:mx-0 flex items-center justify-center text-5xl font-black border border-emerald-800/50 shadow-2xl shadow-emerald-950/30"
+                style={{ background: "linear-gradient(135deg, #064e3b, #0a1628)" }}>
+                <span className="text-emerald-400">TBS</span>
               </div>
             </div>
 
-            <div className="space-y-4 text-gray-300 leading-relaxed">
+            <div className="space-y-4 text-slate-300 leading-relaxed">
               <p>
-                Merhaba! Ben Recep Demir, modern web teknolojilerine tutkuyla
-                bağlı bir Full-Stack Developer&apos;ım.
+                Merhaba! Ben <span className="text-emerald-400 font-semibold">@0TheBigShort1</span>, 
+                borsa piyasalarına olan ilgim ve yazılım geliştirme tutkumu birleştirerek 
+                TradingView ve Matriks platformları için özel indikatörler ve algoritmik trading araçları geliştiriyorum.
               </p>
               <p>
-                React, Next.js ve Node.js gibi teknolojilerle kullanıcı dostu
-                arayüzler ve güçlü backend sistemleri geliştiriyorum. Aynı zamanda
-                TypeScript kullanarak daha güvenli ve sürdürülebilir kod yazmaya
-                önem veriyorum.
+                Teknik analiz, Smart Money Concepts (SMC) ve price action üzerine
+                yoğunlaşıyorum. Geliştirdiğim araçlar; BIST, Forex ve kripto
+                piyasalarında trader&apos;lara zaman kazandırmak ve doğru karar vermelerine
+                yardımcı olmak amacıyla tasarlanmıştır.
               </p>
-              <p>
-                Boş zamanlarımda açık kaynak projelere katkıda bulunuyor,
-                yeni teknolojileri keşfediyor ve blog yazıları yazıyorum.
-              </p>
-              <div className="flex flex-wrap gap-3 pt-2">
-                {["Next.js", "TypeScript", "Node.js", "React", "PostgreSQL", "Docker"].map(
-                  (tag) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1 text-sm rounded-full bg-indigo-950/60 border border-indigo-800/50 text-indigo-300"
-                    >
-                      {tag}
-                    </span>
-                  )
-                )}
+
+              <ul className="pt-2 space-y-3">
+                {facts.map((f, i) => (
+                  <li key={i} className="flex items-center gap-3 text-sm">
+                    <span className="text-emerald-400 flex-shrink-0">{f.icon}</span>
+                    {f.text}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="pt-4">
+                <a
+                  href="https://twitter.com/0TheBigShort1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-emerald-700 text-emerald-400 hover:bg-emerald-950/60 transition-colors text-sm font-medium"
+                >
+                  <TbBrandTwitter size={16} />
+                  Twitter&apos;da Takip Et
+                </a>
               </div>
             </div>
           </div>

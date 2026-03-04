@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { HiMenuAlt3, HiX } from "react-icons/hi";
 
 const links = [
+  { href: "#indicators", label: "İndikatörler" },
+  { href: "#platforms", label: "Platformlar" },
   { href: "#about", label: "Hakkımda" },
-  { href: "#projects", label: "Projeler" },
-  { href: "#skills", label: "Yetenekler" },
   { href: "#contact", label: "İletişim" },
 ];
 
@@ -23,12 +23,17 @@ export default function Navbar() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-gray-950/90 backdrop-blur-md shadow-lg" : "bg-transparent"
+        scrolled
+          ? "bg-[#050a0e]/90 backdrop-blur-md shadow-lg shadow-emerald-950/20 border-b border-emerald-900/20"
+          : "bg-transparent"
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <a href="#" className="text-xl font-bold text-indigo-400 tracking-tight">
-          RD<span className="text-white">.</span>
+        <a href="#" className="flex items-center gap-2">
+          <span className="text-emerald-400 font-black text-xl tracking-tight">
+            TheBigShort
+          </span>
+          <span className="live-dot w-2 h-2 rounded-full bg-emerald-400 inline-block" />
         </a>
 
         {/* Desktop */}
@@ -37,44 +42,60 @@ export default function Navbar() {
             <a
               key={l.href}
               href={l.href}
-              className="text-sm text-gray-300 hover:text-indigo-400 transition-colors"
+              className="text-sm text-slate-400 hover:text-emerald-400 transition-colors"
             >
               {l.label}
             </a>
           ))}
         </nav>
 
-        {/* Mobile toggle */}
+        <a
+          href="https://twitter.com/0TheBigShort1"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-700 text-emerald-400 text-sm hover:bg-emerald-950/60 transition-colors"
+        >
+          @0TheBigShort1
+        </a>
+
         <button
-          className="md:hidden text-gray-300 hover:text-white"
+          className="md:hidden text-slate-300 hover:text-white"
           onClick={() => setMenuOpen(!menuOpen)}
         >
           {menuOpen ? <HiX size={24} /> : <HiMenuAlt3 size={24} />}
         </button>
       </div>
 
-      {/* Mobile menu */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-gray-950/95 backdrop-blur-md px-6 pb-4"
+            className="md:hidden bg-[#050a0e]/95 backdrop-blur-md px-6 pb-4"
           >
             {links.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
                 onClick={() => setMenuOpen(false)}
-                className="block py-3 text-gray-300 hover:text-indigo-400 transition-colors border-b border-gray-800 last:border-0"
+                className="block py-3 text-slate-300 hover:text-emerald-400 transition-colors border-b border-slate-800 last:border-0"
               >
                 {l.label}
               </a>
             ))}
+            <a
+              href="https://twitter.com/0TheBigShort1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block py-3 text-emerald-400 font-medium"
+            >
+              Twitter: @0TheBigShort1
+            </a>
           </motion.div>
         )}
       </AnimatePresence>
     </header>
   );
 }
+

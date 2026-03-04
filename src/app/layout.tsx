@@ -9,8 +9,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Recep Demir | Portfolio",
-  description: "Kişisel portfolyo web sitesi — Full-Stack Developer",
+  title: "The Big Short | TradingView & Matriks İndikatörleri",
+  description: "TradingView ve Matriks platformları için profesyonel borsa indikatörleri ve algoritmik trading yazılımları.",
+  keywords: "TradingView indikatör, Matriks indikatör, borsa, algoritmik trading, Pine Script",
+  openGraph: {
+    title: "The Big Short | TradingView & Matriks İndikatörleri",
+    description: "Profesyonel borsa indikatörleri ve algoritmik trading yazılımları.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -20,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" className="scroll-smooth">
-      <body className={`${inter.variable} font-sans bg-gray-950 text-white antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased`} style={{ background: "#050a0e", color: "#e2e8f0" }}>
         <Navbar />
         {children}
       </body>
