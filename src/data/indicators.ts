@@ -17,9 +17,20 @@ export const indicators: Indicator[] = [
     title: "RdAlgo Harmonik Tarama & Otomatik Fibonacci",
     platform: "TradingView",
     shortDesc:
-      "Pine Script v5 ile yazılmış profesyonel Harmonik Pattern Tarayıcı & Otomatik Fibonacci indikatörü.",
+      "BIST 100 üzerinde otomatik harmonik formasyon taraması yapan ve gerçek zamanlı Fibonacci seviyeleri çizen profesyonel Pine Script v5 indikatörü.",
     description:
-      "Bu indikatör hakkında detaylı açıklama yakında eklenecek.",
+      `RdAlgo Harmonik Tarama & Otomatik Fibonacci Sistemi, teknik analizin en güçlü araçlarından biri olan harmonik formasyonları tamamen otomatik olarak tespit eden kapsamlı bir Pine Script v5 indikatörüdür.
+
+BIST 100 hisselerini tarayarak mevcut grafik üzerindeki tüm harmonik yapıları (Gartley, Butterfly, Bat, Crab, Shark vb.) gerçek zamanlı olarak işaretler. Yalnızca güncel formasyonlarla kalmaz; geriye dönük otomatik çizimler sayesinde geçmişteki harmonik yapılar da grafiğe yansıtılarak fiyat davranışını daha derin bir perspektiften analiz etmenizi sağlar.
+
+Otomatik Fibonacci modülü, önemli dönüş noktalarını ve potansiyel hedef bölgelerini fiyat hareketiyle senkronize biçimde çizer. Düzeltme seviyeleri ve projeksiyon hedefleri anlık olarak güncellenerek manuel çizim ihtiyacını ortadan kaldırır.
+
+**Öne Çıkan Özellikler:**
+- BIST 100 genelinde harmonik formasyon taraması
+- Gerçek zamanlı ve geriye dönük otomatik çizimler
+- Birden fazla harmonik formasyon tipini aynı anda tespit etme
+- Otomatik Fibonacci düzeltme ve projeksiyon seviyeleri
+- Pine Script v5 ile yüksek performanslı ve optimize edilmiş yapı`,
     images: [],
     tags: ["Pine Script v5", "Harmonik", "Fibonacci", "Pattern"],
     badge: "Popüler",
@@ -31,9 +42,20 @@ export const indicators: Indicator[] = [
     title: "RdAlgo Mum Formasyonları Tarayıcısı",
     platform: "TradingView",
     shortDesc:
-      "Kapsamlı mum formasyonlarını otomatik olarak tarayan ve işaretleyen Pine Script v5 indikatörü.",
+      "Onlarca mum formasyonunu otomatik tespit eden, grafik üzerinde işaretleyen ve tarama yapan Pine Script v5 indikatörü.",
     description:
-      "Bu indikatör hakkında detaylı açıklama yakında eklenecek.",
+      `RdAlgo Mum Formasyonları Tarayıcısı, Türk borsasının hızlı tempolu yapısına uygun olarak geliştirilmiş, mum formasyonlarını otomatik olarak tanıyan ve görselleştiren kapsamlı bir Pine Script v5 indikatörüdür.
+
+Grafik üzerinde oluşan tüm önemli mum yapılarını (Doji, Hammer, Engulfing, Morning Star, Evening Star, Harami ve daha fazlası) gerçek zamanlı olarak tespit eder; her birini doğrudan grafik üzerinde etiketleyerek anlık okuma imkânı sunar. Formasyonun yönü, gücü ve güvenilirlik seviyesi gibi bilgiler işaret üzerinde görüntülenir.
+
+Tarama modülü sayesinde yalnızca aktif grafikle sınırlı kalmaz; belirlediğiniz kriterler çerçevesinde formasyon oluşumlarına dair anlık uyarılar alabilirsiniz. Bu sayede fırsatları kaçırmadan, dakika kaybetmeden harekete geçebilirsiniz.
+
+**Öne Çıkan Özellikler:**
+- Otomatik mum formasyonu tespiti ve grafik üzeri etiketleme
+- Tek, çift ve üçlü mum formasyonlarını destekler
+- Formasyon bazlı tarama ve anlık uyarı sistemi
+- Yönlü (bullish/bearish) ayrımıyla net sinyal üretimi
+- Pine Script v5 ile hafif ve hızlı çalışan mimari`,
     images: [],
     tags: ["Pine Script v5", "Mum Formasyonu", "Tarayıcı", "Pattern"],
     tradingviewUrl: "https://www.tradingview.com",
