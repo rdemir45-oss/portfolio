@@ -77,21 +77,37 @@ export default function Hero() {
           Borsa için Algoritmik İndikatörler &amp; Trading Yazılımları
         </motion.p>
 
-        <motion.p
+        {/* Çarpıcı ana mesaj */}
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="text-slate-400 max-w-xl mx-auto mb-10 leading-relaxed"
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="bg-gradient-to-br from-emerald-950/60 to-slate-900/60 border border-emerald-800/40 rounded-2xl px-6 py-6 max-w-2xl mx-auto mb-8 text-left space-y-5"
         >
-          TradingView (Pine Script) ve Matriks platformları için geliştirdiğim
-          özel indikatörler, sinyal sistemleri ve algoritmik trading araçları.
-          BIST ve global piyasalar için optimize edilmiş çözümler.
-        </motion.p>
+          <div className="flex items-start gap-3">
+            <span className="mt-1 shrink-0 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]" />
+            <p className="text-slate-200 leading-relaxed">
+              <span className="text-white font-semibold">Formasyonları ve sinyalleri biliyorsunuz</span> —
+              peki BIST&#39;teki 600+ hisseyi tek tek incelemek için saatlerinizi harcıyor musunuz?{" "}
+              <span className="text-emerald-400 font-semibold">RdAlgo sistemleri</span> ile aradığınız setup&#39;ı
+              saniyeler içinde bulun; trende hazır olun, fırsatı kaçırmayın.
+            </p>
+          </div>
+          <div className="flex items-start gap-3">
+            <span className="mt-1 shrink-0 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]" />
+            <p className="text-slate-200 leading-relaxed">
+              <span className="text-white font-semibold">Kendi stratejiniz var ama kodlamayı bilmiyor musunuz?</span>{" "}
+              Hiç sorun değil.{" "}
+              <span className="text-emerald-400 font-semibold">RdAlgo ile iletişime geçin</span>,
+              stratejinizi birlikte kodlayalım — kafanızdaki fikri çalışan bir algoritmaya dönüştürelim.
+            </p>
+          </div>
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
+          transition={{ duration: 0.5, delay: 0.45 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10"
         >
           <a
