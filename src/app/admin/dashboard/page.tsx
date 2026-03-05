@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck } from "react-icons/tb";
-import type { DbPost, DbIndicator, DbMessage } from "@/lib/supabase";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser } from "react-icons/tb";
+import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest } from "@/lib/supabase";
 
 const catColors: Record<string, string> = {
   "Teknik Analiz": "text-emerald-400 bg-emerald-950/40 border-emerald-800/60",
@@ -25,7 +25,8 @@ export default function AdminDashboard() {
   const [posts, setPosts] = useState<DbPost[]>([]);
   const [indicators, setIndicators] = useState<DbIndicator[]>([]);
   const [messages, setMessages] = useState<DbMessage[]>([]);
-  const [tab, setTab] = useState<"posts" | "indicators" | "messages">("posts");
+  const [whatsappRequests, setWhatsappRequests] = useState<DbWhatsappRequest[]>([]);
+  const [tab, setTab] = useState<"posts" | "indicators" | "messages" | "whatsapp">("posts");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [seeding, setSeeding] = useState(false);
@@ -34,14 +35,16 @@ export default function AdminDashboard() {
 
   async function fetchAll() {
     setLoading(true);
-    const [postsRes, indRes, msgRes] = await Promise.all([
+    const [postsRes, indRes, msgRes, waRes] = await Promise.all([
       fetch("/api/admin/posts"),
       fetch("/api/admin/indicators"),
       fetch("/api/admin/messages"),
+      fetch("/api/admin/whatsapp"),
     ]);
     if (postsRes.ok) setPosts(await postsRes.json());
     if (indRes.ok) setIndicators(await indRes.json());
     if (msgRes.ok) setMessages(await msgRes.json());
+    if (waRes.ok) setWhatsappRequests(await waRes.json());
     setLoading(false);
   }
 
@@ -147,6 +150,12 @@ export default function AdminDashboard() {
                 {messages.filter(m => !m.read).length}
               </span>
             )}
+          </button>
+          <button onClick={() => setTab("whatsapp")}
+            className={`relative px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "whatsapp"
+              ? "bg-green-950/40 border-green-800 text-green-400"
+              : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
+            WhatsApp ({whatsappRequests.length})
           </button>
         </div>
 
@@ -364,6 +373,59 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <p className="text-sm text-slate-300 mt-2 leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* WhatsApp Requests Tab */}
+          {tab === "whatsapp" && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-white">WhatsApp Grubu Talepleri</h2>
+                <span className="text-sm text-slate-500">{whatsappRequests.length} kayıt</span>
+              </div>
+              {loading ? (
+                <p className="text-slate-500 text-sm py-8 text-center">Yükleniyor...</p>
+              ) : whatsappRequests.length === 0 ? (
+                <p className="text-slate-500 text-sm py-8 text-center">Henüz talep yok.</p>
+              ) : (
+                <div className="space-y-3">
+                  {whatsappRequests.map((req) => (
+                    <div key={req.id} className="flex items-center gap-4 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors">
+                      <div className="p-2 bg-green-950/40 border border-green-900/60 rounded-xl shrink-0">
+                        <TbBrandWhatsapp size={18} className="text-green-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span className="flex items-center gap-1.5 text-sm font-semibold text-white">
+                            <TbUser size={13} className="text-slate-400" />
+                            {req.name} {req.surname}
+                          </span>
+                          <a
+                            href={`tel:${req.phone}`}
+                            className="flex items-center gap-1.5 text-sm text-green-400 hover:underline"
+                          >
+                            <TbPhone size={13} />
+                            {req.phone}
+                          </a>
+                          <span className="text-xs text-slate-500">
+                            {new Date(req.created_at).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`"${req.name} ${req.surname}" kaydı silinsin mi?`)) return;
+                          await fetch(`/api/admin/whatsapp?id=${req.id}`, { method: "DELETE" });
+                          fetchAll();
+                        }}
+                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors shrink-0"
+                      >
+                        <TbTrash size={15} />
+                      </button>
                     </div>
                   ))}
                 </div>

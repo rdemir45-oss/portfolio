@@ -1,7 +1,9 @@
 "use client";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { FiTwitter, FiArrowDown } from "react-icons/fi";
-import { TbChartCandleFilled } from "react-icons/tb";
+import { TbChartCandleFilled, TbBrandWhatsapp } from "react-icons/tb";
+import WhatsappModal from "./WhatsappModal";
 
 /* Decorative fake candlestick bars */
 const bars = [
@@ -20,6 +22,8 @@ const bars = [
 ];
 
 export default function Hero() {
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
+
   return (
     <section
       id="hero"
@@ -107,11 +111,26 @@ export default function Hero() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.45 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10"
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mb-6"
         >
-          <a
-            href="#indicators"
+          <button
+            onClick={() => setWhatsappOpen(true)}
+            className="group relative inline-flex items-center gap-3 px-6 py-3.5 rounded-2xl bg-green-950/60 border border-green-700/60 hover:border-green-500 hover:bg-green-950/80 transition-all"
+          >
+            {/* Pulse ring */}
+            <span className="absolute -inset-px rounded-2xl border border-green-500/40 animate-ping opacity-75 group-hover:opacity-0" />
+            <div className="p-1.5 bg-green-800/60 rounded-xl">
+              <TbBrandWhatsapp size={20} className="text-green-400" />
+            </div>
+            <div className="text-left">
+              <div className="text-white font-semibold text-sm leading-tight">WhatsApp Grubuna Katıl</div>
+              <div className="text-green-400/80 text-xs">Sinyaller, analizler ve duyurular için tıkla →</div>
+            </div>
+          </button>
+        </motion.div>
+
+        <motion.div
             className="px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors"
           >
             İndikatörleri İncele
@@ -156,6 +175,8 @@ export default function Hero() {
       >
         <FiArrowDown size={24} />
       </motion.a>
+
+      <WhatsappModal open={whatsappOpen} onClose={() => setWhatsappOpen(false)} />
     </section>
   );
 }

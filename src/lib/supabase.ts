@@ -46,3 +46,11 @@ export interface DbMessage {
   read: boolean;
   created_at: string;
 }
+
+export interface DbWhatsappRequest {
+  id: number;
+  name: string;
+  surname: string;
+  phone: string;
+  created_at: string;
+}
