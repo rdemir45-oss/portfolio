@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle } from "react-icons/tb";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport } from "react-icons/tb";
 import type { DbPost, DbIndicator } from "@/lib/supabase";
 
 const catColors: Record<string, string> = {
@@ -27,6 +27,7 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<"posts" | "indicators">("posts");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [seeding, setSeeding] = useState(false);
   const router = useRouter();
 
   async function fetchAll() {
@@ -61,6 +62,20 @@ export default function AdminDashboard() {
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
     router.push("/admin/login");
+  }
+
+  async function handleSeedIndicators() {
+    if (!confirm("Mevcut 10 indikatör Supabase'e aktarılsın mı? Zaten varsa üzerine yazılmaz.")) return;
+    setSeeding(true);
+    const res = await fetch("/api/admin/seed-indicators", { method: "POST" });
+    const json = await res.json();
+    if (json.success) {
+      alert(`${json.count} indikatör başarıyla aktarıldı.`);
+      fetchAll();
+    } else {
+      alert("Bazı indikatörler aktarılamadı: " + JSON.stringify(json.failed));
+    }
+    setSeeding(false);
   }
 
   return (
@@ -173,6 +188,15 @@ export default function AdminDashboard() {
             <>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-white">İndikatörler</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSeedIndicators}
+                  disabled={seeding}
+                  className="flex items-center gap-2 px-4 py-2 border border-slate-700 hover:border-emerald-700 text-slate-400 hover:text-emerald-400 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                >
+                  <TbDatabaseImport size={16} />
+                  {seeding ? "Aktarılıyor..." : "Mevcut Verileri Aktar"}
+                </button>
                 <Link
                   href="/admin/indicators/new"
                   className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition-colors"
@@ -180,6 +204,7 @@ export default function AdminDashboard() {
                   <TbPlus size={16} />
                   Yeni İndikatör
                 </Link>
+              </div>
               </div>
               {loading ? (
                 <p className="text-slate-500 text-sm py-8 text-center">Yükleniyor...</p>
