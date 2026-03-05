@@ -1,16 +1,45 @@
 import { indicators } from "@/data/indicators";
+import { createClient } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { TbArrowLeft, TbBrandTwitter, TbExternalLink } from "react-icons/tb";
 import { SiTradingview } from "react-icons/si";
 
-export async function generateStaticParams() {
-  return indicators.map((ind) => ({ slug: ind.slug }));
+export const dynamic = "force-dynamic";
+
+async function getIndicator(slug: string) {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("indicators")
+      .select("*")
+      .eq("slug", slug)
+      .single();
+    if (!error && data) {
+      return {
+        slug: data.slug,
+        title: data.title,
+        platform: data.platform as "TradingView" | "Matriks",
+        shortDesc: data.short_desc,
+        description: data.description,
+        images: data.images ?? [],
+        tags: data.tags ?? [],
+        badge: data.badge ?? undefined,
+        badgeColor: data.badge_color ?? undefined,
+        tradingviewUrl: data.tradingview_url ?? undefined,
+        cover_image: data.cover_image ?? undefined,
+      };
+    }
+  } catch {}
+  const ind = indicators.find((i) => i.slug === slug);
+  if (!ind) return null;
+  return { ...ind, cover_image: undefined };
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const ind = indicators.find((i) => i.slug === slug);
+  const ind = await getIndicator(slug);
   if (!ind) return {};
   return {
     title: `${ind.title} | TheBigShort`,
@@ -20,7 +49,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function IndicatorPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const ind = indicators.find((i) => i.slug === slug);
+  const ind = await getIndicator(slug);
   if (!ind) notFound();
 
   return (
@@ -77,6 +106,13 @@ export default async function IndicatorPage({ params }: { params: Promise<{ slug
             ))}
           </div>
         </div>
+
+        {/* Cover Image */}
+        {"cover_image" in ind && ind.cover_image && (
+          <div className="relative w-full h-64 sm:h-80 rounded-2xl overflow-hidden border border-slate-800 mb-10">
+            <Image src={ind.cover_image} alt={ind.title} fill className="object-cover" />
+          </div>
+        )}
 
         {/* Images */}
         {ind.images.length > 0 ? (

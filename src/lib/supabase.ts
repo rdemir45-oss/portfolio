@@ -20,3 +20,20 @@ export interface DbPost {
   cover_image?: string | null;
   created_at?: string;
 }
+
+export interface DbIndicator {
+  id: number;
+  slug: string;
+  title: string;
+  platform: "TradingView" | "Matriks";
+  short_desc: string;
+  description: string;
+  cover_image?: string | null;
+  images: string[];
+  tags: string[];
+  badge?: string | null;
+  badge_color?: string | null;
+  tradingview_url?: string | null;
+  sort_order: number;
+  created_at?: string;
+}
