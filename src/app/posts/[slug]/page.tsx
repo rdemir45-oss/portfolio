@@ -19,6 +19,8 @@ async function getPost(slug: string): Promise<DbPost | null> {
   return { ...s, id: 0, pinned: s.pinned ?? false };
 }
 
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
   return staticPosts.map((p) => ({ slug: p.slug }));
 }
