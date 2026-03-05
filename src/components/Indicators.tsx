@@ -1,10 +1,9 @@
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { indicators as staticIndicators } from "@/data/indicators";
 import IndicatorsClient, { type IndicatorItem } from "./IndicatorsClient";
 
 async function getIndicators(): Promise<IndicatorItem[]> {
   try {
-    const supabase = createClient();
     const { data, error } = await supabase
       .from("indicators")
       .select("slug, title, platform, short_desc, tags, badge, badge_color, cover_image")

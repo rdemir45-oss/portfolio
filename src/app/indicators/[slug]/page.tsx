@@ -1,5 +1,5 @@
 import { indicators } from "@/data/indicators";
-import { createClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -10,7 +10,6 @@ export const dynamic = "force-dynamic";
 
 async function getIndicator(slug: string) {
   try {
-    const supabase = createClient();
     const { data, error } = await supabase
       .from("indicators")
       .select("*")
@@ -96,7 +95,7 @@ export default async function IndicatorPage({ params }: { params: Promise<{ slug
           <h1 className="text-2xl sm:text-4xl font-extrabold mb-4">{ind.title}</h1>
           <p className="text-slate-400 text-base sm:text-lg leading-relaxed">{ind.shortDesc}</p>
           <div className="flex flex-wrap gap-2 mt-4">
-            {ind.tags.map((tag) => (
+            {ind.tags.map((tag: string) => (
               <span
                 key={tag}
                 className="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300"
@@ -117,7 +116,7 @@ export default async function IndicatorPage({ params }: { params: Promise<{ slug
         {/* Images */}
         {ind.images.length > 0 ? (
           <div className="space-y-4 mb-10">
-            {ind.images.map((src, i) => (
+            {ind.images.map((src: string, i: number) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={i}
