@@ -17,5 +17,6 @@ export interface DbPost {
   content: string;
   tags: string[];
   pinned: boolean;
+  cover_image?: string | null;
   created_at?: string;
 }

@@ -2,8 +2,9 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { TbArrowLeft } from "react-icons/tb";
+import { TbArrowLeft, TbPhoto, TbX } from "react-icons/tb";
 import type { DbPost } from "@/lib/supabase";
+import Image from "next/image";
 
 const categories = ["Teknik Analiz", "Eğitim", "Duyuru"];
 
@@ -15,6 +16,8 @@ export default function EditPostPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "", slug: "", category: "Teknik Analiz",
     date: "", summary: "", content: "", tags: "", pinned: false,
@@ -28,8 +31,7 @@ export default function EditPostPage() {
           title: post.title, slug: post.slug, category: post.category,
           date: post.date, summary: post.summary, content: post.content,
           tags: post.tags.join(", "), pinned: post.pinned,
-        });
-      }
+        });        setCoverImage(post.cover_image ?? null);      }
       setLoading(false);
     });
   }, [id]);
@@ -40,6 +42,19 @@ export default function EditPostPage() {
     setForm((prev) => ({ ...prev, [name]: val }));
   }
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    if (data.url) setCoverImage(data.url);
+    else setError("Resim yüklenemedi: " + data.error);
+    setUploading(false);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -48,6 +63,7 @@ export default function EditPostPage() {
       id: Number(id),
       ...form,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      cover_image: coverImage ?? null,
     };
     const res = await fetch("/api/admin/posts", {
       method: "PUT",
@@ -99,6 +115,32 @@ export default function EditPostPage() {
           <Field label="Özet *">
             <textarea name="summary" value={form.summary} onChange={handleChange} required rows={2} className={inputCls} />
           </Field>
+
+          {/* Kapak Resmi */}
+          <Field label="Kapak Resmi" hint="Kartlarda ve yazı başında görünür.">
+            {coverImage ? (
+              <div className="relative rounded-xl overflow-hidden border border-slate-700">
+                <Image src={coverImage} alt="Kapak resmi" width={800} height={400} className="w-full h-48 object-cover" />
+                <button type="button" onClick={() => setCoverImage(null)}
+                  className="absolute top-2 right-2 p-1.5 bg-slate-900/80 rounded-full text-white hover:bg-red-900/80 transition-colors">
+                  <TbX size={16} />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-2 h-32 border-2 border-dashed border-slate-700 rounded-xl cursor-pointer hover:border-emerald-600 transition-colors">
+                {uploading ? (
+                  <span className="text-slate-400 text-sm">Yükleniyor...</span>
+                ) : (
+                  <>
+                    <TbPhoto size={28} className="text-slate-600" />
+                    <span className="text-slate-500 text-sm">Resim seç veya sürükle</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
+              </label>
+            )}
+          </Field>
+
           <Field label="İçerik *" hint="**Kalın**, *Alt başlık*, - Madde">
             <textarea name="content" value={form.content} onChange={handleChange} required rows={14} className={`${inputCls} font-mono text-sm`} />
           </Field>
@@ -111,7 +153,7 @@ export default function EditPostPage() {
           </label>
           {error && <p className="text-red-400 text-sm">{error}</p>}
           <div className="flex items-center gap-3 pt-2">
-            <button type="submit" disabled={saving}
+            <button type="submit" disabled={saving || uploading}
               className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors">
               {saving ? "Kaydediliyor..." : "Güncelle"}
             </button>

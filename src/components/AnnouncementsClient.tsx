@@ -4,6 +4,7 @@ import { useInView } from "framer-motion";
 import { useRef, useState } from "react";
 import { TbPin, TbArrowRight, TbChartLine, TbBook, TbBell } from "react-icons/tb";
 import Link from "next/link";
+import Image from "next/image";
 import type { DbPost, PostCategory } from "@/lib/supabase";
 
 const categoryConfig: Record<
@@ -88,8 +89,15 @@ export default function AnnouncementsClient({ posts }: { posts: DbPost[] }) {
                 >
                   <Link
                     href={`/posts/${post.slug}`}
-                    className="group flex flex-col h-full bg-[#0a1628]/80 border border-slate-800 rounded-2xl p-6 hover:border-emerald-700/70 transition-all hover:shadow-lg hover:shadow-emerald-950/30"
+                    className="group flex flex-col h-full bg-[#0a1628]/80 border border-slate-800 rounded-2xl overflow-hidden hover:border-emerald-700/70 transition-all hover:shadow-lg hover:shadow-emerald-950/30"
                   >
+                    {/* Kapak resmi */}
+                    {post.cover_image && (
+                      <div className="relative w-full h-44 overflow-hidden">
+                        <Image src={post.cover_image} alt={post.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                      </div>
+                    )}
+                    <div className="p-6 flex flex-col flex-1">
                     <div className="flex items-center justify-between mb-4">
                       <span className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${cfg.bg} ${cfg.border} ${cfg.color}`}>
                         {cfg.icon}{post.category}
@@ -112,6 +120,7 @@ export default function AnnouncementsClient({ posts }: { posts: DbPost[] }) {
                     </div>
                     <div className="flex items-center gap-1 text-emerald-500 text-sm font-medium mt-auto group-hover:gap-2 transition-all">
                       Devamını oku <TbArrowRight size={16} />
+                    </div>
                     </div>
                   </Link>
                 </motion.div>

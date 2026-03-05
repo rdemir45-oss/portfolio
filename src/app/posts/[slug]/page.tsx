@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { TbArrowLeft, TbChartLine, TbBook, TbBell, TbPin } from "react-icons/tb";
 import type { Metadata } from "next";
+import Image from "next/image";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -126,6 +127,13 @@ export default async function PostPage({ params }: Props) {
         <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight mb-5">
           {post.title}
         </h1>
+
+        {/* Kapak resmi */}
+        {post.cover_image && (
+          <div className="relative w-full h-64 sm:h-80 rounded-2xl overflow-hidden mb-8 border border-slate-800">
+            <Image src={post.cover_image} alt={post.title} fill className="object-cover" />
+          </div>
+        )}
 
         {/* Özet */}
         <p className="text-slate-400 text-base leading-relaxed border-l-2 border-emerald-700 pl-4 mb-10">
