@@ -28,6 +28,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [seedingPosts, setSeedingPosts] = useState(false);
   const router = useRouter();
 
   async function fetchAll() {
@@ -78,6 +79,20 @@ export default function AdminDashboard() {
     setSeeding(false);
   }
 
+  async function handleSeedPosts() {
+    if (!confirm("Mevcut 4 yazı Supabase'e aktarılsın mı? Zaten varsa üzerine yazılmaz.")) return;
+    setSeedingPosts(true);
+    const res = await fetch("/api/admin/seed-posts", { method: "POST" });
+    const json = await res.json();
+    if (json.success) {
+      alert(`${json.count} yazı başarıyla aktarıldı.`);
+      fetchAll();
+    } else {
+      alert("Bazı yazılar aktarılamadı: " + JSON.stringify(json.failed));
+    }
+    setSeedingPosts(false);
+  }
+
   return (
     <main className="min-h-screen px-4 sm:px-8 pt-10 pb-20">
       <div className="max-w-5xl mx-auto">
@@ -123,13 +138,23 @@ export default function AdminDashboard() {
             <>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-white">Yazılar</h2>
-                <Link
-                  href="/admin/posts/new"
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition-colors"
-                >
-                  <TbPlus size={16} />
-                  Yeni Yazı
-                </Link>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSeedPosts}
+                    disabled={seedingPosts}
+                    className="flex items-center gap-2 px-4 py-2 border border-slate-700 hover:border-emerald-700 text-slate-400 hover:text-emerald-400 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    <TbDatabaseImport size={16} />
+                    {seedingPosts ? "Aktarılıyor..." : "Mevcut Verileri Aktar"}
+                  </button>
+                  <Link
+                    href="/admin/posts/new"
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition-colors"
+                  >
+                    <TbPlus size={16} />
+                    Yeni Yazı
+                  </Link>
+                </div>
               </div>
               {loading ? (
                 <p className="text-slate-500 text-sm py-8 text-center">Yükleniyor...</p>
