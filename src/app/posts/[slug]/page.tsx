@@ -1,4 +1,6 @@
-import { posts } from "@/data/posts";
+import { posts as staticPosts } from "@/data/posts";
+import { supabase } from "@/lib/supabase";
+import type { DbPost } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { TbArrowLeft, TbChartLine, TbBook, TbBell, TbPin } from "react-icons/tb";
@@ -6,13 +8,24 @@ import type { Metadata } from "next";
 
 type Props = { params: Promise<{ slug: string }> };
 
+async function getPost(slug: string): Promise<DbPost | null> {
+  try {
+    const { data } = await supabase.from("posts").select("*").eq("slug", slug).single();
+    if (data) return data;
+  } catch {}
+  // Static fallback
+  const s = staticPosts.find((p) => p.slug === slug);
+  if (!s) return null;
+  return { ...s, id: 0, pinned: s.pinned ?? false };
+}
+
 export async function generateStaticParams() {
-  return posts.map((p) => ({ slug: p.slug }));
+  return staticPosts.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = posts.find((p) => p.slug === slug);
+  const post = await getPost(slug);
   if (!post) return {};
   return {
     title: `${post.title} | TheBigShort`,
@@ -75,7 +88,7 @@ function renderContent(content: string) {
 
 export default async function PostPage({ params }: Props) {
   const { slug } = await params;
-  const post = posts.find((p) => p.slug === slug);
+  const post = await getPost(slug);
   if (!post) notFound();
 
   const catColor = categoryColors[post.category] || "text-slate-400 bg-slate-800 border-slate-700";
