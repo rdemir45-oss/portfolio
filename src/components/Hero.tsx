@@ -131,6 +131,13 @@ export default function Hero() {
         </motion.div>
 
         <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.55 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10"
+        >
+          <a
+            href="#indicators"
             className="px-8 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors"
           >
             İndikatörleri İncele
