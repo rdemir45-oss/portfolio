@@ -42,16 +42,14 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  async function handleDelete(id: number, title: string) {
-    if (!confirm(`"${title}" silinsin mi?`)) return;
+  async function handleDelete(id: number) {
     setDeleting(id);
     await fetch(`/api/admin/posts?id=${id}`, { method: "DELETE" });
     await fetchAll();
     setDeleting(null);
   }
 
-  async function handleDeleteIndicator(id: number, title: string) {
-    if (!confirm(`"${title}" silinsin mi?`)) return;
+  async function handleDeleteIndicator(id: number) {
     setDeleting(id);
     await fetch(`/api/admin/indicators?id=${id}`, { method: "DELETE" });
     await fetchAll();
@@ -154,7 +152,7 @@ export default function AdminDashboard() {
                           <TbEdit size={16} />
                         </Link>
                         <button
-                          onClick={() => handleDelete(post.id, post.title)}
+                          onClick={() => handleDelete(post.id)}
                           disabled={deleting === post.id}
                           className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
                         >
@@ -223,7 +221,7 @@ export default function AdminDashboard() {
                           <TbEdit size={16} />
                         </Link>
                         <button
-                          onClick={() => handleDeleteIndicator(ind.id, ind.title)}
+                          onClick={() => handleDeleteIndicator(ind.id)}
                           disabled={deleting === ind.id}
                           className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
                         >
