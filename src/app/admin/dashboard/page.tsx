@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport } from "react-icons/tb";
-import type { DbPost, DbIndicator } from "@/lib/supabase";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck } from "react-icons/tb";
+import type { DbPost, DbIndicator, DbMessage } from "@/lib/supabase";
 
 const catColors: Record<string, string> = {
   "Teknik Analiz": "text-emerald-400 bg-emerald-950/40 border-emerald-800/60",
@@ -24,7 +24,8 @@ function formatDate(d: string) {
 export default function AdminDashboard() {
   const [posts, setPosts] = useState<DbPost[]>([]);
   const [indicators, setIndicators] = useState<DbIndicator[]>([]);
-  const [tab, setTab] = useState<"posts" | "indicators">("posts");
+  const [messages, setMessages] = useState<DbMessage[]>([]);
+  const [tab, setTab] = useState<"posts" | "indicators" | "messages">("posts");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [seeding, setSeeding] = useState(false);
@@ -33,12 +34,14 @@ export default function AdminDashboard() {
 
   async function fetchAll() {
     setLoading(true);
-    const [postsRes, indRes] = await Promise.all([
+    const [postsRes, indRes, msgRes] = await Promise.all([
       fetch("/api/admin/posts"),
       fetch("/api/admin/indicators"),
+      fetch("/api/admin/messages"),
     ]);
     if (postsRes.ok) setPosts(await postsRes.json());
     if (indRes.ok) setIndicators(await indRes.json());
+    if (msgRes.ok) setMessages(await msgRes.json());
     setLoading(false);
   }
 
@@ -122,14 +125,29 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
-          {(["posts", "indicators"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === t
-                ? "bg-emerald-950/40 border-emerald-800 text-emerald-400"
-                : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
-              {t === "posts" ? `Yazılar (${posts.length})` : `İndikatörler (${indicators.length})`}
-            </button>
-          ))}
+          <button onClick={() => setTab("posts")}
+            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "posts"
+              ? "bg-emerald-950/40 border-emerald-800 text-emerald-400"
+              : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
+            Yazılar ({posts.length})
+          </button>
+          <button onClick={() => setTab("indicators")}
+            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "indicators"
+              ? "bg-emerald-950/40 border-emerald-800 text-emerald-400"
+              : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
+            İndikatörler ({indicators.length})
+          </button>
+          <button onClick={() => setTab("messages")}
+            className={`relative px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "messages"
+              ? "bg-emerald-950/40 border-emerald-800 text-emerald-400"
+              : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
+            Mesajlar ({messages.length})
+            {messages.filter(m => !m.read).length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+                {messages.filter(m => !m.read).length}
+              </span>
+            )}
+          </button>
         </div>
 
         <div className="bg-[#0a1628] border border-slate-800 rounded-2xl p-6">
@@ -280,6 +298,72 @@ export default function AdminDashboard() {
                           <TbTrash size={16} />
                         </button>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Messages Tab */}
+          {tab === "messages" && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-white">Gelen Mesajlar</h2>
+                <span className="text-sm text-slate-500">{messages.filter(m => !m.read).length} okunmamış</span>
+              </div>
+              {loading ? (
+                <p className="text-slate-500 text-sm py-8 text-center">Yükleniyor...</p>
+              ) : messages.length === 0 ? (
+                <p className="text-slate-500 text-sm py-8 text-center">Henüz mesaj yok.</p>
+              ) : (
+                <div className="space-y-3">
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`p-4 border rounded-xl transition-colors ${
+                        msg.read
+                          ? "bg-slate-900/30 border-slate-800"
+                          : "bg-[#0a1e15]/60 border-emerald-900/60"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          {msg.read
+                            ? <TbMailOpened size={15} className="text-slate-500 shrink-0" />
+                            : <TbMail size={15} className="text-emerald-400 shrink-0" />}
+                          <span className="text-sm font-semibold text-white">{msg.name}</span>
+                          <a href={`mailto:${msg.email}`} className="text-xs text-emerald-400 hover:underline">{msg.email}</a>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-slate-500">
+                            {new Date(msg.created_at).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          {!msg.read && (
+                            <button
+                              onClick={async () => {
+                                await fetch(`/api/admin/messages?id=${msg.id}`, { method: "PATCH" });
+                                fetchAll();
+                              }}
+                              className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-emerald-950/40 rounded-lg transition-colors"
+                              title="Okundu olarak işaretle"
+                            >
+                              <TbCheck size={15} />
+                            </button>
+                          )}
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`"${msg.name}" adlı kişinin mesajı silinsin mi?`)) return;
+                              await fetch(`/api/admin/messages?id=${msg.id}`, { method: "DELETE" });
+                              fetchAll();
+                            }}
+                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors"
+                          >
+                            <TbTrash size={15} />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-300 mt-2 leading-relaxed whitespace-pre-wrap">{msg.message}</p>
                     </div>
                   ))}
                 </div>

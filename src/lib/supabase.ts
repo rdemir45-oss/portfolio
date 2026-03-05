@@ -37,3 +37,12 @@ export interface DbIndicator {
   sort_order: number;
   created_at?: string;
 }
+
+export interface DbMessage {
+  id: number;
+  name: string;
+  email: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}

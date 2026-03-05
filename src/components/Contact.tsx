@@ -8,11 +8,26 @@ export default function Contact() {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", message: "" });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    setSending(true);
+    setError("");
+    const res = await fetch("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    if (res.ok) {
+      setSent(true);
+    } else {
+      const data = await res.json();
+      setError(data.error || "Bir hata oluştu, lütfen tekrar deneyin.");
+    }
+    setSending(false);
   };
 
   return (
@@ -66,15 +81,19 @@ export default function Contact() {
               </div>
             </a>
 
-            <div className="flex items-center gap-4 p-5 rounded-2xl bg-[#0a1628]/80 border border-slate-800">
-              <div className="p-3 rounded-xl bg-slate-800">
-                <TbMailFilled size={24} className="text-slate-400" />
+            <a
+              href="mailto:6rdemir7@gmail.com"
+              className="flex items-center gap-4 p-5 rounded-2xl bg-[#0a1628]/80 border border-slate-700 hover:border-emerald-700 transition-colors group"
+            >
+              <div className="p-3 rounded-xl bg-slate-800 group-hover:bg-emerald-950/60 transition-colors">
+                <TbMailFilled size={24} className="text-slate-300 group-hover:text-emerald-400 transition-colors" />
               </div>
               <div>
                 <div className="font-semibold text-white">E-Posta</div>
-                <div className="text-slate-400 text-sm">Aşağıdaki formu doldurun</div>
+                <div className="text-emerald-400 text-sm">6rdemir7@gmail.com</div>
+                <div className="text-slate-500 text-xs mt-0.5">Veya aşağıdaki formu kullanın</div>
               </div>
-            </div>
+            </a>
           </motion.div>
 
           {/* Form */}
@@ -129,12 +148,14 @@ export default function Contact() {
                     className="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-600 transition-colors resize-none text-sm"
                   />
                 </div>
+                {error && <p className="text-red-400 text-sm">{error}</p>}
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition-colors"
+                  disabled={sending}
+                  className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors"
                 >
                   <TbSend size={16} />
-                  Gönder
+                  {sending ? "Gönderiliyor..." : "Gönder"}
                 </button>
               </form>
             )}
