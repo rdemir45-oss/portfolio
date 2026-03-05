@@ -24,16 +24,20 @@ export default function EditPostPage() {
   });
 
   useEffect(() => {
-    fetch("/api/admin/posts").then((r) => r.json()).then((posts: DbPost[]) => {
-      const post = posts.find((p) => p.id === Number(id));
-      if (post) {
-        setForm({
-          title: post.title, slug: post.slug, category: post.category,
-          date: post.date, summary: post.summary, content: post.content,
-          tags: post.tags.join(", "), pinned: post.pinned,
-        });        setCoverImage(post.cover_image ?? null);      }
-      setLoading(false);
-    });
+    fetch(`/api/admin/posts?id=${id}`)
+      .then((r) => r.json())
+      .then((post: DbPost) => {
+        if (post && post.id) {
+          setForm({
+            title: post.title, slug: post.slug, category: post.category,
+            date: post.date, summary: post.summary, content: post.content,
+            tags: post.tags.join(", "), pinned: post.pinned,
+          });
+          setCoverImage(post.cover_image ?? null);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, [id]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
@@ -82,8 +86,13 @@ export default function EditPostPage() {
   const inputCls = "w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-600 transition-colors resize-none";
 
   if (loading) return (
-    <main className="min-h-screen flex items-center justify-center">
-      <p className="text-slate-400">Yükleniyor...</p>
+    <main className="min-h-screen px-4 sm:px-8 pt-10 pb-20">
+      <div className="max-w-2xl mx-auto">
+        <Link href="/admin/dashboard" className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-8 transition-colors">
+          <TbArrowLeft size={16} /> Geri
+        </Link>
+        <p className="text-slate-400">Yükleniyor...</p>
+      </div>
     </main>
   );
 

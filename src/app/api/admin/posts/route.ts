@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-// GET /api/admin/posts
-export async function GET() {
+// GET /api/admin/posts  or  /api/admin/posts?id=xx
+export async function GET(req: NextRequest) {
+  const id = req.nextUrl.searchParams.get("id");
+  if (id) {
+    const { data, error } = await supabase.from("posts").select("*").eq("id", id).single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data);
+  }
   const { data, error } = await supabase
     .from("posts")
     .select("*")
