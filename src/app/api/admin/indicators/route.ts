@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const id = req.nextUrl.searchParams.get("id");
+  if (id) {
+    const { data, error } = await supabase
+      .from("indicators")
+      .select("*")
+      .eq("id", id)
+      .single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data);
+  }
   const { data, error } = await supabase
     .from("indicators")
     .select("*")

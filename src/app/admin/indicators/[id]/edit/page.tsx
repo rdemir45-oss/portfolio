@@ -44,11 +44,10 @@ export default function EditIndicatorPage() {
 
   useEffect(() => {
     async function load() {
-      const res = await fetch("/api/admin/indicators");
+      const res = await fetch(`/api/admin/indicators?id=${id}`);
       if (!res.ok) { setLoading(false); return; }
-      const all: DbIndicator[] = await res.json();
-      const ind = all.find((x) => x.id === parseInt(id));
-      if (ind) {
+      const ind: DbIndicator = await res.json();
+      if (ind && !("error" in ind)) {
         setForm({
           title: ind.title,
           slug: ind.slug,
