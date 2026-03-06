@@ -1,26 +1,36 @@
 "use client";
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiMenuAlt3, HiX } from "react-icons/hi";
 
 const links = [
-  { href: "#indicators", label: "İndikatörler" },
-  { href: "#platforms", label: "Platformlar" },
+  { href: "/#indicators", label: "İndikatörler" },
+  { href: "/#platforms", label: "Platformlar" },
   { href: "/hisse-teknik-analizi", label: "Hisse Teknik Analizi" },
-  { href: "#announcements", label: "Analiz & Eğitim" },
-  { href: "#about", label: "Hakkımda" },
-  { href: "#contact", label: "İletişim" },
+  { href: "/#announcements", label: "Analiz & Eğitim" },
+  { href: "/#about", label: "Hakkımda" },
+  { href: "/#contact", label: "İletişim" },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Ana sayfadayken anchor linkleri #section olarak kullan (smooth scroll için)
+  function resolveHref(href: string) {
+    if (href.startsWith("/#") && pathname === "/") {
+      return href.slice(1); // "/#indicators" → "#indicators"
+    }
+    return href;
+  }
 
   return (
     <header
@@ -43,7 +53,7 @@ export default function Navbar() {
           {links.map((l) => (
             <a
               key={l.href}
-              href={l.href}
+              href={resolveHref(l.href)}
               className="text-sm text-slate-400 hover:text-emerald-400 transition-colors"
             >
               {l.label}
@@ -79,7 +89,7 @@ export default function Navbar() {
             {links.map((l) => (
               <a
                 key={l.href}
-                href={l.href}
+                href={resolveHref(l.href)}
                 onClick={() => setMenuOpen(false)}
                 className="block py-3 text-slate-300 hover:text-emerald-400 transition-colors border-b border-slate-800 last:border-0"
               >
