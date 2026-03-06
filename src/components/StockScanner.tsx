@@ -21,10 +21,15 @@ interface ScanData {
   categories: ScanCategory[];
 }
 
+// Telegram app'teki "Yukarı Kırılımlar" + bullish göstergeler + harmonik long
 const BULL_KEYS = [
-  "golden_cross", "rsi_oversold", "macd_cross_up", "squeeze_breakout",
+  // Göstergeler (bullish)
+  "rsi_os", "vol_spike", "macd_cross", "bb_squeeze",
+  // Yukarı Kırılımlar
+  "strong_up", "golden_cross", "tobo_break", "channel_break",
   "triangle_break", "trend_break", "ikili_dip_break", "fibo_setup",
   "rsi_asc_break", "rsi_tobo", "hbreak", "price_desc_break",
+  // Harmonik Long
   "harmonic_long",
 ];
 
