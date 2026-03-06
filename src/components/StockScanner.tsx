@@ -26,8 +26,9 @@ const BULL_KEYS = [
   // Göstergeler (bullish)
   "rsi_os", "vol_spike", "macd_cross", "bb_squeeze",
   // Yukarı Kırılımlar
-  "strong_up", "golden_cross", "tobo_break", "channel_break",
-  "triangle_break", "trend_break", "ikili_dip_break", "fibo_setup",
+  "strong_up", "golden_cross", "tobo_break",
+  "channel_break_up", "triangle_break_up", "trend_break_up",
+  "ikili_dip_break", "fibo_setup",
   "rsi_asc_break", "rsi_tobo", "hbreak", "price_desc_break",
   // Harmonik Long
   "harmonic_long",
