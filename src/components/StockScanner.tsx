@@ -186,7 +186,11 @@ export default function StockScanner() {
               </h2>
               <p className="text-slate-400 text-sm max-w-xl">
                 BIST hisseleri her saat otomatik taranır. İkili dip, trend kırılımı, RSI
-                sinyalleri ve daha fazlası gerçek zamanlı olarak güncellenir.
+                sinyalleri ve daha fazlası güncellenir.
+              </p>
+              <p className="mt-2 text-xs text-slate-600 border-l-2 border-slate-700 pl-3">
+                Bu sayfa yalnızca teknik formasyon tespiti yapar. Yatırım tavsiyesi değildir.
+                Tüm kararlar yatırımcının kendi sorumluluğundadır.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -245,7 +249,7 @@ export default function StockScanner() {
                   : "border-slate-700 text-slate-500 hover:text-slate-300"
               }`}
             >
-              {f === "all" ? "Tümü" : f === "bull" ? "📈 Alış Sinyali" : "📉 Satış Sinyali"}
+              {f === "all" ? "Tümü" : f === "bull" ? "📈 Bullish Formasyonlar" : "📉 Bearish Formasyonlar"}
             </button>
           ))}
         </div>
