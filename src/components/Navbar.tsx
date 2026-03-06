@@ -6,7 +6,7 @@ import { HiMenuAlt3, HiX } from "react-icons/hi";
 const links = [
   { href: "#indicators", label: "İndikatörler" },
   { href: "#platforms", label: "Platformlar" },
-  { href: "#hisse-tarama", label: "Hisse Tarama" },
+  { href: "/hisse-teknik-analizi", label: "Hisse Teknik Analizi" },
   { href: "#announcements", label: "Analiz & Eğitim" },
   { href: "#about", label: "Hakkımda" },
   { href: "#contact", label: "İletişim" },

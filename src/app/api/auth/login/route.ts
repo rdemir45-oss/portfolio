@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
+
 export async function POST(req: NextRequest) {
   const { password } = await req.json();
   const secret = process.env.SCAN_PASSWORD;
@@ -20,14 +21,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Yanlış şifre." }, { status: 401 });
   }
 
-  // Token: SHA-256(şifre + salt) — cookie'de şifreyi saklama
-  const token = crypto
-    .createHmac("sha256", secret)
-    .update("viewer-session-v1")
-    .digest("hex");
-
   const res = NextResponse.json({ ok: true });
-  res.cookies.set("viewer_token", token, {
+  res.cookies.set("viewer_token", secret, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

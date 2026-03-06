@@ -129,7 +129,7 @@ export default function StockScanner() {
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/hisse-tarama/login");
+    router.push("/hisse-teknik-analizi/login");
     router.refresh();
   }
 
@@ -167,7 +167,7 @@ export default function StockScanner() {
   const totalSignals = visibleCats.reduce((a, c) => a + c.count, 0);
 
   return (
-    <section id="hisse-tarama" className="py-24 px-6">
+    <section id="hisse-teknik-analizi" className="py-24 px-6">
       <div className="max-w-4xl mx-auto">
         {/* Başlık */}
         <motion.div
@@ -182,7 +182,7 @@ export default function StockScanner() {
                 Otomatik Tarama
               </p>
               <h2 className="text-3xl md:text-4xl font-black text-white mb-2">
-                Hisse <span className="text-emerald-400">Formasyon</span> Tarayıcı
+                Hisse <span className="text-emerald-400">Teknik</span> Analizi
               </h2>
               <p className="text-slate-400 text-sm max-w-xl">
                 BIST hisseleri her saat otomatik taranır. İkili dip, trend kırılımı, RSI

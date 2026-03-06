@@ -1,22 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import crypto from "crypto";
-
-/** viewer_token cookie değerini sunucu tarafında doğrular. */
-function isValidViewerToken(token: string | undefined): boolean {
-  const secret = process.env.SCAN_PASSWORD;
-  if (!secret || !token) return false;
-  const expected = crypto
-    .createHmac("sha256", secret)
-    .update("viewer-session-v1")
-    .digest("hex");
-  // Sabit zamanlı karşılaştırma
-  try {
-    return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected));
-  } catch {
-    return false;
-  }
-}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -31,14 +14,15 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // ── Hisse Tarama koruma ───────────────────────────────────────────────
-  if (pathname === "/hisse-tarama/login") return NextResponse.next();
+  // ── Hisse Teknik Analizi koruma ───────────────────────────────────────
+  if (pathname === "/hisse-teknik-analizi/login") return NextResponse.next();
 
-  if (pathname.startsWith("/hisse-tarama")) {
+  if (pathname.startsWith("/hisse-teknik-analizi")) {
     const token = request.cookies.get("viewer_token")?.value;
-    if (!isValidViewerToken(token)) {
+    const secret = process.env.SCAN_PASSWORD;
+    if (!secret || !token || token !== secret) {
       return NextResponse.redirect(
-        new URL("/hisse-tarama/login", request.url)
+        new URL("/hisse-teknik-analizi/login", request.url)
       );
     }
   }
@@ -47,5 +31,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/hisse-tarama/:path*"],
+  matcher: ["/admin/:path*", "/hisse-teknik-analizi/:path*"],
 };

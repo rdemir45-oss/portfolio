@@ -4,7 +4,7 @@ import StockScanner from "@/components/StockScanner";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Hisse Formasyon Tarayıcı | TheBigShort",
+  title: "Hisse Teknik Analizi | TheBigShort",
   description:
     "BIST hisseleri her saat otomatik taranır. İkili dip, trend kırılımı, RSI sinyalleri ve daha fazlası.",
 };

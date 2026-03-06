@@ -23,7 +23,7 @@ export default function ScannerLogin() {
     });
 
     if (res.ok) {
-      router.push("/hisse-tarama");
+      router.push("/hisse-teknik-analizi");
       router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
@@ -47,7 +47,7 @@ export default function ScannerLogin() {
             </span>
             <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
           </a>
-          <p className="text-slate-500 text-sm mt-2">Hisse Formasyon Tarayıcı</p>
+          <p className="text-slate-500 text-sm mt-2">Hisse Teknik Analizi</p>
         </div>
 
         <div className="bg-[#0a1628] border border-slate-800 rounded-2xl p-8">
