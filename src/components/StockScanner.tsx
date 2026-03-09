@@ -33,7 +33,7 @@ interface ScanCategory {
   label: string;
   emoji: string;
   count: number;
-  tickers: string[];
+  stocks: string[];
 }
 
 interface ScanData {
@@ -223,13 +223,13 @@ function CategoryRow({
             transition={{ duration: 0.18 }}
           >
             <div className={`px-4 pb-4 border-t ${c.divider}`}>
-              {cat.tickers.length === 0 ? (
+              {(cat.stocks ?? []).length === 0 ? (
                 <p className="text-xs text-slate-500 italic mt-3">
                   Bu formasyonda hisse bulunamadı.
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {cat.tickers.map((ticker) => (
+                  {(cat.stocks ?? []).map((ticker) => (
                     <a
                       key={ticker}
                       href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
@@ -367,7 +367,7 @@ export default function StockScanner() {
   // Birden fazla kategoride geçen hisseler
   const tickerCountMap = new Map<string, { count: number; categories: string[]; isBull: boolean }>();
   for (const cat of (data?.categories ?? [])) {
-    for (const ticker of cat.tickers) {
+    for (const ticker of (cat.stocks ?? [])) {
       const existing = tickerCountMap.get(ticker);
       if (existing) {
         existing.count++;
