@@ -73,7 +73,7 @@ const GROUPS: GroupDef[] = [
     desc: "Aşırı alım/satım ve RSI kırılım sinyalleri",
     icon: <TbActivity size={16} />,
     color: "sky",
-    keys: ["rsi_os", "rsi_asc_break", "rsi_tobo", "rsi_ob", "rsi_desc_break", "rsi_hdts"],
+    keys: ["rsi_os", "rsi_asc_break", "rsi_tobo", "rsi_ob", "rsi_desc_break", "rsi_hdts", "rsi_pos_div"],
   },
   {
     id: "macd",
@@ -110,6 +110,7 @@ const BULL_KEYS = [
   "channel_break_up", "triangle_break_up", "trend_break_up",
   "ikili_dip_break", "fibo_setup", "rsi_asc_break", "rsi_tobo",
   "hbreak", "price_desc_break", "harmonic_long", "macd_bull", "macd_pos",
+  "rsi_pos_div",
 ];
 
 const colorMap = {
