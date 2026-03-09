@@ -2,7 +2,28 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { HiRefresh, HiClock, HiChevronDown, HiChevronUp, HiLogout } from "react-icons/hi";
+import {
+  HiRefresh,
+  HiClock,
+  HiChevronDown,
+  HiChevronUp,
+  HiLogout,
+  HiTrendingUp,
+  HiTrendingDown,
+} from "react-icons/hi";
+import {
+  TbChartLine,
+  TbChartCandle,
+  TbActivity,
+  TbWaveSine,
+  TbArrowUpRight,
+  TbArrowDownRight,
+  TbFlame,
+  TbDroplet,
+  TbChartBar,
+  TbTriangle,
+  TbExternalLink,
+} from "react-icons/tb";
 import { useRouter } from "next/navigation";
 
 interface ScanCategory {
@@ -21,18 +42,126 @@ interface ScanData {
   categories: ScanCategory[];
 }
 
-// Telegram app'teki "Yukarı Kırılımlar" + bullish göstergeler + harmonik long
+// ── Grup tanımları ────────────────────────────────────────────────────────────
+interface GroupDef {
+  id: string;
+  label: string;
+  desc: string;
+  icon: React.ReactNode;
+  color: "emerald" | "sky" | "violet" | "amber" | "rose";
+  keys: string[];
+}
+
+const GROUPS: GroupDef[] = [
+  {
+    id: "formasyon_bull",
+    label: "Bullish Formasyonlar",
+    desc: "Yukarı kırılım ve tersine dönüş formasyonları",
+    icon: <TbChartCandle size={16} />,
+    color: "emerald",
+    keys: [
+      "strong_up", "golden_cross", "tobo_break",
+      "channel_break_up", "triangle_break_up", "trend_break_up",
+      "ikili_dip_break", "price_desc_break", "hbreak", "fibo_setup",
+    ],
+  },
+  {
+    id: "rsi",
+    label: "RSI Analizleri",
+    desc: "Aşırı alım/satım ve RSI kırılım sinyalleri",
+    icon: <TbActivity size={16} />,
+    color: "sky",
+    keys: ["rsi_os", "rsi_asc_break", "rsi_tobo", "rsi_ob", "rsi_desc_break", "rsi_hdts"],
+  },
+  {
+    id: "macd",
+    label: "MACD Analizleri",
+    desc: "MACD kesişim ve momentum sinyalleri",
+    icon: <TbWaveSine size={16} />,
+    color: "violet",
+    keys: ["macd_cross", "macd_bear", "macd_bull", "macd_neg", "macd_pos"],
+  },
+  {
+    id: "harmonik",
+    label: "Harmonik Formasyonlar",
+    desc: "Fibonacci bazlı harmonik fiyat desenleri",
+    icon: <TbTriangle size={16} />,
+    color: "amber",
+    keys: ["harmonic_long", "harmonic_short"],
+  },
+  {
+    id: "hacim",
+    label: "Hacim & Göstergeler",
+    desc: "Hacim artışları ve volatilite sinyalleri",
+    icon: <TbChartBar size={16} />,
+    color: "rose",
+    keys: ["vol_spike", "bb_squeeze", "vol_dry"],
+  },
+];
+
+// Gruplanmamış her şeyi yakala
+const ALL_GROUPED_KEYS = GROUPS.flatMap((g) => g.keys);
+
 const BULL_KEYS = [
-  // Göstergeler (bullish)
   "rsi_os", "vol_spike", "macd_cross", "bb_squeeze",
-  // Yukarı Kırılımlar
   "strong_up", "golden_cross", "tobo_break",
   "channel_break_up", "triangle_break_up", "trend_break_up",
-  "ikili_dip_break", "fibo_setup",
-  "rsi_asc_break", "rsi_tobo", "hbreak", "price_desc_break",
-  // Harmonik Long
-  "harmonic_long",
+  "ikili_dip_break", "fibo_setup", "rsi_asc_break", "rsi_tobo",
+  "hbreak", "price_desc_break", "harmonic_long", "macd_bull", "macd_pos",
 ];
+
+const colorMap = {
+  emerald: {
+    border: "border-emerald-800/50",
+    bg: "bg-emerald-950/20",
+    headerBg: "bg-emerald-950/30",
+    icon: "text-emerald-400 bg-emerald-950/50 border-emerald-900/50",
+    badge: "bg-emerald-800/60 text-emerald-300",
+    ticker: "border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/40 bg-emerald-950/30",
+    label: "text-emerald-400",
+    divider: "border-emerald-900/30",
+  },
+  sky: {
+    border: "border-sky-800/50",
+    bg: "bg-sky-950/20",
+    headerBg: "bg-sky-950/30",
+    icon: "text-sky-400 bg-sky-950/50 border-sky-900/50",
+    badge: "bg-sky-800/60 text-sky-300",
+    ticker: "border-sky-700/50 text-sky-400 hover:bg-sky-900/40 bg-sky-950/30",
+    label: "text-sky-400",
+    divider: "border-sky-900/30",
+  },
+  violet: {
+    border: "border-violet-800/50",
+    bg: "bg-violet-950/20",
+    headerBg: "bg-violet-950/30",
+    icon: "text-violet-400 bg-violet-950/50 border-violet-900/50",
+    badge: "bg-violet-800/60 text-violet-300",
+    ticker: "border-violet-700/50 text-violet-400 hover:bg-violet-900/40 bg-violet-950/30",
+    label: "text-violet-400",
+    divider: "border-violet-900/30",
+  },
+  amber: {
+    border: "border-amber-800/50",
+    bg: "bg-amber-950/20",
+    headerBg: "bg-amber-950/30",
+    icon: "text-amber-400 bg-amber-950/50 border-amber-900/50",
+    badge: "bg-amber-800/60 text-amber-300",
+    ticker: "border-amber-700/50 text-amber-400 hover:bg-amber-900/40 bg-amber-950/30",
+    label: "text-amber-400",
+    divider: "border-amber-900/30",
+  },
+  rose: {
+    border: "border-rose-800/50",
+    bg: "bg-rose-950/20",
+    headerBg: "bg-rose-950/30",
+    icon: "text-rose-400 bg-rose-950/50 border-rose-900/50",
+    badge: "bg-rose-800/60 text-rose-300",
+    ticker: "border-rose-700/50 text-rose-400 hover:bg-rose-900/40 bg-rose-950/30",
+    label: "text-rose-400",
+    divider: "border-rose-900/30",
+  },
+};
 
 function timeAgoLabel(minutesAgo: number | null): string {
   if (minutesAgo === null) return "";
@@ -43,37 +172,34 @@ function timeAgoLabel(minutesAgo: number | null): string {
   return m > 0 ? `${h} sa ${m} dk önce` : `${h} sa önce`;
 }
 
-function CategoryCard({ cat }: { cat: ScanCategory }) {
+// ── Tek kategori satırı ────────────────────────────────────────────────────────
+function CategoryRow({
+  cat,
+  color,
+}: {
+  cat: ScanCategory;
+  color: keyof typeof colorMap;
+}) {
   const [open, setOpen] = useState(false);
-  const isBull = BULL_KEYS.includes(cat.key);
+  const c = colorMap[color];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border ${
-        isBull
-          ? "border-emerald-800/50 bg-emerald-950/20"
-          : "border-rose-900/40 bg-rose-950/10"
-      } overflow-hidden`}
-    >
+    <div className={`rounded-xl border ${c.border} overflow-hidden`}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
+        className={`w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors`}
         aria-expanded={open}
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-xl leading-none">{cat.emoji}</span>
-          <span className="text-sm font-semibold text-slate-200 truncate">{cat.label}</span>
+          <span className="text-lg leading-none">{cat.emoji}</span>
+          <span className="text-sm font-semibold text-slate-200 truncate text-left">
+            {cat.label}
+          </span>
         </div>
-        <div className="flex items-center gap-3 shrink-0 ml-3">
+        <div className="flex items-center gap-2 shrink-0 ml-3">
           <span
             className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              cat.count > 0
-                ? isBull
-                  ? "bg-emerald-800/60 text-emerald-300"
-                  : "bg-rose-900/60 text-rose-300"
-                : "bg-slate-800 text-slate-500"
+              cat.count > 0 ? c.badge : "bg-slate-800 text-slate-500"
             }`}
           >
             {cat.count}
@@ -92,28 +218,25 @@ function CategoryCard({ cat }: { cat: ScanCategory }) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.18 }}
           >
-            <div className="px-4 pb-4">
+            <div className={`px-4 pb-4 border-t ${c.divider}`}>
               {cat.tickers.length === 0 ? (
-                <p className="text-xs text-slate-500 italic">
+                <p className="text-xs text-slate-500 italic mt-3">
                   Bu formasyonda hisse bulunamadı.
                 </p>
               ) : (
-                <div className="flex flex-wrap gap-1.5 mt-1">
+                <div className="flex flex-wrap gap-1.5 mt-3">
                   {cat.tickers.map((ticker) => (
                     <a
                       key={ticker}
                       href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`text-xs font-mono font-bold px-2 py-1 rounded-md border transition-colors ${
-                        isBull
-                          ? "border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/40 bg-emerald-950/30"
-                          : "border-rose-800/50 text-rose-400 hover:bg-rose-900/30 bg-rose-950/20"
-                      }`}
+                      className={`inline-flex items-center gap-1 text-xs font-mono font-bold px-2.5 py-1 rounded-lg border transition-colors ${c.ticker}`}
                     >
                       {ticker}
+                      <TbExternalLink size={10} className="opacity-50" />
                     </a>
                   ))}
                 </div>
@@ -122,15 +245,81 @@ function CategoryCard({ cat }: { cat: ScanCategory }) {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Grup bloğu ─────────────────────────────────────────────────────────────────
+function GroupBlock({
+  group,
+  cats,
+}: {
+  group: GroupDef;
+  cats: ScanCategory[];
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const c = colorMap[group.color];
+  const totalSignals = cats.reduce((a, cat) => a + cat.count, 0);
+  const activeCats = cats.filter((cat) => cat.count > 0).length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`rounded-2xl border ${c.border} overflow-hidden`}
+    >
+      {/* Grup başlığı */}
+      <button
+        onClick={() => setCollapsed((v) => !v)}
+        className={`w-full flex items-center justify-between px-5 py-4 ${c.headerBg} hover:brightness-110 transition-all`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`p-1.5 rounded-lg border ${c.icon}`}>{group.icon}</div>
+          <div className="text-left">
+            <p className={`text-sm font-bold ${c.label}`}>{group.label}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{group.desc}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right hidden sm:block">
+            <p className={`text-lg font-black ${c.label}`}>{totalSignals}</p>
+            <p className="text-xs text-slate-600">{activeCats} aktif sinyal</p>
+          </div>
+          <span className={`sm:hidden text-sm font-black ${c.label}`}>{totalSignals}</span>
+          {collapsed ? (
+            <HiChevronDown className="text-slate-500 w-4 h-4" />
+          ) : (
+            <HiChevronUp className="text-slate-500 w-4 h-4" />
+          )}
+        </div>
+      </button>
+
+      {/* Kategoriler */}
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className={`p-3 space-y-2 ${c.bg}`}>
+              {cats.map((cat) => (
+                <CategoryRow key={cat.key} cat={cat} color={group.color} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
 
+// ── Ana bileşen ────────────────────────────────────────────────────────────────
 export default function StockScanner() {
   const [data, setData] = useState<ScanData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "bull" | "bear">("all");
   const router = useRouter();
 
   async function handleLogout() {
@@ -158,45 +347,47 @@ export default function StockScanner() {
 
   useEffect(() => {
     load();
-    // Her 5 dakikada bir otomatik yenile
     const id = setInterval(load, 5 * 60 * 1000);
     return () => clearInterval(id);
   }, [load]);
 
-  const visibleCats =
-    data?.categories?.filter((c) => {
-      if (filter === "bull") return BULL_KEYS.includes(c.key);
-      if (filter === "bear") return !BULL_KEYS.includes(c.key);
-      return true;
-    }) ?? [];
+  // Kategorileri grupla
+  const groupedData = GROUPS.map((group) => ({
+    group,
+    cats: (data?.categories ?? []).filter((c) => group.keys.includes(c.key)),
+  })).filter(({ cats }) => cats.length > 0);
 
-  const totalSignals = visibleCats.reduce((a, c) => a + c.count, 0);
+  // Gruplanmamış kategoriler (API'den yeni gelen ama tanımlı olmayan)
+  const ungroupedCats = (data?.categories ?? []).filter(
+    (c) => !ALL_GROUPED_KEYS.includes(c.key)
+  );
+
+  const totalSignals = (data?.categories ?? []).reduce((a, c) => a + c.count, 0);
+  const bullSignals = (data?.categories ?? [])
+    .filter((c) => BULL_KEYS.includes(c.key))
+    .reduce((a, c) => a + c.count, 0);
+  const bearSignals = totalSignals - bullSignals;
 
   return (
-    <section id="hisse-teknik-analizi" className="py-24 px-6">
+    <section id="hisse-teknik-analizi" className="py-20 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
-        {/* Başlık */}
+        {/* ── Başlık ── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-10"
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
         >
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
               <p className="text-xs font-semibold tracking-[0.2em] text-emerald-500 uppercase mb-2">
                 Otomatik Tarama
               </p>
-              <h2 className="text-3xl md:text-4xl font-black text-white mb-2">
+              <h1 className="text-3xl md:text-4xl font-black text-white mb-2">
                 Hisse <span className="text-emerald-400">Teknik</span> Analizi
-              </h2>
+              </h1>
               <p className="text-slate-400 text-sm max-w-xl">
-                BIST hisseleri her saat otomatik taranır. İkili dip, trend kırılımı, RSI
-                sinyalleri ve daha fazlası güncellenir.
-              </p>
-              <p className="mt-2 text-xs text-slate-600 border-l-2 border-slate-700 pl-3">
-                Bu sayfa yalnızca teknik formasyon tespiti yapar. Yatırım tavsiyesi değildir.
-                Tüm kararlar yatırımcının kendi sorumluluğundadır.
+                BIST hisseleri her saat otomatik taranır. Formasyon, RSI, MACD ve harmonik
+                sinyaller gruplandırılmış olarak listelenir.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -206,27 +397,24 @@ export default function StockScanner() {
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-emerald-700 transition-colors text-sm disabled:opacity-40"
               >
                 <HiRefresh className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-                Yenile
+                <span className="hidden sm:inline">Yenile</span>
               </button>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-800 transition-colors text-sm"
-                title="Çıkış Yap"
               >
                 <HiLogout className="w-4 h-4" />
-                Çıkış
+                <span className="hidden sm:inline">Çıkış</span>
               </button>
             </div>
           </div>
 
-          {/* Durum satırı */}
+          {/* Durum */}
           {data && (
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
               <span className="flex items-center gap-1">
                 <HiClock className="w-3.5 h-3.5" />
-                {data.lastRun
-                  ? `Son tarama: ${timeAgoLabel(data.minutesAgo)}`
-                  : "Henüz tarama yapılmadı"}
+                {data.lastRun ? `Son tarama: ${timeAgoLabel(data.minutesAgo)}` : "Henüz tarama yapılmadı"}
               </span>
               {data.status === "running" && (
                 <span className="flex items-center gap-1 text-amber-400">
@@ -234,71 +422,109 @@ export default function StockScanner() {
                   Tarama devam ediyor…
                 </span>
               )}
-              <span className="text-slate-600">
-                {totalSignals} aktif sinyal
-              </span>
             </div>
           )}
         </motion.div>
 
-        {/* Filtre */}
-        <div className="flex gap-2 mb-6">
-          {(["all", "bull", "bear"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                filter === f
-                  ? f === "bear"
-                    ? "bg-rose-900/40 border-rose-700 text-rose-300"
-                    : "bg-emerald-900/40 border-emerald-700 text-emerald-300"
-                  : "border-slate-700 text-slate-500 hover:text-slate-300"
-              }`}
-            >
-              {f === "all" ? "Tümü" : f === "bull" ? "📈 Bullish Formasyonlar" : "📉 Bearish Formasyonlar"}
-            </button>
-          ))}
-        </div>
+        {/* ── Özet Stat Kartları ── */}
+        {data && !loading && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-3 gap-3 mb-8"
+          >
+            <div className="bg-[#0a1628] border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center gap-1">
+              <TbChartLine size={20} className="text-slate-400 mb-0.5" />
+              <p className="text-2xl font-black text-white">{totalSignals}</p>
+              <p className="text-xs text-slate-500 text-center">Toplam Sinyal</p>
+            </div>
+            <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-2xl p-4 flex flex-col items-center justify-center gap-1">
+              <div className="flex items-center gap-1 mb-0.5">
+                <HiTrendingUp size={18} className="text-emerald-400" />
+                <TbArrowUpRight size={14} className="text-emerald-500" />
+              </div>
+              <p className="text-2xl font-black text-emerald-400">{bullSignals}</p>
+              <p className="text-xs text-emerald-600 text-center">Bullish</p>
+            </div>
+            <div className="bg-rose-950/20 border border-rose-900/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1">
+              <div className="flex items-center gap-1 mb-0.5">
+                <HiTrendingDown size={18} className="text-rose-400" />
+                <TbArrowDownRight size={14} className="text-rose-500" />
+              </div>
+              <p className="text-2xl font-black text-rose-400">{bearSignals}</p>
+              <p className="text-xs text-rose-700 text-center">Bearish</p>
+            </div>
+          </motion.div>
+        )}
 
-        {/* İçerik */}
+        {/* ── Skeleton ── */}
         {loading && !data && (
-          <div className="grid gap-3">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="h-12 rounded-xl bg-slate-800/40 animate-pulse"
-              />
+          <div className="space-y-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-16 rounded-2xl bg-slate-800/40 animate-pulse" />
             ))}
           </div>
         )}
 
+        {/* ── Hata ── */}
         {error && (
           <div className="rounded-xl border border-rose-900/50 bg-rose-950/20 p-6 text-center">
             <p className="text-rose-400 font-semibold mb-1">Bağlantı Hatası</p>
-            <p className="text-slate-500 text-sm">{error}</p>
-            <button
-              onClick={load}
-              className="mt-3 text-xs text-emerald-400 hover:underline"
-            >
+            <p className="text-slate-500 text-sm mb-3">{error}</p>
+            <button onClick={load} className="text-xs text-emerald-400 hover:underline">
               Tekrar dene
             </button>
           </div>
         )}
 
+        {/* ── Gruplandırılmış içerik ── */}
         {!loading && !error && data && (
-          <div className="grid gap-3">
-            {visibleCats.map((cat) => (
-              <CategoryCard key={cat.key} cat={cat} />
+          <div className="space-y-4">
+            {groupedData.map(({ group, cats }) => (
+              <GroupBlock key={group.id} group={group} cats={cats} />
             ))}
+
+            {/* Gruplanmamış kategoriler */}
+            {ungroupedCats.length > 0 && (
+              <div className="rounded-2xl border border-slate-800 overflow-hidden">
+                <div className="flex items-center gap-3 px-5 py-4 bg-slate-900/50">
+                  <div className="p-1.5 rounded-lg border text-slate-400 bg-slate-800/50 border-slate-700/50">
+                    <TbFlame size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-300">Diğer Sinyaller</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Gruplanmamış tarama sonuçları</p>
+                  </div>
+                </div>
+                <div className="p-3 space-y-2 bg-slate-900/20">
+                  {ungroupedCats.map((cat) => (
+                    <CategoryRow
+                      key={cat.key}
+                      cat={cat}
+                      color={BULL_KEYS.includes(cat.key) ? "emerald" : "rose"}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
+        {/* ── Bekliyor ── */}
         {!loading && !error && data?.status === "pending" && (
           <div className="mt-6 text-center text-slate-500 text-sm">
             İlk tarama başlatılıyor, lütfen bekleyin…
           </div>
         )}
+
+        {/* ── Yasal uyarı ── */}
+        <p className="mt-8 text-xs text-slate-700 border-l-2 border-slate-800 pl-3">
+          Bu sayfa yalnızca teknik formasyon tespiti yapar. Yatırım tavsiyesi değildir.
+          Tüm kararlar yatırımcının kendi sorumluluğundadır.
+        </p>
       </div>
     </section>
   );
 }
+
