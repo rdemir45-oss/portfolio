@@ -28,12 +28,18 @@ import {
 } from "react-icons/tb";
 import { useRouter } from "next/navigation";
 
+interface StockRow {
+  ticker: string;
+  price?: number;
+  changePct?: number;
+}
+
 interface ScanCategory {
   key: string;
   label: string;
   emoji: string;
   count: number;
-  stocks: string[];
+  stocks: StockRow[];
 }
 
 interface ScanData {
@@ -230,7 +236,10 @@ function CategoryRow({
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {(cat.stocks ?? []).map((ticker) => (
+                  {(cat.stocks ?? []).map((row) => {
+                    const ticker = typeof row === "string" ? row : row.ticker;
+                    const change = typeof row === "object" ? row.changePct : undefined;
+                    return (
                     <a
                       key={ticker}
                       href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
@@ -239,9 +248,17 @@ function CategoryRow({
                       className={`inline-flex items-center gap-1 text-xs font-mono font-bold px-2.5 py-1 rounded-lg border transition-colors ${c.ticker}`}
                     >
                       {ticker}
+                      {change !== undefined && (
+                        <span className={`text-[10px] font-normal ${
+                          change >= 0 ? "text-emerald-400" : "text-rose-400"
+                        }`}>
+                          {change >= 0 ? "+" : ""}{change.toFixed(1)}%
+                        </span>
+                      )}
                       <TbExternalLink size={10} className="opacity-50" />
                     </a>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -368,11 +385,12 @@ export default function StockScanner() {
   // Birden fazla kategoride geçen hisseler
   const tickerCountMap = new Map<string, { count: number; categories: string[]; isBull: boolean }>();
   for (const cat of (data?.categories ?? [])) {
-    for (const ticker of (cat.stocks ?? [])) {
+    for (const row of (cat.stocks ?? [])) {
+      const ticker = typeof row === "string" ? row : row.ticker;
       const existing = tickerCountMap.get(ticker);
       if (existing) {
         existing.count++;
-        existing.categories.push(cat.label);
+        if (!existing.categories.includes(cat.label)) existing.categories.push(cat.label);
       } else {
         tickerCountMap.set(ticker, {
           count: 1,
