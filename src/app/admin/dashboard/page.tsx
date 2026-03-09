@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX } from "react-icons/tb";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet } from "react-icons/tb";
 import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser } from "@/lib/supabase";
 
 const catColors: Record<string, string> = {
@@ -62,6 +62,27 @@ export default function AdminDashboard() {
     });
     await fetchAll();
     setUpdatingScannerUser(null);
+  }
+
+  function downloadWhatsappExcel() {
+    const header = ["Ad", "Soyad", "Telefon", "Tarih"];
+    const rows = whatsappRequests.map((r) => [
+      r.name,
+      r.surname,
+      r.phone,
+      new Date(r.created_at).toLocaleString("tr-TR"),
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const bom = "\uFEFF"; // UTF-8 BOM – Excel Türkçe karakterleri doğru okusun
+    const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `whatsapp-talepleri-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function handleDeleteScannerUser(id: string, username: string) {
@@ -420,7 +441,18 @@ export default function AdminDashboard() {
             <>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-white">WhatsApp Grubu Talepleri</h2>
-                <span className="text-sm text-slate-500">{whatsappRequests.length} kayıt</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-slate-500">{whatsappRequests.length} kayıt</span>
+                  {whatsappRequests.length > 0 && (
+                    <button
+                      onClick={downloadWhatsappExcel}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-800/60 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-900/40 transition-colors text-xs font-semibold"
+                    >
+                      <TbFileSpreadsheet size={15} />
+                      Excel İndir
+                    </button>
+                  )}
+                </div>
               </div>
               {loading ? (
                 <p className="text-slate-500 text-sm py-8 text-center">Yükleniyor...</p>
