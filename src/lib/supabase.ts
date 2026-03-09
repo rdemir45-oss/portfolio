@@ -54,3 +54,10 @@ export interface DbWhatsappRequest {
   phone: string;
   created_at: string;
 }
+
+export interface DbScannerUser {
+  id: string;
+  username: string;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+}

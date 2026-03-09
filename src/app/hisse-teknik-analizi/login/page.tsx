@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { HiLockClosed } from "react-icons/hi";
+import Link from "next/link";
 
 export default function ScannerLogin() {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,7 +21,7 @@ export default function ScannerLogin() {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ username, password }),
     });
 
     if (res.ok) {
@@ -27,7 +29,7 @@ export default function ScannerLogin() {
       router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Yanlış şifre.");
+      setError(data.error ?? "Giriş başarısız.");
       setLoading(false);
     }
   }
@@ -65,11 +67,19 @@ export default function ScannerLogin() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value.toLowerCase())}
+              placeholder="Kullanıcı adı"
+              autoFocus
+              autoComplete="username"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-600 transition-colors"
+            />
+            <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Şifre"
-              autoFocus
               autoComplete="current-password"
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-600 transition-colors"
             />
@@ -78,7 +88,7 @@ export default function ScannerLogin() {
             )}
             <button
               type="submit"
-              disabled={loading || !password}
+              disabled={loading || !username || !password}
               className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
             >
               {loading ? "Giriş yapılıyor…" : "Giriş Yap"}
@@ -87,16 +97,18 @@ export default function ScannerLogin() {
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6">
-          Şifre almak için{" "}
-          <a
-            href="/#contact"
+          Hesabın yok mu?{" "}
+          <Link
+            href="/hisse-teknik-analizi/register"
             className="text-emerald-500 hover:text-emerald-400 transition-colors"
           >
-            iletişime geçin
-          </a>
-          .
+            Üyelik talebi oluştur
+          </Link>
         </p>
       </motion.div>
     </main>
+  );
+}
+
   );
 }

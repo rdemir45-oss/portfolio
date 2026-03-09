@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser } from "react-icons/tb";
-import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest } from "@/lib/supabase";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX } from "react-icons/tb";
+import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser } from "@/lib/supabase";
 
 const catColors: Record<string, string> = {
   "Teknik Analiz": "text-emerald-400 bg-emerald-950/40 border-emerald-800/60",
@@ -26,26 +26,50 @@ export default function AdminDashboard() {
   const [indicators, setIndicators] = useState<DbIndicator[]>([]);
   const [messages, setMessages] = useState<DbMessage[]>([]);
   const [whatsappRequests, setWhatsappRequests] = useState<DbWhatsappRequest[]>([]);
-  const [tab, setTab] = useState<"posts" | "indicators" | "messages" | "whatsapp">("posts");
+  const [scannerUsers, setScannerUsers] = useState<DbScannerUser[]>([]);
+  const [tab, setTab] = useState<"posts" | "indicators" | "messages" | "whatsapp" | "scannerUsers">("posts");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [deletingScannerUser, setDeletingScannerUser] = useState<string | null>(null);
+  const [updatingScannerUser, setUpdatingScannerUser] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [seedingPosts, setSeedingPosts] = useState(false);
   const router = useRouter();
 
   async function fetchAll() {
     setLoading(true);
-    const [postsRes, indRes, msgRes, waRes] = await Promise.all([
+    const [postsRes, indRes, msgRes, waRes, scRes] = await Promise.all([
       fetch("/api/admin/posts"),
       fetch("/api/admin/indicators"),
       fetch("/api/admin/messages"),
       fetch("/api/admin/whatsapp"),
+      fetch("/api/admin/scanner-users"),
     ]);
     if (postsRes.ok) setPosts(await postsRes.json());
     if (indRes.ok) setIndicators(await indRes.json());
     if (msgRes.ok) setMessages(await msgRes.json());
     if (waRes.ok) setWhatsappRequests(await waRes.json());
+    if (scRes.ok) setScannerUsers(await scRes.json());
     setLoading(false);
+  }
+
+  async function handleScannerUserStatus(id: string, status: "approved" | "rejected" | "pending") {
+    setUpdatingScannerUser(id);
+    await fetch(`/api/admin/scanner-users?id=${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    await fetchAll();
+    setUpdatingScannerUser(null);
+  }
+
+  async function handleDeleteScannerUser(id: string, username: string) {
+    if (!confirm(`"${username}" kullanıcısı silinsin mi?`)) return;
+    setDeletingScannerUser(id);
+    await fetch(`/api/admin/scanner-users?id=${id}`, { method: "DELETE" });
+    await fetchAll();
+    setDeletingScannerUser(null);
   }
 
   useEffect(() => { fetchAll(); }, []);
@@ -156,6 +180,17 @@ export default function AdminDashboard() {
               ? "bg-green-950/40 border-green-800 text-green-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
             WhatsApp ({whatsappRequests.length})
+          </button>
+          <button onClick={() => setTab("scannerUsers")}
+            className={`relative px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "scannerUsers"
+              ? "bg-sky-950/40 border-sky-800 text-sky-400"
+              : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
+            Üyeler ({scannerUsers.length})
+            {scannerUsers.filter(u => u.status === "pending").length > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+                {scannerUsers.filter(u => u.status === "pending").length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -426,6 +461,90 @@ export default function AdminDashboard() {
                       >
                         <TbTrash size={15} />
                       </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+          {/* Scanner Users Tab */}
+          {tab === "scannerUsers" && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-white">Hisse Analiz Üyeleri</h2>
+                <span className="text-sm text-slate-500">
+                  {scannerUsers.filter(u => u.status === "pending").length} bekleyen onay
+                </span>
+              </div>
+              {loading ? (
+                <p className="text-slate-500 text-sm py-8 text-center">Yükleniyor...</p>
+              ) : scannerUsers.length === 0 ? (
+                <p className="text-slate-500 text-sm py-8 text-center">Henüz üyelik talebi yok.</p>
+              ) : (
+                <div className="space-y-3">
+                  {scannerUsers.map((u) => (
+                    <div
+                      key={u.id}
+                      className={`flex items-center gap-4 p-4 border rounded-xl transition-colors ${
+                        u.status === "pending"
+                          ? "bg-amber-950/20 border-amber-800/50"
+                          : u.status === "approved"
+                          ? "bg-emerald-950/20 border-emerald-900/50"
+                          : "bg-slate-900/30 border-slate-800"
+                      }`}
+                    >
+                      <div className="shrink-0">
+                        {u.status === "pending" && <TbClock size={18} className="text-amber-400" />}
+                        {u.status === "approved" && <TbShieldCheck size={18} className="text-emerald-400" />}
+                        {u.status === "rejected" && <TbShieldX size={18} className="text-slate-500" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-white">{u.username}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                            u.status === "pending"
+                              ? "text-amber-400 bg-amber-950/40 border-amber-800/60"
+                              : u.status === "approved"
+                              ? "text-emerald-400 bg-emerald-950/40 border-emerald-800/60"
+                              : "text-slate-500 bg-slate-800/40 border-slate-700/60"
+                          }`}>
+                            {u.status === "pending" ? "Bekliyor" : u.status === "approved" ? "Onaylı" : "Reddedildi"}
+                          </span>
+                          <span className="text-xs text-slate-600">
+                            {new Date(u.created_at).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {u.status !== "approved" && (
+                          <button
+                            onClick={() => handleScannerUserStatus(u.id, "approved")}
+                            disabled={updatingScannerUser === u.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:text-white bg-emerald-950/40 hover:bg-emerald-700 border border-emerald-800/60 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            <TbUserCheck size={14} />
+                            Onayla
+                          </button>
+                        )}
+                        {u.status !== "rejected" && (
+                          <button
+                            onClick={() => handleScannerUserStatus(u.id, "rejected")}
+                            disabled={updatingScannerUser === u.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-red-400 bg-slate-800/40 hover:bg-red-950/40 border border-slate-700/60 hover:border-red-800/60 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            <TbUserX size={14} />
+                            Reddet
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteScannerUser(u.id, u.username)}
+                          disabled={deletingScannerUser === u.id}
+                          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
+                          title="Kullanıcıyı sil"
+                        >
+                          <TbTrash size={15} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
