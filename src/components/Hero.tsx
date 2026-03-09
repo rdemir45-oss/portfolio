@@ -124,8 +124,8 @@ export default function Hero() {
               <TbBrandWhatsapp size={20} className="text-green-400" />
             </div>
             <div className="text-left">
-              <div className="text-white font-semibold text-sm leading-tight">WhatsApp Grubuna Katıl</div>
-              <div className="text-green-400/80 text-xs">Sinyaller, analizler ve duyurular için tıkla →</div>
+              <div className="text-white font-semibold text-sm leading-tight">Ücretsiz Bilgi Alın</div>
+              <div className="text-green-400/80 text-xs">Numaranızı bırakın, sizi arayalım →</div>
             </div>
           </button>
         </motion.div>

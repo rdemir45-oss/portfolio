@@ -75,8 +75,8 @@ export default function WhatsappModal({ open, onClose }: Props) {
                     <TbBrandWhatsapp size={22} className="text-green-400" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white">WhatsApp Grubuna Katıl</h2>
-                    <p className="text-xs text-slate-500">Bilgilerin kaydedilecek, en kısa sürede ekleneceksin.</p>
+                    <h2 className="text-lg font-bold text-white">Ücretsiz Bilgi Alın</h2>
+                    <p className="text-xs text-slate-500">Numaranızı bırakın, ekibimiz en kısa sürede sizi arasın.</p>
                   </div>
                 </div>
                 <button onClick={handleClose} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-colors">
@@ -89,9 +89,9 @@ export default function WhatsappModal({ open, onClose }: Props) {
                   <div className="w-14 h-14 bg-green-950/60 border border-green-800/60 rounded-full flex items-center justify-center">
                     <TbCheck size={28} className="text-green-400" />
                   </div>
-                  <h3 className="text-lg font-bold text-white">Kaydın Alındı!</h3>
+                  <h3 className="text-lg font-bold text-white">Numaranız Alındı!</h3>
                   <p className="text-slate-400 text-sm max-w-xs">
-                    Bilgilerin başarıyla kaydedildi. En kısa sürede WhatsApp grubuna ekleneceksin.
+                    Ekibimiz en kısa sürede sizi arayarak ücretsiz bilgilendirme yapacak.
                   </p>
                   <button onClick={handleClose} className="mt-4 px-6 py-2.5 bg-green-700 hover:bg-green-600 text-white font-semibold rounded-xl transition-colors text-sm">
                     Tamam
@@ -142,10 +142,10 @@ export default function WhatsappModal({ open, onClose }: Props) {
                     className="w-full flex items-center justify-center gap-2 bg-green-700 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors"
                   >
                     <TbBrandWhatsapp size={18} />
-                    {sending ? "Kaydediliyor..." : "Gruba Katılmak İstiyorum"}
+                    {sending ? "Gönderiliyor..." : "Numaramı Bırak, Arayın"}
                   </button>
                   <p className="text-xs text-slate-600 text-center">
-                    Bilgilerin yalnızca grup katılımı için kullanılacaktır.
+                    Bilgileriniz yalnızca sizi aramak için kullanılacak, üçüncü taraflarla paylaşılmayacaktır.
                   </p>
                 </form>
               )}
