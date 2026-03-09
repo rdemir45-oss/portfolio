@@ -109,6 +109,3 @@ export default function ScannerLogin() {
     </main>
   );
 }
-
-  );
-}
