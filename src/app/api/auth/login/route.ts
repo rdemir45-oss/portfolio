@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import crypto from "crypto";
 
 function verifyPassword(password: string, hash: string, salt: string): boolean {
@@ -20,6 +21,19 @@ function createViewerToken(id: string, username: string, secret: string): string
 }
 
 export async function POST(req: NextRequest) {
+  // 10 deneme / 15 dakika — brute-force koruması
+  const ip = getClientIp(req);
+  const rl = rateLimit(`login:${ip}`, { limit: 10, windowSec: 60 * 15 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+      }
+    );
+  }
+
   let body: { username?: string; password?: string };
   try {
     body = await req.json();

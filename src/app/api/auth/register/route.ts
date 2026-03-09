@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import crypto from "crypto";
 
 function hashPassword(password: string): { hash: string; salt: string } {
@@ -11,6 +12,19 @@ function hashPassword(password: string): { hash: string; salt: string } {
 }
 
 export async function POST(req: NextRequest) {
+  // 5 kayıt talebi / saat — spam koruması
+  const ip = getClientIp(req);
+  const rl = rateLimit(`register:${ip}`, { limit: 5, windowSec: 60 * 60 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Çok fazla kayıt denemesi. 1 saat sonra tekrar deneyin." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+      }
+    );
+  }
+
   let body: { username?: string; password?: string };
   try {
     body = await req.json();
