@@ -23,6 +23,8 @@ import {
   TbChartBar,
   TbTriangle,
   TbExternalLink,
+  TbStar,
+  TbStarFilled,
 } from "react-icons/tb";
 import { useRouter } from "next/navigation";
 
@@ -362,6 +364,27 @@ export default function StockScanner() {
     (c) => !ALL_GROUPED_KEYS.includes(c.key)
   );
 
+  // Birden fazla kategoride geçen hisseler
+  const tickerCountMap = new Map<string, { count: number; categories: string[]; isBull: boolean }>();
+  for (const cat of (data?.categories ?? [])) {
+    for (const ticker of cat.tickers) {
+      const existing = tickerCountMap.get(ticker);
+      if (existing) {
+        existing.count++;
+        existing.categories.push(cat.label);
+      } else {
+        tickerCountMap.set(ticker, {
+          count: 1,
+          categories: [cat.label],
+          isBull: BULL_KEYS.includes(cat.key),
+        });
+      }
+    }
+  }
+  const overlappingTickers = [...tickerCountMap.entries()]
+    .filter(([, v]) => v.count >= 2)
+    .sort((a, b) => b[1].count - a[1].count);
+
   const totalSignals = (data?.categories ?? []).reduce((a, c) => a + c.count, 0);
   const bullSignals = (data?.categories ?? [])
     .filter((c) => BULL_KEYS.includes(c.key))
@@ -476,6 +499,53 @@ export default function StockScanner() {
               Tekrar dene
             </button>
           </div>
+        )}
+
+        {/* ── Ortak Sinyaller ── */}
+        {!loading && !error && overlappingTickers.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-5 rounded-2xl border border-amber-700/50 bg-amber-950/20 overflow-hidden"
+          >
+            <div className="flex items-center gap-3 px-5 py-4 bg-amber-950/30 border-b border-amber-800/30">
+              <div className="p-1.5 rounded-lg border border-amber-800/50 bg-amber-950/50">
+                <TbStarFilled size={16} className="text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-amber-300">Öne Çıkan Hisseler</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  {overlappingTickers.length} hisse birden fazla sinyal kategorisinde yer alıyor
+                </p>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="flex flex-wrap gap-2">
+                {overlappingTickers.map(([ticker, info]) => (
+                  <a
+                    key={ticker}
+                    href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative inline-flex flex-col items-center gap-0.5"
+                    title={info.categories.join(" · ")}
+                  >
+                    <span className="inline-flex items-center gap-1.5 text-sm font-mono font-black px-3 py-1.5 rounded-xl border border-amber-600/60 text-amber-300 bg-amber-950/40 hover:bg-amber-800/40 hover:border-amber-500 transition-colors">
+                      {ticker}
+                      <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-[10px] font-black text-black">
+                        {info.count}
+                      </span>
+                    </span>
+                    <span className="text-[9px] text-amber-700 group-hover:text-amber-500 transition-colors truncate max-w-[80px] text-center">
+                      {info.categories.slice(0, 2).join(", ")}
+                      {info.categories.length > 2 && ` +${info.categories.length - 2}`}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </motion.div>
         )}
 
         {/* ── Gruplandırılmış içerik ── */}
