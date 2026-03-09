@@ -514,9 +514,9 @@ export default function StockScanner() {
                 <TbStarFilled size={16} className="text-amber-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-bold text-amber-300">Öne Çıkan Hisseler</p>
+                <p className="text-sm font-bold text-amber-300">Birden Fazla Teknikte Ortak Hisseler</p>
                 <p className="text-xs text-amber-700 mt-0.5">
-                  {overlappingTickers.length} hisse birden fazla sinyal kategorisinde yer alıyor
+                  {overlappingTickers.length} hisse 2+ sinyal kategorisinde birden yer alıyor
                 </p>
               </div>
             </div>
