@@ -162,10 +162,11 @@ export default function Pricing() {
                 </p>
                 <h3 className="text-xl font-black text-white mb-4">{plan.name}</h3>
 
-                {/* Fiyat */}
-                <div className="flex items-end gap-1 mb-7">
-                  <span className="text-4xl font-black text-white">{plan.price}</span>
-                  <span className="text-slate-500 text-sm mb-1">{plan.period}</span>
+                {/* Fiyat alanı rezerve - yakında */}
+                <div className="mb-7">
+                  <span className="inline-block bg-slate-800/60 border border-slate-700/50 text-slate-500 text-xs font-semibold px-3 py-1.5 rounded-full tracking-wider">
+                    Fiyat yakında açıklanacak
+                  </span>
                 </div>
 
                 {/* Özellik listesi */}
