@@ -50,16 +50,26 @@ export default function Navbar() {
         </a>
 
         {/* Desktop */}
-        <nav className="hidden md:flex gap-8">
-          {links.map((l) => (
-            <a
-              key={l.href}
-              href={resolveHref(l.href)}
-              className="text-sm text-slate-400 hover:text-emerald-400 transition-colors"
-            >
-              {l.label}
-            </a>
-          ))}
+        <nav className="hidden md:flex gap-8 items-center">
+          {links.map((l) =>
+            l.label === "Ne İşe Yarar?" ? (
+              <a
+                key={l.href}
+                href={resolveHref(l.href)}
+                className="text-sm font-semibold px-3 py-1 rounded-full bg-orange-500 hover:bg-orange-400 text-white transition-colors shadow-md shadow-orange-900/40"
+              >
+                {l.label}
+              </a>
+            ) : (
+              <a
+                key={l.href}
+                href={resolveHref(l.href)}
+                className="text-sm text-slate-400 hover:text-emerald-400 transition-colors"
+              >
+                {l.label}
+              </a>
+            )
+          )}
         </nav>
 
         <a
@@ -87,16 +97,27 @@ export default function Navbar() {
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden bg-[#050a0e]/95 backdrop-blur-md px-6 pb-4"
           >
-            {links.map((l) => (
-              <a
-                key={l.href}
-                href={resolveHref(l.href)}
-                onClick={() => setMenuOpen(false)}
-                className="block py-3 text-slate-300 hover:text-emerald-400 transition-colors border-b border-slate-800 last:border-0"
-              >
-                {l.label}
-              </a>
-            ))}
+            {links.map((l) =>
+              l.label === "Ne İşe Yarar?" ? (
+                <a
+                  key={l.href}
+                  href={resolveHref(l.href)}
+                  onClick={() => setMenuOpen(false)}
+                  className="block py-3 font-semibold text-orange-400 border-b border-slate-800 last:border-0"
+                >
+                  {l.label}
+                </a>
+              ) : (
+                <a
+                  key={l.href}
+                  href={resolveHref(l.href)}
+                  onClick={() => setMenuOpen(false)}
+                  className="block py-3 text-slate-300 hover:text-emerald-400 transition-colors border-b border-slate-800 last:border-0"
+                >
+                  {l.label}
+                </a>
+              )
+            )}
             <a
               href="https://twitter.com/0TheBigShort1"
               target="_blank"

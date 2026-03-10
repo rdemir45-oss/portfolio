@@ -41,7 +41,6 @@ const FEATURES = [
 
 const STATS = [
   { value: "600+", label: "BIST Hissesi Taranıyor" },
-  { value: "30dk", label: "Tarama Aralığı" },
   { value: "25+", label: "Sinyal Kategorisi" },
   { value: "7/24", label: "Otomatik Çalışır" },
 ];
