@@ -1,4 +1,5 @@
 import Hero from "@/components/Hero";
+import SiteFeatures from "@/components/SiteFeatures";
 import Indicators from "@/components/Indicators";
 import Platforms from "@/components/Platforms";
 import Announcements from "@/components/Announcements";
@@ -12,6 +13,7 @@ export default function Home() {
   return (
     <>
       <Hero />
+      <SiteFeatures />
       <Indicators />
       <Platforms />
       <Announcements />
