@@ -889,28 +889,8 @@ export default function StockScanner() {
                   </div>
                 </div>
 
-                {plan === "starter" ? (
-                  /* ── Plan kısıtlaması ── */
-                  <div className="p-8 flex flex-col items-center text-center gap-3">
-                    <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-800/50">
-                      <TbCrown size={26} className="text-amber-400" />
-                    </div>
-                    <p className="text-sm font-bold text-white">Pro veya Elite Paketi Gerekli</p>
-                    <p className="text-xs text-slate-500 max-w-xs">
-                      Telegram bildirimleri Pro ve Elite paketlerde kullanılabilir.
-                      Paketi yükseltmek için iletişime geçin.
-                    </p>
-                    <a
-                      href="/#paketler"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold transition-colors"
-                    >
-                      <TbCrown size={15} />
-                      Paketleri Gör
-                    </a>
-                  </div>
-                ) : (
-                  <div className="p-5 space-y-5">
-                    {alertLoading ? (
+                <div className="p-5 space-y-5">
+                  {alertLoading ? (
                       <div className="space-y-3">
                         <div className="h-4 w-32 bg-slate-800/50 rounded animate-pulse" />
                         <div className="h-10 bg-slate-800/50 rounded animate-pulse" />
@@ -922,11 +902,22 @@ export default function StockScanner() {
                         <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
                           Telegram Chat ID
                         </label>
-                        <p className="text-xs text-slate-600">
-                          Botu başlatın ve{" "}
-                          <span className="text-emerald-500 font-mono">/mychatid</span>{" "}
-                          yazın; çıkan numarayı yapıştırın.
-                        </p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-xs text-slate-600 flex-1">
+                            Önce botu başlatın, ardından{" "}
+                            <span className="text-emerald-500 font-mono">/mychatid</span>{" "}
+                            yazın ve çıkan numarayı yapıştırın.
+                          </p>
+                          <a
+                            href="https://t.me/RdAlgoBildirim_Bot"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-950/50 border border-sky-800/60 hover:bg-sky-900/50 transition-colors text-sky-400 text-xs font-semibold"
+                          >
+                            <TbBrandTelegram size={14} />
+                            Botu Aç
+                          </a>
+                        </div>
                         <div className="flex items-center gap-2">
                           <TbBrandTelegram size={16} className="text-sky-400 shrink-0" />
                           <input
@@ -1050,7 +1041,6 @@ export default function StockScanner() {
                     </>
                   )}
                 </div>
-                )} {/* end plan check */}
               </div>
             </motion.div>
           )}
