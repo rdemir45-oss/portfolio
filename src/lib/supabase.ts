@@ -59,5 +59,15 @@ export interface DbScannerUser {
   id: string;
   username: string;
   status: "pending" | "approved" | "rejected";
+  plan: "starter" | "pro" | "elite";
+  created_at: string;
+}
+
+export interface DbLiveStream {
+  id: number;
+  title: string;
+  stream_at: string;
+  description?: string | null;
+  is_active: boolean;
   created_at: string;
 }

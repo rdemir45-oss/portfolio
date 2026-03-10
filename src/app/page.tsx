@@ -7,12 +7,14 @@ import Announcements from "@/components/Announcements";
 import About from "@/components/About";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
+import LiveStreamBanner from "@/components/LiveStreamBanner";
 
 export const dynamic = "force-dynamic";
 
 export default function Home() {
   return (
     <>
+      <LiveStreamBanner />
       <Hero />
       <SiteFeatures />
       <Indicators />

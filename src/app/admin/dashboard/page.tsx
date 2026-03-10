@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet } from "react-icons/tb";
-import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser } from "@/lib/supabase";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown } from "react-icons/tb";
+import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser, DbLiveStream } from "@/lib/supabase";
 
 const catColors: Record<string, string> = {
   "Teknik Analiz": "text-emerald-400 bg-emerald-950/40 border-emerald-800/60",
@@ -27,7 +27,11 @@ export default function AdminDashboard() {
   const [messages, setMessages] = useState<DbMessage[]>([]);
   const [whatsappRequests, setWhatsappRequests] = useState<DbWhatsappRequest[]>([]);
   const [scannerUsers, setScannerUsers] = useState<DbScannerUser[]>([]);
-  const [tab, setTab] = useState<"posts" | "indicators" | "messages" | "whatsapp" | "scannerUsers">("posts");
+  const [liveStreams, setLiveStreams] = useState<DbLiveStream[]>([]);
+  const [streamForm, setStreamForm] = useState({ title: "", stream_at: "", description: "" });
+  const [streamSaving, setStreamSaving] = useState(false);
+  const [deletingStream, setDeletingStream] = useState<number | null>(null);
+  const [tab, setTab] = useState<"posts" | "indicators" | "messages" | "whatsapp" | "scannerUsers" | "liveStreams">("posts");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [deletingScannerUser, setDeletingScannerUser] = useState<string | null>(null);
@@ -38,18 +42,20 @@ export default function AdminDashboard() {
 
   async function fetchAll() {
     setLoading(true);
-    const [postsRes, indRes, msgRes, waRes, scRes] = await Promise.all([
+    const [postsRes, indRes, msgRes, waRes, scRes, lsRes] = await Promise.all([
       fetch("/api/admin/posts"),
       fetch("/api/admin/indicators"),
       fetch("/api/admin/messages"),
       fetch("/api/admin/whatsapp"),
       fetch("/api/admin/scanner-users"),
+      fetch("/api/admin/live-stream"),
     ]);
     if (postsRes.ok) setPosts(await postsRes.json());
     if (indRes.ok) setIndicators(await indRes.json());
     if (msgRes.ok) setMessages(await msgRes.json());
     if (waRes.ok) setWhatsappRequests(await waRes.json());
     if (scRes.ok) setScannerUsers(await scRes.json());
+    if (lsRes.ok) setLiveStreams(await lsRes.json());
     setLoading(false);
   }
 
@@ -62,6 +68,38 @@ export default function AdminDashboard() {
     });
     await fetchAll();
     setUpdatingScannerUser(null);
+  }
+
+  async function handleScannerUserPlan(id: string, plan: string) {
+    setUpdatingScannerUser(id);
+    await fetch(`/api/admin/scanner-users?id=${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan }),
+    });
+    await fetchAll();
+    setUpdatingScannerUser(null);
+  }
+
+  async function handleAddStream() {
+    if (!streamForm.title || !streamForm.stream_at) return;
+    setStreamSaving(true);
+    await fetch("/api/admin/live-stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(streamForm),
+    });
+    setStreamForm({ title: "", stream_at: "", description: "" });
+    await fetchAll();
+    setStreamSaving(false);
+  }
+
+  async function handleDeleteStream(id: number, title: string) {
+    if (!confirm(`"${title}" yayını silinsin mi?`)) return;
+    setDeletingStream(id);
+    await fetch(`/api/admin/live-stream?id=${id}`, { method: "DELETE" });
+    await fetchAll();
+    setDeletingStream(null);
   }
 
   function downloadWhatsappExcel() {
@@ -212,6 +250,12 @@ export default function AdminDashboard() {
                 {scannerUsers.filter(u => u.status === "pending").length}
               </span>
             )}
+          </button>
+          <button onClick={() => setTab("liveStreams")}
+            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "liveStreams"
+              ? "bg-violet-950/40 border-violet-800 text-violet-400"
+              : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
+            Yayınlar ({liveStreams.length})
           </button>
         </div>
 
@@ -545,9 +589,29 @@ export default function AdminDashboard() {
                           <span className="text-xs text-slate-600">
                             {new Date(u.created_at).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" })}
                           </span>
+                          <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${
+                            u.plan === "elite"
+                              ? "text-amber-400 bg-amber-950/40 border-amber-800/60"
+                              : u.plan === "pro"
+                              ? "text-violet-400 bg-violet-950/40 border-violet-800/60"
+                              : "text-slate-500 bg-slate-800/40 border-slate-700/60"
+                          }`}>
+                            <TbCrown size={10} />
+                            {u.plan ?? "starter"}
+                          </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
+                        <select
+                          value={u.plan ?? "starter"}
+                          onChange={(e) => handleScannerUserPlan(u.id, e.target.value)}
+                          disabled={updatingScannerUser === u.id}
+                          className="text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:border-violet-600 transition-colors disabled:opacity-50"
+                        >
+                          <option value="starter">Starter</option>
+                          <option value="pro">Pro</option>
+                          <option value="elite">Elite</option>
+                        </select>
                         {u.status !== "approved" && (
                           <button
                             onClick={() => handleScannerUserStatus(u.id, "approved")}
@@ -577,6 +641,82 @@ export default function AdminDashboard() {
                           <TbTrash size={15} />
                         </button>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+          {/* Live Streams Tab */}
+          {tab === "liveStreams" && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-white">Canlı Yayın Takvimi</h2>
+                <span className="text-sm text-slate-500">{liveStreams.length} kayıt</span>
+              </div>
+              {/* Form */}
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-5 space-y-3">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Yeni Yayın Ekle</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Başlık"
+                    value={streamForm.title}
+                    onChange={(e) => setStreamForm((f) => ({ ...f, title: e.target.value }))}
+                    className="bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-600 transition-colors"
+                  />
+                  <input
+                    type="datetime-local"
+                    value={streamForm.stream_at}
+                    onChange={(e) => setStreamForm((f) => ({ ...f, stream_at: e.target.value }))}
+                    className="bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-600 transition-colors"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Açıklama (opsiyonel)"
+                  value={streamForm.description}
+                  onChange={(e) => setStreamForm((f) => ({ ...f, description: e.target.value }))}
+                  className="w-full bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-600 transition-colors"
+                />
+                <button
+                  onClick={handleAddStream}
+                  disabled={streamSaving || !streamForm.title || !streamForm.stream_at}
+                  className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                >
+                  <TbPlus size={16} />
+                  {streamSaving ? "Kaydediliyor..." : "Yayın Ekle"}
+                </button>
+              </div>
+              {/* List */}
+              {loading ? (
+                <p className="text-slate-500 text-sm py-8 text-center">Yükleniyor...</p>
+              ) : liveStreams.length === 0 ? (
+                <p className="text-slate-500 text-sm py-8 text-center">Henüz yayın takvimi yok.</p>
+              ) : (
+                <div className="space-y-3">
+                  {liveStreams.map((ls) => (
+                    <div key={ls.id} className="flex items-center gap-4 p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors">
+                      <div className="p-2 bg-violet-950/40 border border-violet-900/60 rounded-xl shrink-0">
+                        <TbVideo size={18} className="text-violet-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white">{ls.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <TbCalendar size={12} className="text-slate-500" />
+                          <span className="text-xs text-slate-400">
+                            {new Date(ls.stream_at).toLocaleString("tr-TR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          {ls.description && <span className="text-xs text-slate-600 truncate">{ls.description}</span>}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteStream(ls.id, ls.title)}
+                        disabled={deletingStream === ls.id}
+                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50 shrink-0"
+                      >
+                        <TbTrash size={15} />
+                      </button>
                     </div>
                   ))}
                 </div>

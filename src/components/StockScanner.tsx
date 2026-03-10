@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   HiRefresh,
@@ -30,6 +30,7 @@ import {
   TbBrandTelegram,
   TbDeviceFloppy,
   TbCheck,
+  TbCrown,
 } from "react-icons/tb";
 import { useRouter } from "next/navigation";
 
@@ -199,9 +200,13 @@ function timeAgoLabel(minutesAgo: number | null): string {
 function CategoryRow({
   cat,
   color,
+  favorites,
+  toggleFavorite,
 }: {
   cat: ScanCategory;
   color: keyof typeof colorMap;
+  favorites: Set<string>;
+  toggleFavorite: (ticker: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const c = colorMap[color];
@@ -254,8 +259,8 @@ function CategoryRow({
                     const ticker = typeof row === "string" ? row : row.ticker;
                     const change = typeof row === "object" ? row.changePct : undefined;
                     return (
+                    <React.Fragment key={ticker}>
                     <a
-                      key={ticker}
                       href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -271,6 +276,20 @@ function CategoryRow({
                       )}
                       <TbExternalLink size={10} className="opacity-50" />
                     </a>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavorite(ticker); }}
+                      className={`p-0.5 rounded transition-colors ${
+                        favorites.has(ticker)
+                          ? "text-amber-400 hover:text-amber-300"
+                          : "text-slate-700 hover:text-amber-400"
+                      }`}
+                      title={favorites.has(ticker) ? "Favorilerden çıkar" : "Favorilere ekle"}
+                    >
+                      {favorites.has(ticker)
+                        ? <TbStarFilled size={11} />
+                        : <TbStar size={11} />}
+                    </button>
+                    </React.Fragment>
                     );
                   })}
                 </div>
@@ -287,9 +306,13 @@ function CategoryRow({
 function GroupBlock({
   group,
   cats,
+  favorites,
+  toggleFavorite,
 }: {
   group: GroupDef;
   cats: ScanCategory[];
+  favorites: Set<string>;
+  toggleFavorite: (ticker: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const c = colorMap[group.color];
@@ -339,7 +362,7 @@ function GroupBlock({
           >
             <div className={`p-3 space-y-2 ${c.bg}`}>
               {cats.map((cat) => (
-                <CategoryRow key={cat.key} cat={cat} color={group.color} />
+                <CategoryRow key={cat.key} cat={cat} color={group.color} favorites={favorites} toggleFavorite={toggleFavorite} />
               ))}
             </div>
           </motion.div>
@@ -406,6 +429,74 @@ const ALERT_GROUPS_DETAILED = [
     ],
   },
 ];
+
+// ── Favoriler bölümü ───────────────────────────────────────────────
+function FavoritesSection({
+  favorites,
+  scanCategories,
+  toggleFavorite,
+}: {
+  favorites: Set<string>;
+  scanCategories: ScanCategory[];
+  toggleFavorite: (ticker: string) => void;
+}) {
+  if (favorites.size === 0) return null;
+
+  const tickerSignals = new Map<string, string[]>();
+  for (const ticker of favorites) tickerSignals.set(ticker, []);
+  for (const cat of scanCategories) {
+    for (const row of cat.stocks ?? []) {
+      const ticker = typeof row === "string" ? row : row.ticker;
+      if (favorites.has(ticker)) tickerSignals.get(ticker)?.push(cat.label);
+    }
+  }
+
+  return (
+    <div className="mb-5 rounded-2xl border border-amber-700/50 bg-amber-950/20 overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-3.5 bg-amber-950/30 border-b border-amber-800/30">
+        <TbStarFilled size={15} className="text-amber-400" />
+        <p className="text-sm font-bold text-amber-300">Favorilerim</p>
+        <span className="text-xs text-amber-700">{favorites.size} hisse</span>
+      </div>
+      <div className="p-4 flex flex-wrap gap-2">
+        {[...favorites].map((ticker) => {
+          const signals = tickerSignals.get(ticker) ?? [];
+          const hasSignal = signals.length > 0;
+          return (
+            <div key={ticker} className="inline-flex items-center gap-0.5">
+              <a
+                href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1.5 text-xs font-mono font-black px-2.5 py-1.5 rounded-xl border transition-colors ${
+                  hasSignal
+                    ? "border-amber-600/60 text-amber-300 bg-amber-950/40 hover:bg-amber-800/40"
+                    : "border-slate-700/50 text-slate-500 bg-slate-900/30 hover:bg-slate-800/40"
+                }`}
+                title={hasSignal ? signals.join(" · ") : "Bugün sinyal yok"}
+              >
+                {ticker}
+                {hasSignal && (
+                  <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-[10px] font-black text-black">
+                    {signals.length}
+                  </span>
+                )}
+                <TbExternalLink size={10} className="opacity-50" />
+              </a>
+              <button
+                onClick={() => toggleFavorite(ticker)}
+                className="p-0.5 text-amber-500 hover:text-rose-400 transition-colors"
+                title="Favorilerden çıkar"
+              >
+                <TbStarFilled size={11} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ── Onboarding ───────────────────────────────────────────────────────────────
 const ONBOARDING_STEPS = [
@@ -499,6 +590,27 @@ export default function StockScanner() {
   const [showOnboarding, setShowOnboarding]   = useState(false);
   const [expandedGroups, setExpandedGroups]   = useState<Set<string>>(new Set());
 
+  const [plan, setPlan]                         = useState<string>("starter");
+
+  // ── Favoriler ──────────────────────────────────────────────
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const stored = localStorage.getItem("hisse_favorites_v1");
+    if (stored) {
+      try { setFavorites(new Set(JSON.parse(stored))); } catch { /* ignore */ }
+    }
+  }, []);
+
+  function toggleFavorite(ticker: string) {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      next.has(ticker) ? next.delete(ticker) : next.add(ticker);
+      localStorage.setItem("hisse_favorites_v1", JSON.stringify([...next]));
+      return next;
+    });
+  }
+
   const loadProfile = useCallback(async () => {
     setAlertLoading(true);
     try {
@@ -507,6 +619,7 @@ export default function StockScanner() {
         const d = await res.json();
         setAlertChatId(d.telegramChatId ?? "");
         setAlertEnabled(d.alertsEnabled  ?? false);
+        setPlan(d.plan ?? "starter");
         // Eski grup ID'lerini bireysel key'lere dönüştür
         const cats: string[] = d.alertCategories ?? [];
         const expanded = cats.flatMap((id: string) => {
@@ -776,13 +889,33 @@ export default function StockScanner() {
                   </div>
                 </div>
 
-                <div className="p-5 space-y-5">
-                  {alertLoading ? (
-                    <div className="space-y-3">
-                      <div className="h-4 w-32 bg-slate-800/50 rounded animate-pulse" />
-                      <div className="h-10 bg-slate-800/50 rounded animate-pulse" />
+                {plan === "starter" ? (
+                  /* ── Plan kısıtlaması ── */
+                  <div className="p-8 flex flex-col items-center text-center gap-3">
+                    <div className="p-3 rounded-2xl bg-amber-950/40 border border-amber-800/50">
+                      <TbCrown size={26} className="text-amber-400" />
                     </div>
-                  ) : (
+                    <p className="text-sm font-bold text-white">Pro veya Elite Paketi Gerekli</p>
+                    <p className="text-xs text-slate-500 max-w-xs">
+                      Telegram bildirimleri Pro ve Elite paketlerde kullanılabilir.
+                      Paketi yükseltmek için iletişime geçin.
+                    </p>
+                    <a
+                      href="/#paketler"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold transition-colors"
+                    >
+                      <TbCrown size={15} />
+                      Paketleri Gör
+                    </a>
+                  </div>
+                ) : (
+                  <div className="p-5 space-y-5">
+                    {alertLoading ? (
+                      <div className="space-y-3">
+                        <div className="h-4 w-32 bg-slate-800/50 rounded animate-pulse" />
+                        <div className="h-10 bg-slate-800/50 rounded animate-pulse" />
+                      </div>
+                    ) : (
                     <>
                       {/* Chat ID */}
                       <div className="space-y-2">
@@ -917,6 +1050,7 @@ export default function StockScanner() {
                     </>
                   )}
                 </div>
+                )} {/* end plan check */}
               </div>
             </motion.div>
           )}
@@ -974,6 +1108,15 @@ export default function StockScanner() {
           </div>
         )}
 
+        {/* ── Favoriler ── */}
+        {!loading && !error && data && (
+          <FavoritesSection
+            favorites={favorites}
+            scanCategories={data.categories}
+            toggleFavorite={toggleFavorite}
+          />
+        )}
+
         {/* ── Ortak Sinyaller ── */}
         {!loading && !error && overlappingTickers.length > 0 && (
           <motion.div
@@ -1025,7 +1168,7 @@ export default function StockScanner() {
         {!loading && !error && data && (
           <div className="space-y-4">
             {groupedData.map(({ group, cats }) => (
-              <GroupBlock key={group.id} group={group} cats={cats} />
+              <GroupBlock key={group.id} group={group} cats={cats} favorites={favorites} toggleFavorite={toggleFavorite} />
             ))}
 
             {/* Gruplanmamış kategoriler */}
@@ -1046,6 +1189,8 @@ export default function StockScanner() {
                       key={cat.key}
                       cat={cat}
                       color={BULL_KEYS.includes(cat.key) ? "emerald" : "rose"}
+                      favorites={favorites}
+                      toggleFavorite={toggleFavorite}
                     />
                   ))}
                 </div>

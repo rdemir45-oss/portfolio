@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("scanner_users")
-    .select("telegram_chat_id, alert_categories, alerts_enabled")
+    .select("telegram_chat_id, alert_categories, alerts_enabled, plan")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
     telegramChatId:  data?.telegram_chat_id  ?? "",
     alertCategories: data?.alert_categories  ?? [],
     alertsEnabled:   data?.alerts_enabled    ?? false,
+    plan:            data?.plan              ?? "starter",
   });
 }
 
