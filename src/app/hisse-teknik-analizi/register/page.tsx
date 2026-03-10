@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { HiUserAdd } from "react-icons/hi";
-import { TbBrandWhatsapp, TbBrandInstagram, TbBrandTelegram, TbPhone, TbCheck } from "react-icons/tb";
+import { TbBrandX, TbPhone, TbCheck } from "react-icons/tb";
 import Link from "next/link";
 
 export default function ScannerRegister() {
@@ -165,49 +165,23 @@ export default function ScannerRegister() {
             )}
           </div>
 
-          {/* ── Sağ: İletişim + Numara Bırak ── */}
+          {/* ── Sağ: Twitter + Numara Bırak ── */}
           <div className="flex flex-col gap-4">
-            {/* İletişim bilgileri */}
-            <div className="bg-[#0a1628] border border-slate-800 rounded-2xl p-6 space-y-4">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">İletişim</p>
-              <div className="space-y-3">
-                <a
-                  href="https://wa.me/905321234567"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-xl bg-green-950/30 border border-green-900/50 hover:border-green-700/70 transition-colors group"
-                >
-                  <TbBrandWhatsapp size={20} className="text-green-400 shrink-0" />
-                  <div>
-                    <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">WhatsApp</p>
-                    <p className="text-sm font-semibold text-white">+90 532 123 45 67</p>
-                  </div>
-                </a>
-                <a
-                  href="https://t.me/recepdemirborsa"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-xl bg-sky-950/30 border border-sky-900/50 hover:border-sky-700/70 transition-colors group"
-                >
-                  <TbBrandTelegram size={20} className="text-sky-400 shrink-0" />
-                  <div>
-                    <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">Telegram</p>
-                    <p className="text-sm font-semibold text-white">@recepdemirborsa</p>
-                  </div>
-                </a>
-                <a
-                  href="https://www.instagram.com/recepdemirborsa"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-xl bg-pink-950/20 border border-pink-900/40 hover:border-pink-700/60 transition-colors group"
-                >
-                  <TbBrandInstagram size={20} className="text-pink-400 shrink-0" />
-                  <div>
-                    <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">Instagram</p>
-                    <p className="text-sm font-semibold text-white">@recepdemirborsa</p>
-                  </div>
-                </a>
-              </div>
+            {/* Twitter */}
+            <div className="bg-[#0a1628] border border-slate-800 rounded-2xl p-6">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Sosyal Medya</p>
+              <a
+                href="https://x.com/recepdemirborsa"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/60 border border-slate-700/60 hover:border-slate-500/70 transition-colors group"
+              >
+                <TbBrandX size={20} className="text-white shrink-0" />
+                <div>
+                  <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">Twitter / X</p>
+                  <p className="text-sm font-semibold text-white">@recepdemirborsa</p>
+                </div>
+              </a>
             </div>
 
             {/* Numara bırak formu */}
