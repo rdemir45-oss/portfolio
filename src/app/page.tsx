@@ -1,7 +1,7 @@
 import Hero from "@/components/Hero";
 import SiteFeatures from "@/components/SiteFeatures";
 import Indicators from "@/components/Indicators";
-import Pricing from "@/components/Pricing";
+// import Pricing from "@/components/Pricing";
 import Platforms from "@/components/Platforms";
 import Announcements from "@/components/Announcements";
 import About from "@/components/About";
@@ -18,7 +18,7 @@ export default function Home() {
       <Hero />
       <SiteFeatures />
       <Indicators />
-      <Pricing />
+      {/* <Pricing /> */}
       <Platforms />
       <Announcements />
       <About />

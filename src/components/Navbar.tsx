@@ -7,7 +7,7 @@ import { HiMenuAlt3, HiX } from "react-icons/hi";
 const links = [
   { href: "/#nedir", label: "Ne İşe Yarar?" },
   { href: "/#indicators", label: "İndikatörler" },
-  { href: "/#paketler", label: "Paketler" },
+  // { href: "/#paketler", label: "Paketler" },
   { href: "/#platforms", label: "Platformlar" },
   { href: "/hisse-teknik-analizi", label: "Hisse Teknik Analizi" },
   { href: "/egitim", label: "Eğitim" },
