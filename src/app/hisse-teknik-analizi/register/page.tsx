@@ -171,7 +171,7 @@ export default function ScannerRegister() {
             <div className="bg-[#0a1628] border border-slate-800 rounded-2xl p-6">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Sosyal Medya</p>
               <a
-                href="https://x.com/recepdemirborsa"
+                href="https://x.com/0TheBigShort1"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/60 border border-slate-700/60 hover:border-slate-500/70 transition-colors group"
@@ -179,7 +179,7 @@ export default function ScannerRegister() {
                 <TbBrandX size={20} className="text-white shrink-0" />
                 <div>
                   <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors">Twitter / X</p>
-                  <p className="text-sm font-semibold text-white">@recepdemirborsa</p>
+                  <p className="text-sm font-semibold text-white">@0TheBigShort1</p>
                 </div>
               </a>
             </div>
