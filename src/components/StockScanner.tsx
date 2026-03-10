@@ -340,14 +340,135 @@ function GroupBlock({
   );
 }
 
-// ── Bildirim grubu metadata ───────────────────────────────────────────────────
-const ALERT_GROUPS = [
-  { id: "formasyon_bull", label: "Bullish Formasyonlar",    emoji: "📈", color: "emerald" },
-  { id: "rsi",           label: "RSI Analizleri",          emoji: "📊", color: "sky"     },
-  { id: "macd",          label: "MACD Analizleri",         emoji: "〰️", color: "violet"  },
-  { id: "harmonik",      label: "Harmonik Formasyonlar",   emoji: "🔷", color: "amber"   },
-  { id: "hacim",         label: "Hacim & Göstergeler",     emoji: "🔥", color: "rose"    },
-] as const;
+// ── Bildirim grubu metadata (bireysel key'lerle) ────────────────────────────
+const ALERT_GROUPS_DETAILED = [
+  {
+    id: "formasyon_bull", label: "Bullish Formasyonlar", emoji: "📈",
+    keys: [
+      { id: "strong_up",         label: "Güçlü Yükseliş"         },
+      { id: "golden_cross",      label: "Altın Kesişim"           },
+      { id: "tobo_break",        label: "Çift Dip Kırılımı"       },
+      { id: "channel_break_up",  label: "Kanal Üst Kırılımı"     },
+      { id: "triangle_break_up", label: "Üçgen Üst Kırılımı"     },
+      { id: "trend_break_up",    label: "Trend Üst Kırılımı"     },
+      { id: "ikili_dip_break",   label: "İkili Dip Kırılımı"     },
+      { id: "price_desc_break",  label: "Azalan Fiyat Kırılımı" },
+      { id: "hbreak",            label: "Direnç Kırılımı"         },
+      { id: "fibo_setup",        label: "Fibonacci Düzeltme"      },
+    ],
+  },
+  {
+    id: "rsi", label: "RSI Analizleri", emoji: "📊",
+    keys: [
+      { id: "rsi_os",         label: "Aşırı Satım (< 30)"   },
+      { id: "rsi_asc_break",  label: "Yükselen Kırılım"     },
+      { id: "rsi_tobo",       label: "Çift Dip Formasyon"   },
+      { id: "rsi_ob",         label: "Aşırı Alım (> 70)"    },
+      { id: "rsi_desc_break", label: "Düşen Kırılım"        },
+      { id: "rsi_hdts",       label: "HD/TS Sinyali"        },
+      { id: "rsi_pos_div",    label: "Pozitif Uyumsuzluk"  },
+    ],
+  },
+  {
+    id: "macd", label: "MACD Analizleri", emoji: "〰️",
+    keys: [
+      { id: "macd_cross", label: "MACD Kesişimi"  },
+      { id: "macd_bear",  label: "Bearish MACD"  },
+      { id: "macd_bull",  label: "Bullish MACD"  },
+      { id: "macd_neg",   label: "Negatif Bölge" },
+      { id: "macd_pos",   label: "Pozitif Bölge" },
+    ],
+  },
+  {
+    id: "harmonik", label: "Harmonik Formasyonlar", emoji: "🔷",
+    keys: [
+      { id: "harmonic_long",  label: "Harmonik Long"  },
+      { id: "harmonic_short", label: "Harmonik Short" },
+    ],
+  },
+  {
+    id: "hacim", label: "Hacim & Göstergeler", emoji: "🔥",
+    keys: [
+      { id: "vol_spike",  label: "Hacim Patlaması"    },
+      { id: "bb_squeeze", label: "Bollinger Sıkışması" },
+      { id: "vol_dry",    label: "Hacim Kuruluğu"     },
+    ],
+  },
+];
+
+// ── Onboarding ───────────────────────────────────────────────────────────────
+const ONBOARDING_STEPS = [
+  {
+    icon: "🚀",
+    title: "Hoş Geldiniz!",
+    desc: "BIST hisse tarama paneline hoş geldiniz. Bu kısa turda temel özellikleri göstereceğiz.",
+  },
+  {
+    icon: "📊",
+    title: "Otomatik Tarama",
+    desc: "Hisseler her 30 dakikada bir otomatik taranır. Formasyon, RSI, MACD, Harmonik ve Hacim gruplarındaki sinyaller listelenir. Hisseye tıklayarak TradingView grafiğini açabilirsiniz.",
+  },
+  {
+    icon: "⭐",
+    title: "Ortak Sinyaller",
+    desc: "Birden fazla kategoride aynı anda görünen hisseler en üstte vurgulanır — bunlar genellikle daha güçlü sinyal verir.",
+  },
+  {
+    icon: "🔔",
+    title: "Telegram Bildirimleri",
+    desc: "Sağ üstteki Bildirim butonuna tıklayarak Telegram bildirimlerini etkinleştirebilirsiniz. Bota /mychatid yazarak Chat ID'nizi alın, kategorileri seçin ve kaydedin.",
+  },
+];
+
+function OnboardingTour({ onDone }: { onDone: () => void }) {
+  const [step, setStep] = useState(0);
+  const current = ONBOARDING_STEPS[step];
+  const isLast = step === ONBOARDING_STEPS.length - 1;
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-4"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ type: "spring", damping: 20 }}
+        className="bg-[#0d1f35] border border-slate-700/60 rounded-3xl p-8 max-w-sm w-full shadow-2xl"
+      >
+        <div className="text-5xl text-center mb-4">{current.icon}</div>
+        <h2 className="text-xl font-black text-white text-center mb-3">{current.title}</h2>
+        <p className="text-slate-400 text-sm text-center leading-relaxed mb-6">{current.desc}</p>
+        <div className="flex items-center justify-center gap-1.5 mb-6">
+          {ONBOARDING_STEPS.map((_, i) => (
+            <div
+              key={i}
+              className={`rounded-full transition-all duration-300 ${
+                i === step ? "w-6 h-2 bg-emerald-400" : "w-2 h-2 bg-slate-700"
+              }`}
+            />
+          ))}
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={onDone}
+            className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white text-sm transition-colors"
+          >
+            Atla
+          </button>
+          <button
+            onClick={() => (isLast ? onDone() : setStep((s) => s + 1))}
+            className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors"
+          >
+            {isLast ? "Başla 🚀" : "İleri →"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 // ── Ana bileşen ────────────────────────────────────────────────────────────────
 export default function StockScanner() {
@@ -364,6 +485,8 @@ export default function StockScanner() {
   const [alertLoading, setAlertLoading]       = useState(false);
   const [alertSaving, setAlertSaving]         = useState(false);
   const [alertMsg, setAlertMsg]               = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [showOnboarding, setShowOnboarding]   = useState(false);
+  const [expandedGroups, setExpandedGroups]   = useState<Set<string>>(new Set());
 
   const loadProfile = useCallback(async () => {
     setAlertLoading(true);
@@ -373,7 +496,13 @@ export default function StockScanner() {
         const d = await res.json();
         setAlertChatId(d.telegramChatId ?? "");
         setAlertEnabled(d.alertsEnabled  ?? false);
-        setAlertCategories(d.alertCategories ?? []);
+        // Eski grup ID'lerini bireysel key'lere dönüştür
+        const cats: string[] = d.alertCategories ?? [];
+        const expanded = cats.flatMap((id: string) => {
+          const grp = ALERT_GROUPS_DETAILED.find((g) => g.id === id);
+          return grp ? grp.keys.map((k) => k.id) : [id];
+        });
+        setAlertCategories([...new Set(expanded)]);
       }
     } catch { /* ignore */ } finally {
       setAlertLoading(false);
@@ -406,10 +535,34 @@ export default function StockScanner() {
     }
   }, [alertChatId, alertEnabled, alertCategories]);
 
-  function toggleCategory(id: string) {
+  function toggleKey(keyId: string) {
     setAlertCategories((prev) =>
-      prev.includes(id) ? prev.filter((k) => k !== id) : [...prev, id]
+      prev.includes(keyId) ? prev.filter((k) => k !== keyId) : [...prev, keyId]
     );
+  }
+
+  function toggleGroup(groupId: string) {
+    const grp = ALERT_GROUPS_DETAILED.find((g) => g.id === groupId);
+    if (!grp) return;
+    const keys = grp.keys.map((k) => k.id);
+    const allSelected = keys.every((k) => alertCategories.includes(k));
+    if (allSelected) {
+      setAlertCategories((prev) => prev.filter((k) => !keys.includes(k)));
+    } else {
+      setAlertCategories((prev) => [...new Set([...prev, ...keys])]);
+    }
+  }
+
+  function isGroupFull(groupId: string): boolean {
+    const grp = ALERT_GROUPS_DETAILED.find((g) => g.id === groupId);
+    if (!grp) return false;
+    return grp.keys.every((k) => alertCategories.includes(k.id));
+  }
+
+  function isGroupPartial(groupId: string): boolean {
+    const grp = ALERT_GROUPS_DETAILED.find((g) => g.id === groupId);
+    if (!grp) return false;
+    return grp.keys.some((k) => alertCategories.includes(k.id)) && !isGroupFull(groupId);
   }
 
   async function handleLogout() {
@@ -439,6 +592,7 @@ export default function StockScanner() {
     load();
     loadProfile();
     const id = setInterval(load, 5 * 60 * 1000);
+    if (!localStorage.getItem("hisse_onboarding_v1")) setShowOnboarding(true);
     return () => clearInterval(id);
   }, [load, loadProfile]);
 
@@ -482,7 +636,18 @@ export default function StockScanner() {
   const bearSignals = totalSignals - bullSignals;
 
   return (
-    <section id="hisse-teknik-analizi" className="py-20 px-4 sm:px-6">
+    <>
+      <AnimatePresence>
+        {showOnboarding && (
+          <OnboardingTour
+            onDone={() => {
+              localStorage.setItem("hisse_onboarding_v1", "1");
+              setShowOnboarding(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+      <section id="hisse-teknik-analizi" className="py-20 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
         {/* ── Başlık ── */}
         <motion.div
@@ -634,25 +799,87 @@ export default function StockScanner() {
                       {/* Kategori seçimi */}
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                          Hangi Kategorilerde Bildirim Alayım?
+                          Hangi Sinyallerde Bildirim Alayım?
                         </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {ALERT_GROUPS.map((g) => {
-                            const active = alertCategories.includes(g.id);
+                        <div className="space-y-1.5">
+                          {ALERT_GROUPS_DETAILED.map((g) => {
+                            const full    = isGroupFull(g.id);
+                            const partial = isGroupPartial(g.id);
+                            const open    = expandedGroups.has(g.id);
+                            const selectedCount = g.keys.filter((k) => alertCategories.includes(k.id)).length;
                             return (
-                              <button
+                              <div
                                 key={g.id}
-                                onClick={() => toggleCategory(g.id)}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
-                                  active
-                                    ? "border-emerald-700/70 bg-emerald-950/30 text-white"
-                                    : "border-slate-800 bg-slate-900/30 text-slate-400 hover:border-slate-600"
+                                className={`rounded-xl border overflow-hidden transition-colors ${
+                                  full ? "border-emerald-700/70" : partial ? "border-emerald-900/50" : "border-slate-800"
                                 }`}
                               >
-                                <span className="text-lg">{g.emoji}</span>
-                                <span className="flex-1 text-sm font-medium">{g.label}</span>
-                                {active && <TbCheck size={16} className="text-emerald-400 shrink-0" />}
-                              </button>
+                                {/* Grup satırı */}
+                                <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-900/40">
+                                  {/* Grup checkbox */}
+                                  <button
+                                    onClick={() => toggleGroup(g.id)}
+                                    className={`flex items-center justify-center w-5 h-5 rounded border shrink-0 transition-colors ${
+                                      full
+                                        ? "bg-emerald-600 border-emerald-500"
+                                        : partial
+                                        ? "bg-emerald-950 border-emerald-700"
+                                        : "bg-slate-800 border-slate-600 hover:border-slate-400"
+                                    }`}
+                                  >
+                                    {full    && <TbCheck size={11} className="text-white" />}
+                                    {partial && <span className="w-2 h-0.5 bg-emerald-400 rounded-full" />}
+                                  </button>
+                                  <span className="text-base leading-none">{g.emoji}</span>
+                                  <span className={`flex-1 text-sm font-semibold ${
+                                    full || partial ? "text-white" : "text-slate-400"
+                                  }`}>
+                                    {g.label}
+                                  </span>
+                                  {(full || partial) && (
+                                    <span className="text-xs text-emerald-600 shrink-0">{selectedCount}/{g.keys.length}</span>
+                                  )}
+                                  {/* Genişlet butonu */}
+                                  <button
+                                    onClick={() =>
+                                      setExpandedGroups((prev) => {
+                                        const next = new Set(prev);
+                                        next.has(g.id) ? next.delete(g.id) : next.add(g.id);
+                                        return next;
+                                      })
+                                    }
+                                    className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+                                  >
+                                    {open ? <HiChevronUp size={14} /> : <HiChevronDown size={14} />}
+                                  </button>
+                                </div>
+                                {/* Bireysel key'ler */}
+                                {open && (
+                                  <div className="px-3 pb-2 pt-1 bg-slate-950/50 border-t border-slate-800/50 grid grid-cols-1 sm:grid-cols-2 gap-0.5">
+                                    {g.keys.map((k) => {
+                                      const keyActive = alertCategories.includes(k.id);
+                                      return (
+                                        <button
+                                          key={k.id}
+                                          onClick={() => toggleKey(k.id)}
+                                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors ${
+                                            keyActive
+                                              ? "text-emerald-300"
+                                              : "text-slate-500 hover:text-slate-300"
+                                          }`}
+                                        >
+                                          <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                            keyActive ? "bg-emerald-600 border-emerald-500" : "border-slate-600"
+                                          }`}>
+                                            {keyActive && <TbCheck size={9} className="text-white" />}
+                                          </div>
+                                          <span className="text-xs">{k.label}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
                         </div>
@@ -830,6 +1057,7 @@ export default function StockScanner() {
         </p>
       </div>
     </section>
+    </>
   );
 }
 
