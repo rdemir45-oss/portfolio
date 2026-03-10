@@ -27,7 +27,7 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="min-h-screen flex flex-col items-center justify-center relative px-6 overflow-hidden"
+      className="min-h-screen flex flex-col items-center justify-center relative px-6 overflow-hidden pt-16"
       style={{ background: "linear-gradient(135deg, #050a0e 0%, #071a12 60%, #050a0e 100%)" }}
     >
       {/* Glow */}
