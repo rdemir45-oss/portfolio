@@ -23,7 +23,7 @@ const FEATURES = [
     icon: <TbBell size={28} />,
     color: "sky",
     title: "Fırsatı Kaçırmadan Telegram'a Bildirim Al",
-    desc: "Her 30 dakikada bir tarama yapılır. Seçtiğiniz sinyal kategorilerinde hisse çıkınca anında Telegram mesajı alırsınız — ekran başında beklemenize gerek yok.",
+    desc: "Seçtiğiniz sinyal kategorilerinde hisse çıkınca anında Telegram mesajı alırsınız — ekran başında beklemenize gerek yok.",
   },
   {
     icon: <TbChartCandle size={28} />,
