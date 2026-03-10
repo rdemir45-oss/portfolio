@@ -74,25 +74,26 @@ const GROUPS: GroupDef[] = [
     color: "emerald",
     keys: [
       "strong_up", "golden_cross", "tobo_break",
-      "channel_break_up", "triangle_break_up", "trend_break_up",
+      "channel_break", "triangle_break", "trend_break",
       "ikili_dip_break", "price_desc_break", "hbreak", "fibo_setup",
+      "rsi_asc_break", "rsi_tobo", "rsi_pos_div",
     ],
   },
   {
     id: "rsi",
     label: "RSI Analizleri",
-    desc: "Aşırı alım/satım ve RSI kırılım sinyalleri",
+    desc: "Aşırı alım/satım sinyalleri",
     icon: <TbActivity size={16} />,
     color: "sky",
-    keys: ["rsi_os", "rsi_asc_break", "rsi_tobo", "rsi_ob", "rsi_desc_break", "rsi_hdts", "rsi_pos_div"],
+    keys: ["rsi_os", "rsi_ob"],
   },
   {
     id: "macd",
     label: "MACD Analizleri",
-    desc: "MACD kesişim ve momentum sinyalleri",
+    desc: "MACD kesişim sinyali",
     icon: <TbWaveSine size={16} />,
     color: "violet",
-    keys: ["macd_cross", "macd_bear", "macd_bull", "macd_neg", "macd_pos"],
+    keys: ["macd_cross"],
   },
   {
     id: "harmonik",
@@ -105,10 +106,18 @@ const GROUPS: GroupDef[] = [
   {
     id: "hacim",
     label: "Hacim & Göstergeler",
-    desc: "Hacim artışları ve volatilite sinyalleri",
+    desc: "Hacim artışları ve sıkışma sinyalleri",
     icon: <TbChartBar size={16} />,
     color: "rose",
-    keys: ["vol_spike", "bb_squeeze", "vol_dry"],
+    keys: ["vol_spike", "bb_squeeze"],
+  },
+  {
+    id: "bearish",
+    label: "Satış Sinyalleri",
+    desc: "Aşağı kırılım ve tersine dönüş formasyonları",
+    icon: <HiTrendingDown size={16} />,
+    color: "rose",
+    keys: ["death_cross", "obo_break", "ikili_tepe_break", "rsi_desc_break"],
   },
 ];
 
@@ -118,9 +127,9 @@ const ALL_GROUPED_KEYS = GROUPS.flatMap((g) => g.keys);
 const BULL_KEYS = [
   "rsi_os", "vol_spike", "macd_cross", "bb_squeeze",
   "strong_up", "golden_cross", "tobo_break",
-  "channel_break_up", "triangle_break_up", "trend_break_up",
+  "channel_break", "triangle_break", "trend_break",
   "ikili_dip_break", "fibo_setup", "rsi_asc_break", "rsi_tobo",
-  "hbreak", "price_desc_break", "harmonic_long", "macd_bull", "macd_pos",
+  "hbreak", "price_desc_break", "harmonic_long",
   "rsi_pos_div",
 ];
 
@@ -345,38 +354,32 @@ const ALERT_GROUPS_DETAILED = [
   {
     id: "formasyon_bull", label: "Bullish Formasyonlar", emoji: "📈",
     keys: [
-      { id: "strong_up",         label: "Güçlü Yükseliş"         },
-      { id: "golden_cross",      label: "Altın Kesişim"           },
-      { id: "tobo_break",        label: "Çift Dip Kırılımı"       },
-      { id: "channel_break_up",  label: "Kanal Üst Kırılımı"     },
-      { id: "triangle_break_up", label: "Üçgen Üst Kırılımı"     },
-      { id: "trend_break_up",    label: "Trend Üst Kırılımı"     },
-      { id: "ikili_dip_break",   label: "İkili Dip Kırılımı"     },
-      { id: "price_desc_break",  label: "Azalan Fiyat Kırılımı" },
-      { id: "hbreak",            label: "Direnç Kırılımı"         },
-      { id: "fibo_setup",        label: "Fibonacci Düzeltme"      },
+      { id: "strong_up",        label: "Güçlü Yükseliş"         },
+      { id: "golden_cross",     label: "Altın Kesişim"           },
+      { id: "tobo_break",       label: "TOBO (Ters Baş-Omuz)"   },
+      { id: "channel_break",    label: "Kanal Kırılımı"          },
+      { id: "triangle_break",   label: "Üçgen Kırılımı"          },
+      { id: "trend_break",      label: "Trend Kırılımı"          },
+      { id: "ikili_dip_break",  label: "İkili Dip (W)"           },
+      { id: "price_desc_break", label: "Düşen Trend Kırılımı"   },
+      { id: "hbreak",           label: "Yatay Direnç Kırılımı"  },
+      { id: "fibo_setup",       label: "Fibonacci Setup"         },
+      { id: "rsi_asc_break",    label: "RSI Alt Trend Kırılım"  },
+      { id: "rsi_tobo",         label: "RSI TOBO"                },
+      { id: "rsi_pos_div",      label: "RSI Pozitif Uyumsuzluk" },
     ],
   },
   {
     id: "rsi", label: "RSI Analizleri", emoji: "📊",
     keys: [
-      { id: "rsi_os",         label: "Aşırı Satım (< 30)"   },
-      { id: "rsi_asc_break",  label: "Yükselen Kırılım"     },
-      { id: "rsi_tobo",       label: "Çift Dip Formasyon"   },
-      { id: "rsi_ob",         label: "Aşırı Alım (> 70)"    },
-      { id: "rsi_desc_break", label: "Düşen Kırılım"        },
-      { id: "rsi_hdts",       label: "HD/TS Sinyali"        },
-      { id: "rsi_pos_div",    label: "Pozitif Uyumsuzluk"  },
+      { id: "rsi_os", label: "Aşırı Satım (< 30)" },
+      { id: "rsi_ob", label: "Aşırı Alım (> 70)"  },
     ],
   },
   {
     id: "macd", label: "MACD Analizleri", emoji: "〰️",
     keys: [
-      { id: "macd_cross", label: "MACD Kesişimi"  },
-      { id: "macd_bear",  label: "Bearish MACD"  },
-      { id: "macd_bull",  label: "Bullish MACD"  },
-      { id: "macd_neg",   label: "Negatif Bölge" },
-      { id: "macd_pos",   label: "Pozitif Bölge" },
+      { id: "macd_cross", label: "MACD Kesişim Yukarı" },
     ],
   },
   {
@@ -391,7 +394,15 @@ const ALERT_GROUPS_DETAILED = [
     keys: [
       { id: "vol_spike",  label: "Hacim Patlaması"    },
       { id: "bb_squeeze", label: "Bollinger Sıkışması" },
-      { id: "vol_dry",    label: "Hacim Kuruluğu"     },
+    ],
+  },
+  {
+    id: "bearish", label: "Satış Sinyalleri", emoji: "📉",
+    keys: [
+      { id: "death_cross",      label: "Ölüm Kesişimi"           },
+      { id: "obo_break",        label: "OBO (Baş-Omuz)"          },
+      { id: "ikili_tepe_break", label: "İkili Tepe (M)"          },
+      { id: "rsi_desc_break",   label: "RSI Düşen Trend Kırılım" },
     ],
   },
 ];
