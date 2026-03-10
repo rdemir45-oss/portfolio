@@ -25,6 +25,11 @@ import {
   TbExternalLink,
   TbStar,
   TbStarFilled,
+  TbBell,
+  TbBellOff,
+  TbBrandTelegram,
+  TbDeviceFloppy,
+  TbCheck,
 } from "react-icons/tb";
 import { useRouter } from "next/navigation";
 
@@ -335,12 +340,77 @@ function GroupBlock({
   );
 }
 
+// ── Bildirim grubu metadata ───────────────────────────────────────────────────
+const ALERT_GROUPS = [
+  { id: "formasyon_bull", label: "Bullish Formasyonlar",    emoji: "📈", color: "emerald" },
+  { id: "rsi",           label: "RSI Analizleri",          emoji: "📊", color: "sky"     },
+  { id: "macd",          label: "MACD Analizleri",         emoji: "〰️", color: "violet"  },
+  { id: "harmonik",      label: "Harmonik Formasyonlar",   emoji: "🔷", color: "amber"   },
+  { id: "hacim",         label: "Hacim & Göstergeler",     emoji: "🔥", color: "rose"    },
+] as const;
+
 // ── Ana bileşen ────────────────────────────────────────────────────────────────
 export default function StockScanner() {
   const [data, setData] = useState<ScanData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  // ── Bildirim ayarları state ──────────────────────────────────────────────
+  const [alertPanelOpen, setAlertPanelOpen]   = useState(false);
+  const [alertChatId, setAlertChatId]         = useState("");
+  const [alertEnabled, setAlertEnabled]       = useState(false);
+  const [alertCategories, setAlertCategories] = useState<string[]>([]);
+  const [alertLoading, setAlertLoading]       = useState(false);
+  const [alertSaving, setAlertSaving]         = useState(false);
+  const [alertMsg, setAlertMsg]               = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const loadProfile = useCallback(async () => {
+    setAlertLoading(true);
+    try {
+      const res = await fetch("/api/user/profile");
+      if (res.ok) {
+        const d = await res.json();
+        setAlertChatId(d.telegramChatId ?? "");
+        setAlertEnabled(d.alertsEnabled  ?? false);
+        setAlertCategories(d.alertCategories ?? []);
+      }
+    } catch { /* ignore */ } finally {
+      setAlertLoading(false);
+    }
+  }, []);
+
+  const saveProfile = useCallback(async () => {
+    setAlertSaving(true);
+    setAlertMsg(null);
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegramChatId:  alertChatId.trim(),
+          alertsEnabled:   alertEnabled,
+          alertCategories: alertCategories,
+        }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setAlertMsg({ type: "ok", text: "Ayarlar kaydedildi." });
+      } else {
+        setAlertMsg({ type: "err", text: d.error ?? "Kayıt başarısız." });
+      }
+    } catch {
+      setAlertMsg({ type: "err", text: "Bağlantı hatası." });
+    } finally {
+      setAlertSaving(false);
+    }
+  }, [alertChatId, alertEnabled, alertCategories]);
+
+  function toggleCategory(id: string) {
+    setAlertCategories((prev) =>
+      prev.includes(id) ? prev.filter((k) => k !== id) : [...prev, id]
+    );
+  }
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -367,9 +437,10 @@ export default function StockScanner() {
 
   useEffect(() => {
     load();
+    loadProfile();
     const id = setInterval(load, 5 * 60 * 1000);
     return () => clearInterval(id);
-  }, [load]);
+  }, [load, loadProfile]);
 
   // Kategorileri grupla
   const groupedData = GROUPS.map((group) => ({
@@ -428,7 +499,7 @@ export default function StockScanner() {
                 Hisse <span className="text-emerald-400">Teknik</span> Analizi
               </h1>
               <p className="text-slate-400 text-sm max-w-xl">
-                BIST hisseleri her saat otomatik taranır. Formasyon, RSI, MACD ve harmonik
+                BIST hisseleri her 30 dakikada bir otomatik taranır. Formasyon, RSI, MACD ve harmonik
                 sinyaller gruplandırılmış olarak listelenir.
               </p>
             </div>
@@ -440,6 +511,18 @@ export default function StockScanner() {
               >
                 <HiRefresh className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">Yenile</span>
+              </button>
+              <button
+                onClick={() => { setAlertPanelOpen((v) => !v); if (!alertPanelOpen) loadProfile(); }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-colors text-sm ${
+                  alertEnabled && alertChatId
+                    ? "border-emerald-700 text-emerald-400 hover:bg-emerald-950/40"
+                    : "border-slate-700 text-slate-400 hover:text-white hover:border-emerald-700"
+                }`}
+                title="Bildirim Ayarları"
+              >
+                {alertEnabled && alertChatId ? <TbBell className="w-4 h-4" /> : <TbBellOff className="w-4 h-4" />}
+                <span className="hidden sm:inline">Bildirim</span>
               </button>
               <button
                 onClick={handleLogout}
@@ -612,6 +695,131 @@ export default function StockScanner() {
           Bu sayfa yalnızca teknik formasyon tespiti yapar. Yatırım tavsiyesi değildir.
           Tüm kararlar yatırımcının kendi sorumluluğundadır.
         </p>
+
+        {/* ── Bildirim Ayarları Paneli ── */}
+        <AnimatePresence>
+          {alertPanelOpen && (
+            <motion.div
+              key="alert-panel"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="mt-6 overflow-hidden"
+            >
+              <div className="rounded-2xl border border-emerald-900/50 bg-emerald-950/10 overflow-hidden">
+                {/* Başlık */}
+                <div className="flex items-center gap-3 px-5 py-4 bg-emerald-950/20 border-b border-emerald-900/30">
+                  <div className="p-1.5 rounded-lg border border-emerald-800/50 bg-emerald-950/50">
+                    <TbBell size={16} className="text-emerald-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-emerald-300">Telegram Bildirim Ayarları</p>
+                    <p className="text-xs text-emerald-700 mt-0.5">Tarama sonucu seçtiğin kategorilerde hisse çıkınca mesaj al</p>
+                  </div>
+                </div>
+
+                <div className="p-5 space-y-5">
+                  {alertLoading ? (
+                    <div className="h-6 w-48 bg-slate-800/50 rounded animate-pulse" />
+                  ) : (
+                    <>
+                      {/* Chat ID */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                          Telegram Chat ID
+                        </label>
+                        <p className="text-xs text-slate-600">
+                          Botu başlatın ve <span className="text-emerald-500 font-mono">/mychatid</span> yazın;
+                          çıkan numarayı yapıştırın.
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <TbBrandTelegram size={16} className="text-sky-400 shrink-0" />
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="örn: 123456789"
+                            value={alertChatId}
+                            onChange={(e) => setAlertChatId(e.target.value.replace(/[^-\d]/g, ""))}
+                            className="flex-1 bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-600 transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Master toggle */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-300">Bildirimleri Aktif Et</p>
+                          <p className="text-xs text-slate-600 mt-0.5">Kapalıysa hiçbir mesaj gelmez</p>
+                        </div>
+                        <button
+                          onClick={() => setAlertEnabled((v) => !v)}
+                          className={`relative w-11 h-6 rounded-full transition-colors ${
+                            alertEnabled ? "bg-emerald-600" : "bg-slate-700"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+                              alertEnabled ? "translate-x-5" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Kategori seçimi */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                          Hangi Kategorilerde Bildirim Alayım?
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {ALERT_GROUPS.map((g) => {
+                            const active = alertCategories.includes(g.id);
+                            return (
+                              <button
+                                key={g.id}
+                                onClick={() => toggleCategory(g.id)}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
+                                  active
+                                    ? "border-emerald-700/70 bg-emerald-950/30 text-white"
+                                    : "border-slate-800 bg-slate-900/30 text-slate-400 hover:border-slate-600"
+                                }`}
+                              >
+                                <span className="text-lg">{g.emoji}</span>
+                                <span className="flex-1 text-sm font-medium">{g.label}</span>
+                                {active && <TbCheck size={16} className="text-emerald-400 shrink-0" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Kaydet butonu */}
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={saveProfile}
+                          disabled={alertSaving}
+                          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                        >
+                          <TbDeviceFloppy size={16} />
+                          {alertSaving ? "Kaydediliyor..." : "Kaydet"}
+                        </button>
+                        {alertMsg && (
+                          <p
+                            className={`text-sm ${
+                              alertMsg.type === "ok" ? "text-emerald-400" : "text-rose-400"
+                            }`}
+                          >
+                            {alertMsg.type === "ok" ? "✅ " : "❌ "}{alertMsg.text}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );
