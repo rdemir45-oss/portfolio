@@ -45,7 +45,7 @@ export default function ScannerLogin() {
         <div className="text-center mb-8">
           <a href="/" className="inline-flex items-center gap-2">
             <span className="text-emerald-400 font-black text-2xl tracking-tight">
-              TheBigShort
+              RdAlgo
             </span>
             <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
           </a>

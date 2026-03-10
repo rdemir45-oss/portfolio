@@ -75,7 +75,7 @@ const colorMap: Record<string, { border: string; bg: string; icon: string; title
 
 export default function SiteFeatures() {
   return (
-    <section id="nedir" className="py-24 px-4 sm:px-6 relative overflow-hidden">
+    <section id="nedir" className="py-24 px-4 sm:px-6 relative overflow-hidden bg-[#050a0e]">
       {/* Arka plan glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full bg-emerald-500/5 blur-3xl pointer-events-none" />
 

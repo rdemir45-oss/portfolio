@@ -67,9 +67,8 @@ export default function Hero() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-5xl sm:text-7xl font-extrabold mb-4 tracking-tight"
         >
-          <span className="text-white">The</span>
-          <span className="text-emerald-400"> Big </span>
-          <span className="text-white">Short</span>
+          <span className="text-white">Rd</span>
+          <span className="text-emerald-400">Algo</span>
         </motion.h1>
 
         <motion.p

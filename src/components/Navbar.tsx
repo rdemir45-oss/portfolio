@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { HiMenuAlt3, HiX } from "react-icons/hi";
 
 const links = [
+  { href: "/#nedir", label: "Ne İşe Yarar?" },
   { href: "/#indicators", label: "İndikatörler" },
   { href: "/#platforms", label: "Platformlar" },
   { href: "/hisse-teknik-analizi", label: "Hisse Teknik Analizi" },
@@ -43,7 +44,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <a href="#" className="flex items-center gap-2">
           <span className="text-emerald-400 font-black text-xl tracking-tight">
-            TheBigShort
+            RdAlgo
           </span>
           <span className="live-dot w-2 h-2 rounded-full bg-emerald-400 inline-block" />
         </a>

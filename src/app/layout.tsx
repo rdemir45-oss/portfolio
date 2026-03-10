@@ -15,11 +15,11 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "The Big Short | TradingView & Matriks İndikatörleri",
+  title: "RdAlgo | TradingView & Matriks İndikatörleri",
   description: "TradingView ve Matriks platformları için profesyonel borsa indikatörleri ve algoritmik trading yazılımları.",
   keywords: "TradingView indikatör, Matriks indikatör, borsa, algoritmik trading, Pine Script",
   openGraph: {
-    title: "The Big Short | TradingView & Matriks İndikatörleri",
+    title: "RdAlgo | TradingView & Matriks İndikatörleri",
     description: "Profesyonel borsa indikatörleri ve algoritmik trading yazılımları.",
     type: "website",
   },

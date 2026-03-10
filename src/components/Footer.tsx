@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="py-8 px-6 border-t border-slate-800/60">
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-emerald-400 font-black">TheBigShort</span>
+          <span className="text-emerald-400 font-black">RdAlgo</span>
           <span className="w-2 h-2 rounded-full bg-emerald-400 live-dot" />
         </div>
         <p className="text-slate-600 text-sm text-center">
