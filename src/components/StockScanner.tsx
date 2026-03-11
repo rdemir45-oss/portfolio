@@ -365,7 +365,9 @@ function GroupBlock({
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
             <p className={`text-lg font-black ${c.label}`}>{totalSignals}</p>
-            <p className="text-xs text-slate-600">{activeCats} aktif sinyal</p>
+            <p className="text-xs text-slate-600">
+              {cats.length === 0 ? "Sinyal yok" : `${activeCats} aktif sinyal`}
+            </p>
           </div>
           <span className={`sm:hidden text-sm font-black ${c.label}`}>{totalSignals}</span>
           {collapsed ? (
@@ -386,9 +388,15 @@ function GroupBlock({
             transition={{ duration: 0.2 }}
           >
             <div className={`p-3 space-y-2 ${c.bg}`}>
-              {cats.map((cat) => (
-                <CategoryRow key={cat.key} cat={cat} color={group.color} favorites={favorites} toggleFavorite={toggleFavorite} />
-              ))}
+              {cats.length === 0 ? (
+                <p className="text-xs text-slate-600 italic px-1 py-2">
+                  Bugün bu grupta sinyal çıkmadı.
+                </p>
+              ) : (
+                cats.map((cat) => (
+                  <CategoryRow key={cat.key} cat={cat} color={group.color} favorites={favorites} toggleFavorite={toggleFavorite} />
+                ))
+              )}
             </div>
           </motion.div>
         )}
@@ -775,11 +783,15 @@ export default function StockScanner() {
     return () => clearInterval(id);
   }, [load, loadProfile, loadGroups]);
 
-  // Kategorileri grupla
+  // Kategorileri grupla — admin'de tanımlı sıraya göre sırala
   const groupedData = activeGroups.map((group) => ({
     group,
-    cats: (data?.categories ?? []).filter((c) => group.keys.includes(c.key)),
-  })).filter(({ cats }) => cats.length > 0);
+    cats: (data?.categories ?? [])
+      .filter((c) => group.keys.includes(c.key))
+      .sort((a, b) => group.keys.indexOf(a.key) - group.keys.indexOf(b.key)),
+  }));
+  // Grubun hiç key'i yoksa gizle (boş/tanımsız grup); key tanımlıysa sinyal olmasa da göster
+  const visibleGroupData = groupedData.filter(({ group }) => group.keys.length > 0);
 
   // Gruplanmamış kategoriler (API'den yeni gelen ama tanımlı olmayan)
   const activeAllGroupedKeys = activeGroups.flatMap((g) => g.keys);
@@ -1213,7 +1225,7 @@ export default function StockScanner() {
         {/* ── Gruplandırılmış içerik ── */}
         {!loading && !error && data && (
           <div className="space-y-4">
-            {groupedData.map(({ group, cats }) => (
+            {visibleGroupData.map(({ group, cats }) => (
               <GroupBlock key={group.id} group={group} cats={cats} favorites={favorites} toggleFavorite={toggleFavorite} />
             ))}
 
