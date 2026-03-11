@@ -193,6 +193,13 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/admin/scan-groups"
+              className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-emerald-400 transition-colors"
+            >
+              <TbChartCandle size={15} />
+              Tarama Grupları
+            </Link>
+            <Link
               href="/"
               className="text-sm text-slate-400 hover:text-white transition-colors"
               target="_blank"

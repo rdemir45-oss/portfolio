@@ -33,6 +33,7 @@ import {
   TbCrown,
 } from "react-icons/tb";
 import { useRouter } from "next/navigation";
+import type { DbScanGroup } from "@/lib/supabase";
 
 interface StockRow {
   ticker: string;
@@ -124,6 +125,30 @@ const GROUPS: GroupDef[] = [
 
 // Gruplanmamış her şeyi yakala
 const ALL_GROUPED_KEYS = GROUPS.flatMap((g) => g.keys);
+
+// ── İkon haritası (DB'den gelen icon string → React node) ────────────────────
+const ICON_MAP: Record<string, React.ReactNode> = {
+  candle:         <TbChartCandle size={16} />,
+  activity:       <TbActivity size={16} />,
+  wave:           <TbWaveSine size={16} />,
+  triangle:       <TbTriangle size={16} />,
+  bar:            <TbChartBar size={16} />,
+  chart:          <TbChartLine size={16} />,
+  flame:          <TbFlame size={16} />,
+  trending_up:    <HiTrendingUp size={16} />,
+  trending_down:  <HiTrendingDown size={16} />,
+};
+
+function dbGroupToGroupDef(g: DbScanGroup): GroupDef {
+  return {
+    id: g.id,
+    label: g.label,
+    desc: g.description,
+    icon: ICON_MAP[g.icon] ?? <TbChartLine size={16} />,
+    color: g.color as GroupDef["color"],
+    keys: (g.keys ?? []).map((k) => k.id),
+  };
+}
 
 const BULL_KEYS = [
   "rsi_os", "vol_spike", "macd_cross", "bb_squeeze",
@@ -591,6 +616,25 @@ export default function StockScanner() {
   const [expandedGroups, setExpandedGroups]   = useState<Set<string>>(new Set());
 
   const [plan, setPlan]                         = useState<string>("starter");
+  const [remoteGroups, setRemoteGroups]           = useState<DbScanGroup[] | null>(null);
+
+  // ── Dinamik grup türemeleri ───────────────────────────────────────────────
+  const activeGroups = (remoteGroups && remoteGroups.length > 0)
+    ? remoteGroups.map(dbGroupToGroupDef)
+    : GROUPS;
+
+  const activeAlertGroups = (remoteGroups && remoteGroups.length > 0)
+    ? remoteGroups.map((g) => ({
+        id: g.id,
+        label: g.label,
+        emoji: g.emoji,
+        keys: (g.keys ?? []).map((k) => ({ id: k.id, label: k.label })),
+      }))
+    : ALERT_GROUPS_DETAILED;
+
+  const activeBullKeys = (remoteGroups && remoteGroups.length > 0)
+    ? remoteGroups.filter((g) => g.is_bull).flatMap((g) => (g.keys ?? []).map((k) => k.id))
+    : BULL_KEYS;
 
   // ── Favoriler ──────────────────────────────────────────────
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -633,6 +677,16 @@ export default function StockScanner() {
     }
   }, []);
 
+  const loadGroups = useCallback(async () => {
+    try {
+      const res = await fetch("/api/scan-groups");
+      if (res.ok) {
+        const d = await res.json();
+        if (Array.isArray(d) && d.length > 0) setRemoteGroups(d);
+      }
+    } catch { /* use static fallback */ }
+  }, []);
+
   const saveProfile = useCallback(async () => {
     setAlertSaving(true);
     setAlertMsg(null);
@@ -666,7 +720,7 @@ export default function StockScanner() {
   }
 
   function toggleGroup(groupId: string) {
-    const grp = ALERT_GROUPS_DETAILED.find((g) => g.id === groupId);
+    const grp = activeAlertGroups.find((g) => g.id === groupId);
     if (!grp) return;
     const keys = grp.keys.map((k) => k.id);
     const allSelected = keys.every((k) => alertCategories.includes(k));
@@ -678,13 +732,13 @@ export default function StockScanner() {
   }
 
   function isGroupFull(groupId: string): boolean {
-    const grp = ALERT_GROUPS_DETAILED.find((g) => g.id === groupId);
+    const grp = activeAlertGroups.find((g) => g.id === groupId);
     if (!grp) return false;
     return grp.keys.every((k) => alertCategories.includes(k.id));
   }
 
   function isGroupPartial(groupId: string): boolean {
-    const grp = ALERT_GROUPS_DETAILED.find((g) => g.id === groupId);
+    const grp = activeAlertGroups.find((g) => g.id === groupId);
     if (!grp) return false;
     return grp.keys.some((k) => alertCategories.includes(k.id)) && !isGroupFull(groupId);
   }
@@ -715,20 +769,22 @@ export default function StockScanner() {
   useEffect(() => {
     load();
     loadProfile();
+    loadGroups();
     const id = setInterval(load, 5 * 60 * 1000);
     if (!localStorage.getItem("hisse_onboarding_v1")) setShowOnboarding(true);
     return () => clearInterval(id);
-  }, [load, loadProfile]);
+  }, [load, loadProfile, loadGroups]);
 
   // Kategorileri grupla
-  const groupedData = GROUPS.map((group) => ({
+  const groupedData = activeGroups.map((group) => ({
     group,
     cats: (data?.categories ?? []).filter((c) => group.keys.includes(c.key)),
   })).filter(({ cats }) => cats.length > 0);
 
   // Gruplanmamış kategoriler (API'den yeni gelen ama tanımlı olmayan)
+  const activeAllGroupedKeys = activeGroups.flatMap((g) => g.keys);
   const ungroupedCats = (data?.categories ?? []).filter(
-    (c) => !ALL_GROUPED_KEYS.includes(c.key)
+    (c) => !activeAllGroupedKeys.includes(c.key)
   );
 
   // Birden fazla kategoride geçen hisseler
@@ -744,7 +800,7 @@ export default function StockScanner() {
         tickerCountMap.set(ticker, {
           count: 1,
           categories: [cat.label],
-          isBull: BULL_KEYS.includes(cat.key),
+          isBull: activeBullKeys.includes(cat.key),
         });
       }
     }
@@ -755,7 +811,7 @@ export default function StockScanner() {
 
   const totalSignals = (data?.categories ?? []).reduce((a, c) => a + c.count, 0);
   const bullSignals = (data?.categories ?? [])
-    .filter((c) => BULL_KEYS.includes(c.key))
+    .filter((c) => activeBullKeys.includes(c.key))
     .reduce((a, c) => a + c.count, 0);
   const bearSignals = totalSignals - bullSignals;
 
@@ -937,7 +993,7 @@ export default function StockScanner() {
                           Hangi Sinyallerde Bildirim Alayım?
                         </label>
                         <div className="space-y-1.5">
-                          {ALERT_GROUPS_DETAILED.map((g) => {
+                          {activeAlertGroups.map((g) => {
                             const full    = isGroupFull(g.id);
                             const partial = isGroupPartial(g.id);
                             const open    = expandedGroups.has(g.id);
@@ -1178,7 +1234,7 @@ export default function StockScanner() {
                     <CategoryRow
                       key={cat.key}
                       cat={cat}
-                      color={BULL_KEYS.includes(cat.key) ? "emerald" : "rose"}
+                      color={activeBullKeys.includes(cat.key) ? "emerald" : "rose"}
                       favorites={favorites}
                       toggleFavorite={toggleFavorite}
                     />

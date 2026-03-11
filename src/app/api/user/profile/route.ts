@@ -14,7 +14,8 @@ const GROUP_KEYS: Record<string, string[]> = {
   hacim:    ["vol_spike", "bb_squeeze", "vol_dry"],
 };
 
-const VALID_KEYS = new Set([...Object.keys(GROUP_KEYS), ...Object.values(GROUP_KEYS).flat()]);
+// Statik VALID_KEYS (yedek); dinamik doğrulama format ile yapılır
+const STATIC_VALID_KEYS = new Set([...Object.keys(GROUP_KEYS), ...Object.values(GROUP_KEYS).flat()]);
 
 function getUserFromToken(token: string): { id: string; username: string } | null {
   const dot = token.lastIndexOf(".");
@@ -68,8 +69,22 @@ export async function POST(req: NextRequest) {
 
   const telegramChatId  = (body.telegramChatId ?? "").toString().trim();
   const rawCategories   = Array.isArray(body.alertCategories) ? body.alertCategories : [];
+
+  // Dinamik doğrulama: scan_groups tablosundan geçerli anahtarları al
+  // Tablo yoksa veya hata olursa statik listeye dön
+  let validKeySet: Set<string> = STATIC_VALID_KEYS;
+  try {
+    const { data: groupRows } = await supabase.from("scan_groups").select("keys");
+    if (groupRows && groupRows.length > 0) {
+      const dynamicKeys = groupRows.flatMap((g: { keys: { id: string }[] }) =>
+        (g.keys ?? []).map((k) => k.id)
+      );
+      validKeySet = new Set([...dynamicKeys, ...STATIC_VALID_KEYS]);
+    }
+  } catch { /* use static fallback */ }
+
   const alertCategories = rawCategories.filter(
-    (k) => typeof k === "string" && VALID_KEYS.has(k)
+    (k) => typeof k === "string" && /^[a-z][a-z0-9_]{1,49}$/.test(k) && validKeySet.has(k)
   );
   const alertsEnabled = Boolean(body.alertsEnabled);
 

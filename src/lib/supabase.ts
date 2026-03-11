@@ -71,3 +71,23 @@ export interface DbLiveStream {
   is_active: boolean;
   created_at: string;
 }
+
+export interface DbScanGroupKey {
+  id: string;
+  label: string;
+}
+
+export type ScanGroupColor = "emerald" | "sky" | "violet" | "amber" | "rose";
+
+export interface DbScanGroup {
+  id: string;
+  label: string;
+  description: string;
+  emoji: string;
+  icon: string;
+  color: ScanGroupColor;
+  keys: DbScanGroupKey[];
+  display_order: number;
+  is_bull: boolean;
+  created_at?: string;
+}
