@@ -7,11 +7,13 @@ const GROUP_KEYS: Record<string, string[]> = {
     "strong_up", "golden_cross", "tobo_break", "channel_break_up",
     "triangle_break_up", "trend_break_up", "ikili_dip_break",
     "price_desc_break", "hbreak", "fibo_setup",
+    "supertrend_bull",
   ],
   rsi:      ["rsi_os", "rsi_asc_break", "rsi_tobo", "rsi_ob", "rsi_desc_break", "rsi_hdts", "rsi_pos_div"],
   macd:     ["macd_cross", "macd_bear", "macd_bull", "macd_neg", "macd_pos"],
   harmonik: ["harmonic_long", "harmonic_short"],
   hacim:    ["vol_spike", "bb_squeeze", "vol_dry"],
+  trend:    ["supertrend", "supertrend_bull", "supertrend_bear"],
 };
 
 // Statik VALID_KEYS (yedek); dinamik doğrulama format ile yapılır

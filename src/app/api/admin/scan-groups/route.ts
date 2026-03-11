@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+function isAdmin(req: NextRequest): boolean {
+  const token = req.cookies.get("admin_token")?.value;
+  const secret = process.env.ADMIN_SECRET;
+  return !!(secret && token && token === secret);
+}
+
+const UNAUTHORIZED = NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
+
 const VALID_COLORS = ["emerald", "sky", "violet", "amber", "rose"];
 
 const DEFAULT_GROUPS = [
@@ -100,7 +108,9 @@ const DEFAULT_GROUPS = [
   },
 ];
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdmin(req)) return UNAUTHORIZED;
+
   const { data, error } = await supabase
     .from("scan_groups")
     .select("*")
@@ -111,6 +121,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAdmin(req)) return UNAUTHORIZED;
+
   const url = req.nextUrl;
 
   // Seed endpoint: POST /api/admin/scan-groups?seed=1
@@ -162,6 +174,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  if (!isAdmin(req)) return UNAUTHORIZED;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id gerekli." }, { status: 400 });
 
@@ -192,6 +206,8 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!isAdmin(req)) return UNAUTHORIZED;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id gerekli." }, { status: 400 });
 

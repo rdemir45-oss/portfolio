@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 function getUserFromToken(token: string): { id: string; username: string } | null {
   const dot = token.lastIndexOf(".");
@@ -21,11 +22,28 @@ export async function GET(req: NextRequest) {
   const user = getUserFromToken(token);
   if (!user) return NextResponse.json({ error: "Geçersiz token." }, { status: 401 });
 
+  // Rate limiting: 30 istek / dakika per kullanıcı
+  const rl = rateLimit(`scan-groups:${user.id}`, { limit: 30, windowSec: 60 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Çok fazla istek. Lütfen bekleyin." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    );
+  }
+
   const { data, error } = await supabase
     .from("scan_groups")
-    .select("*")
+    // Yalnızca UI için gereken alanlar — strateji meta verisi gizlenir
+    .select("id, label, description, emoji, icon, color, keys, display_order, is_bull")
     .order("display_order", { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data ?? []);
+
+  // Cache: CDN / tarayıcı önbelleklemesini engelle (her zaman sunucudan gelsin)
+  return NextResponse.json(data ?? [], {
+    headers: {
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 }
