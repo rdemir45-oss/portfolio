@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAdmin(req)) return UNAUTHORIZED;
   const { data, error } = await supabase
     .from("live_streams")
     .select("*")
@@ -13,6 +15,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAdmin(req)) return UNAUTHORIZED;
   let body: { title?: string; stream_at?: string; description?: string };
   try { body = await req.json(); } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
@@ -34,6 +37,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  if (!isAdmin(req)) return UNAUTHORIZED;
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID gerekli." }, { status: 400 });
 

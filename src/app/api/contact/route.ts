@@ -16,7 +16,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, email, message } = await req.json();
+  let body: { name?: string; email?: string; message?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
+  }
+
+  const { name, email, message } = body;
 
   if (!name || !email || !message) {
     return NextResponse.json({ error: "Tüm alanlar zorunludur." }, { status: 400 });

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
 
 const posts = [
   {
@@ -124,7 +126,8 @@ Temel syntax öğrendikten sonra strateji yazmaya, backtest almaya ve uyarı (al
   },
 ];
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  if (!isAdmin(req)) return UNAUTHORIZED;
   const results = [];
   for (const post of posts) {
     const { error } = await supabase

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import crypto from "crypto";
 
 // GROUP_KEYS: GROUPS tanımıyla senkron olmalı (StockScanner.tsx)
 const GROUP_KEYS: Record<string, string[]> = {
@@ -19,11 +20,15 @@ const GROUP_KEYS: Record<string, string[]> = {
 // Statik VALID_KEYS (yedek); dinamik doğrulama format ile yapılır
 const STATIC_VALID_KEYS = new Set([...Object.keys(GROUP_KEYS), ...Object.values(GROUP_KEYS).flat()]);
 
-function getUserFromToken(token: string): { id: string; username: string } | null {
+function getUserFromToken(token: string, secret: string): { id: string; username: string } | null {
   const dot = token.lastIndexOf(".");
   if (dot === -1) return null;
   try {
     const payload = token.slice(0, dot);
+    const sig = token.slice(dot + 1);
+    // HMAC imzasını doğrula — atlayamazsın
+    const expected = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
+    if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) return null;
     const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf-8"));
     if (!decoded.id || !decoded.username) return null;
     return { id: decoded.id, username: decoded.username };
@@ -36,7 +41,10 @@ export async function GET(req: NextRequest) {
   const token = req.cookies.get("viewer_token")?.value;
   if (!token) return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
 
-  const user = getUserFromToken(token);
+  const secret = process.env.SCAN_SESSION_SECRET;
+  if (!secret) return NextResponse.json({ error: "Sunucu hatası." }, { status: 500 });
+
+  const user = getUserFromToken(token, secret);
   if (!user) return NextResponse.json({ error: "Geçersiz token." }, { status: 401 });
 
   const { data, error } = await supabase
@@ -59,7 +67,10 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get("viewer_token")?.value;
   if (!token) return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
 
-  const user = getUserFromToken(token);
+  const secret = process.env.SCAN_SESSION_SECRET;
+  if (!secret) return NextResponse.json({ error: "Sunucu hatası." }, { status: 500 });
+
+  const user = getUserFromToken(token, secret);
   if (!user) return NextResponse.json({ error: "Geçersiz token." }, { status: 401 });
 
   let body: { telegramChatId?: string; alertCategories?: string[]; alertsEnabled?: boolean };

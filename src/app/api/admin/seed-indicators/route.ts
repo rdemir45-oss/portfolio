@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
 
 const indicators = [
   {
@@ -128,7 +130,8 @@ const indicators = [
   },
 ];
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  if (!isAdmin(req)) return UNAUTHORIZED;
   const results = [];
   for (const ind of indicators) {
     const { error } = await supabase
