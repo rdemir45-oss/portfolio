@@ -19,10 +19,53 @@ import {
   TbChartLine,
   TbFlame,
   TbArrowLeft,
-  TbGripVertical,
+  TbSearch,
 } from "react-icons/tb";
 import { HiTrendingDown, HiTrendingUp } from "react-icons/hi";
 import type { DbScanGroup, DbScanGroupKey, ScanGroupColor } from "@/lib/supabase";
+
+// ─── Tüm bilinen sinyal anahtarları kataloğu ──────────────────────────────────
+const ALL_KNOWN_KEYS: { id: string; label: string; group: string }[] = [
+  // Bullish Formasyonlar
+  { id: "strong_up",        label: "Güçlü Yükseliş",              group: "Bullish Formasyonlar" },
+  { id: "golden_cross",     label: "Altın Kesişim",               group: "Bullish Formasyonlar" },
+  { id: "tobo_break",       label: "TOBO (Ters Baş-Omuz)",        group: "Bullish Formasyonlar" },
+  { id: "channel_break",    label: "Kanal Kırılımı",              group: "Bullish Formasyonlar" },
+  { id: "channel_break_up", label: "Kanal Kırılımı (Yukarı)",     group: "Bullish Formasyonlar" },
+  { id: "triangle_break",   label: "Üçgen Kırılımı",              group: "Bullish Formasyonlar" },
+  { id: "triangle_break_up",label: "Üçgen Kırılımı (Yukarı)",     group: "Bullish Formasyonlar" },
+  { id: "trend_break",      label: "Trend Kırılımı",              group: "Bullish Formasyonlar" },
+  { id: "trend_break_up",   label: "Trend Kırılımı (Yukarı)",     group: "Bullish Formasyonlar" },
+  { id: "ikili_dip_break",  label: "İkili Dip (W)",               group: "Bullish Formasyonlar" },
+  { id: "price_desc_break", label: "Düşen Trend Kırılımı",        group: "Bullish Formasyonlar" },
+  { id: "hbreak",           label: "Yatay Direnç Kırılımı",       group: "Bullish Formasyonlar" },
+  { id: "fibo_setup",       label: "Fibonacci Setup",             group: "Bullish Formasyonlar" },
+  // RSI
+  { id: "rsi_os",           label: "Aşırı Satım (< 30)",          group: "RSI Analizleri" },
+  { id: "rsi_ob",           label: "Aşırı Alım (> 70)",           group: "RSI Analizleri" },
+  { id: "rsi_asc_break",    label: "RSI Alt Trend Kırılım",       group: "RSI Analizleri" },
+  { id: "rsi_tobo",         label: "RSI TOBO",                    group: "RSI Analizleri" },
+  { id: "rsi_pos_div",      label: "RSI Pozitif Uyumsuzluk",      group: "RSI Analizleri" },
+  { id: "rsi_desc_break",   label: "RSI Düşen Trend Kırılım",     group: "RSI Analizleri" },
+  { id: "rsi_hdts",         label: "RSI Yüksek Düşük Tren Str.",  group: "RSI Analizleri" },
+  // MACD
+  { id: "macd_cross",       label: "MACD Kesişim Yukarı",         group: "MACD Analizleri" },
+  { id: "macd_bear",        label: "MACD Bearish Kesişim",        group: "MACD Analizleri" },
+  { id: "macd_bull",        label: "MACD Bullish Kesişim",        group: "MACD Analizleri" },
+  { id: "macd_neg",         label: "MACD Negatif Diverjans",      group: "MACD Analizleri" },
+  { id: "macd_pos",         label: "MACD Pozitif Diverjans",      group: "MACD Analizleri" },
+  // Harmonik
+  { id: "harmonic_long",    label: "Harmonik Long",               group: "Harmonik Formasyonlar" },
+  { id: "harmonic_short",   label: "Harmonik Short",              group: "Harmonik Formasyonlar" },
+  // Hacim
+  { id: "vol_spike",        label: "Hacim Patlaması",             group: "Hacim & Göstergeler" },
+  { id: "bb_squeeze",       label: "Bollinger Sıkışması",         group: "Hacim & Göstergeler" },
+  { id: "vol_dry",          label: "Hacim Kuruması",              group: "Hacim & Göstergeler" },
+  // Bearish
+  { id: "death_cross",      label: "Ölüm Kesişimi",               group: "Satış Sinyalleri" },
+  { id: "obo_break",        label: "OBO (Baş-Omuz)",              group: "Satış Sinyalleri" },
+  { id: "ikili_tepe_break", label: "İkili Tepe (M)",              group: "Satış Sinyalleri" },
+];
 
 // ─── Icon kataloğu ────────────────────────────────────────────────────────────
 const ICONS: { id: string; label: string; node: React.ReactNode }[] = [
@@ -107,6 +150,81 @@ function groupToForm(g: DbScanGroup): GroupForm {
   };
 }
 
+// ─── Sinyal Anahtar Seçici ────────────────────────────────────────────────────
+function KeyPicker({
+  currentKeys,
+  onAdd,
+  onClose,
+}: {
+  currentKeys: DbScanGroupKey[];
+  onAdd: (k: DbScanGroupKey) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const currentIds = new Set(currentKeys.map((k) => k.id));
+
+  const filtered = ALL_KNOWN_KEYS.filter(
+    (k) =>
+      !currentIds.has(k.id) &&
+      (search === "" ||
+        k.id.includes(search.toLowerCase()) ||
+        k.label.toLowerCase().includes(search.toLowerCase()) ||
+        k.group.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  // Grup bazında grupla
+  const byGroup = filtered.reduce<Record<string, typeof filtered>>((acc, k) => {
+    (acc[k.group] ??= []).push(k);
+    return acc;
+  }, {});
+
+  return (
+    <div className="border border-emerald-800/50 bg-[#060f1e] rounded-xl overflow-hidden">
+      {/* Arama */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800">
+        <TbSearch size={13} className="text-slate-600 shrink-0" />
+        <input
+          autoFocus
+          type="text"
+          placeholder="İsim veya ID ara..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 bg-transparent text-xs text-white placeholder-slate-600 focus:outline-none"
+        />
+        <button onClick={onClose} className="text-slate-600 hover:text-slate-300 transition-colors">
+          <TbX size={13} />
+        </button>
+      </div>
+
+      {/* Liste */}
+      <div className="max-h-60 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <p className="text-xs text-slate-600 italic text-center py-4">
+            {search ? "Eşleşen tarama bulunamadı" : "Tüm taramalar zaten eklendi"}
+          </p>
+        ) : (
+          Object.entries(byGroup).map(([grp, keys]) => (
+            <div key={grp}>
+              <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest px-3 pt-2.5 pb-1">{grp}</p>
+              {keys.map((k) => (
+                <button
+                  key={k.id}
+                  onClick={() => { onAdd({ id: k.id, label: k.label }); }}
+                  className="w-full flex items-center gap-3 px-3 py-2 hover:bg-emerald-950/30 text-left transition-colors group"
+                >
+                  <TbPlus size={11} className="text-emerald-700 group-hover:text-emerald-400 shrink-0 transition-colors" />
+                  <span className="text-xs font-mono text-slate-500 group-hover:text-slate-300 transition-colors w-36 shrink-0">{k.id}</span>
+                  <span className="text-xs text-slate-400 group-hover:text-white transition-colors truncate">{k.label}</span>
+                </button>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Form bileşeni ────────────────────────────────────────────────────────────
 function GroupFormPanel({
   form,
@@ -123,11 +241,17 @@ function GroupFormPanel({
   saving: boolean;
   isNew: boolean;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   function setField<K extends keyof GroupForm>(k: K, v: GroupForm[K]) {
     onChange({ ...form, [k]: v });
   }
 
-  function addKey() {
+  function addKeyFromPicker(k: DbScanGroupKey) {
+    onChange({ ...form, keys: [...form.keys, k] });
+  }
+
+  function addManualKey() {
     onChange({ ...form, keys: [...form.keys, { id: "", label: "" }] });
   }
 
@@ -146,7 +270,7 @@ function GroupFormPanel({
     const j = i + dir;
     if (j < 0 || j >= next.length) return;
     [next[i], next[j]] = [next[j], next[i]];
-    onChange({ ...form, keys: next });
+    onChange({ ...form, keys: [...next] }); // yeni referans → React yeniden render
   }
 
   const inputCls = "w-full bg-[#060f1e] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-600 transition-colors";
@@ -272,24 +396,46 @@ function GroupFormPanel({
           <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
             Sinyal Anahtarları ({form.keys.length})
           </label>
-          <button
-            onClick={addKey}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-800/60 text-emerald-400 text-xs hover:bg-emerald-900/40 transition-colors"
-          >
-            <TbPlus size={12} />
-            Ekle
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setPickerOpen((v) => !v)}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs transition-colors ${
+                pickerOpen
+                  ? "bg-emerald-900/40 border-emerald-700 text-emerald-300"
+                  : "bg-emerald-950/40 border-emerald-800/60 text-emerald-400 hover:bg-emerald-900/40"
+              }`}
+            >
+              <TbPlus size={12} />
+              Tarama Seç
+            </button>
+            <button
+              onClick={addManualKey}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-700 text-slate-500 text-xs hover:text-slate-300 hover:border-slate-600 transition-colors"
+              title="Listede olmayan özel anahtar ekle"
+            >
+              Manuel
+            </button>
+          </div>
         </div>
 
-        {form.keys.length === 0 ? (
+        {/* Picker */}
+        {pickerOpen && (
+          <KeyPicker
+            currentKeys={form.keys}
+            onAdd={(k) => { addKeyFromPicker(k); }}
+            onClose={() => setPickerOpen(false)}
+          />
+        )}
+
+        {form.keys.length === 0 && !pickerOpen ? (
           <p className="text-xs text-slate-600 italic py-2">
-            Henüz anahtar yok. &quot;Ekle&quot;ye basarak sinyal anahtarı ekleyin.
+            Henüz sinyal eklenmedi. &quot;Tarama Seç&quot;e tıklayın.
           </p>
         ) : (
-          <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+          <div className="space-y-1.5 overflow-y-auto pr-1" style={{ maxHeight: "400px" }}>
             {form.keys.map((k, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <TbGripVertical size={14} className="text-slate-700 shrink-0" />
+              <div key={k.id || `new-${i}`} className="flex items-center gap-2 py-0.5">
+                <span className="text-slate-700 shrink-0 select-none text-xs w-4 text-right">{i + 1}</span>
                 <input
                   type="text"
                   placeholder="anahtar_id"
@@ -308,25 +454,25 @@ function GroupFormPanel({
                   <button
                     onClick={() => moveKey(i, -1)}
                     disabled={i === 0}
-                    className="p-1 text-slate-600 hover:text-slate-300 disabled:opacity-30 transition-colors"
+                    className="p-1 rounded text-slate-600 hover:text-emerald-400 hover:bg-emerald-950/30 disabled:opacity-20 transition-colors"
                     title="Yukarı taşı"
                   >
-                    <TbArrowUp size={12} />
+                    <TbArrowUp size={13} />
                   </button>
                   <button
                     onClick={() => moveKey(i, 1)}
                     disabled={i === form.keys.length - 1}
-                    className="p-1 text-slate-600 hover:text-slate-300 disabled:opacity-30 transition-colors"
+                    className="p-1 rounded text-slate-600 hover:text-emerald-400 hover:bg-emerald-950/30 disabled:opacity-20 transition-colors"
                     title="Aşağı taşı"
                   >
-                    <TbArrowDown size={12} />
+                    <TbArrowDown size={13} />
                   </button>
                   <button
                     onClick={() => removeKey(i)}
-                    className="p-1 text-slate-700 hover:text-rose-400 transition-colors"
+                    className="p-1 rounded text-slate-600 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
                     title="Sil"
                   >
-                    <TbX size={12} />
+                    <TbX size={13} />
                   </button>
                 </div>
               </div>
