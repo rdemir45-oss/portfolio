@@ -1,12 +1,34 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 
-const SCAN_API_URL = process.env.SCAN_API_URL ?? "";
-const SCAN_API_KEY = process.env.SCAN_API_KEY ?? "";
+const SCAN_API_URL          = process.env.SCAN_API_URL ?? "";
+const SCAN_API_KEY          = process.env.SCAN_API_KEY ?? "";
+const SCAN_SESSION_SECRET   = process.env.SCAN_SESSION_SECRET ?? "";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET() {
+function isValidViewerToken(token: string): boolean {
+  if (!SCAN_SESSION_SECRET) return false;
+  const dot = token.lastIndexOf(".");
+  if (dot === -1) return false;
+  try {
+    const payload  = token.slice(0, dot);
+    const sig      = token.slice(dot + 1);
+    const expected = crypto.createHmac("sha256", SCAN_SESSION_SECRET).update(payload).digest("base64url");
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
+  } catch {
+    return false;
+  }
+}
+
+export async function GET(req: NextRequest) {
+  // Sadece giriş yapmış kullanıcılar tarama sonuçlarına erişebilir
+  const token = req.cookies.get("viewer_token")?.value;
+  if (!token || !isValidViewerToken(token)) {
+    return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
+  }
+
   if (!SCAN_API_URL || !SCAN_API_KEY) {
     return NextResponse.json(
       { error: "Tarama servisi yapılandırılmamış." },
@@ -36,3 +58,4 @@ export async function GET() {
     );
   }
 }
+
