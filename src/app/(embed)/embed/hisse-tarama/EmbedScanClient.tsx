@@ -30,42 +30,60 @@ interface ScanData {
   categories: ScanCategory[];
 }
 
-// ── Renk haritası ──────────────────────────────────────────────────────────────
+// ── Orion teması renk haritası ───────────────────────────────────────────────
+const THEME = {
+  bg:          "#0f1117",
+  card:        "#161b27",
+  cardHover:   "#1c2333",
+  border:      "#2a3040",
+  borderLight: "#1e2538",
+  text:        "#e2e8f0",
+  textMuted:   "#8892a4",
+  green:       "#22c55e",
+  greenBg:     "rgba(34,197,94,0.12)",
+  greenBorder: "rgba(34,197,94,0.3)",
+  red:         "#ef4444",
+  redBg:       "rgba(239,68,68,0.12)",
+  redBorder:   "rgba(239,68,68,0.3)",
+  accent:      "#3b82f6",
+  accentBg:    "rgba(59,130,246,0.12)",
+};
+
 const colors: Record<string, { bg: string; border: string; text: string; badge: string; ticker: string }> = {
   emerald: {
-    bg: "rgba(6,78,59,0.15)",
-    border: "rgba(6,78,59,0.5)",
-    text: "#34d399",
-    badge: "rgba(6,78,59,0.6)",
-    ticker: "rgba(6,78,59,0.3)",
+    bg:     THEME.greenBg,
+    border: THEME.greenBorder,
+    text:   THEME.green,
+    badge:  "rgba(34,197,94,0.2)",
+    ticker: "rgba(34,197,94,0.08)",
   },
   sky: {
-    bg: "rgba(8,47,73,0.15)",
-    border: "rgba(8,47,73,0.5)",
-    text: "#38bdf8",
-    badge: "rgba(8,47,73,0.6)",
-    ticker: "rgba(8,47,73,0.3)",
+    bg:     THEME.accentBg,
+    border: "rgba(59,130,246,0.3)",
+    text:   "#60a5fa",
+    badge:  "rgba(59,130,246,0.2)",
+    ticker: "rgba(59,130,246,0.08)",
   },
   violet: {
-    bg: "rgba(46,16,101,0.15)",
-    border: "rgba(46,16,101,0.5)",
-    text: "#a78bfa",
-    badge: "rgba(46,16,101,0.6)",
-    ticker: "rgba(46,16,101,0.3)",
+    bg:     "rgba(139,92,246,0.1)",
+    border: "rgba(139,92,246,0.3)",
+    text:   "#a78bfa",
+    badge:  "rgba(139,92,246,0.2)",
+    ticker: "rgba(139,92,246,0.08)",
   },
   amber: {
-    bg: "rgba(78,50,0,0.15)",
-    border: "rgba(78,50,0,0.5)",
-    text: "#fbbf24",
-    badge: "rgba(78,50,0,0.6)",
-    ticker: "rgba(78,50,0,0.3)",
+    bg:     "rgba(245,158,11,0.1)",
+    border: "rgba(245,158,11,0.3)",
+    text:   "#f59e0b",
+    badge:  "rgba(245,158,11,0.2)",
+    ticker: "rgba(245,158,11,0.08)",
   },
   rose: {
-    bg: "rgba(76,5,25,0.15)",
-    border: "rgba(76,5,25,0.5)",
-    text: "#fb7185",
-    badge: "rgba(76,5,25,0.6)",
-    ticker: "rgba(76,5,25,0.3)",
+    bg:     THEME.redBg,
+    border: THEME.redBorder,
+    text:   THEME.red,
+    badge:  "rgba(239,68,68,0.2)",
+    ticker: "rgba(239,68,68,0.08)",
   },
 };
 
@@ -148,8 +166,8 @@ function CategoryRow({ cat, c }: { cat: ScanCategory; c: typeof colors.emerald }
           alignItems: "center",
           justifyContent: "space-between",
           padding: "10px 14px",
-          background: "transparent",
-          color: "#e2e8f0",
+          background: THEME.card,
+          color: THEME.text,
         }}
       >
         <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
@@ -206,7 +224,7 @@ function CategoryRow({ cat, c }: { cat: ScanCategory; c: typeof colors.emerald }
                   >
                     {ticker}
                     {change !== undefined && (
-                      <span style={{ fontSize: 10, fontWeight: 400, color: change >= 0 ? "#34d399" : "#fb7185" }}>
+                      <span style={{ fontSize: 10, fontWeight: 400, color: change >= 0 ? THEME.green : THEME.red }}>
                         {change >= 0 ? "+" : ""}{change.toFixed(1)}%
                       </span>
                     )}
@@ -253,7 +271,7 @@ function GroupBlock({ group, cats }: { group: ScanGroup; cats: ScanCategory[] })
       </button>
 
       {!collapsed && (
-        <div style={{ padding: "10px 12px", background: c.bg }}>
+        <div style={{ padding: "10px 12px", background: THEME.bg }}>
           {cats.length === 0 ? (
             <p style={{ fontSize: 12, color: "#475569", fontStyle: "italic", padding: "4px 2px" }}>
               Bu grupta sinyal yok.
@@ -320,11 +338,11 @@ export default function EmbedScanClient({ embedKey }: { embedKey: string }) {
           justifyContent: "space-between",
           marginBottom: 16,
           paddingBottom: 12,
-          borderBottom: "1px solid rgba(51,65,85,0.5)",
+          borderBottom: `1px solid ${THEME.border}`,
         }}
       >
         <div>
-          <h1 style={{ fontSize: 16, fontWeight: 800, color: "#f1f5f9", margin: 0 }}>
+          <h1 style={{ fontSize: 16, fontWeight: 800, color: THEME.text, margin: 0 }}>
             📡 BIST Teknik Analiz Taraması
           </h1>
           {data?.minutesAgo !== undefined && data?.minutesAgo !== null && (
@@ -340,9 +358,9 @@ export default function EmbedScanClient({ embedKey }: { embedKey: string }) {
             fontSize: 12,
             padding: "6px 12px",
             borderRadius: 8,
-            border: "1px solid rgba(51,65,85,0.7)",
-            background: "rgba(15,23,42,0.8)",
-            color: loading ? "#475569" : "#94a3b8",
+            border: `1px solid ${THEME.border}`,
+            background: THEME.card,
+            color: loading ? "#475569" : THEME.textMuted,
           }}
         >
           {loading ? "⟳ Yükleniyor..." : "⟳ Yenile"}
@@ -361,8 +379,8 @@ export default function EmbedScanClient({ embedKey }: { embedKey: string }) {
           style={{
             padding: "12px 16px",
             borderRadius: 10,
-            background: "rgba(76,5,25,0.2)",
-            border: "1px solid rgba(76,5,25,0.5)",
+            background: THEME.redBg,
+            border: `1px solid ${THEME.redBorder}`,
             color: "#fca5a5",
             fontSize: 13,
             marginBottom: 16,
@@ -381,17 +399,17 @@ export default function EmbedScanClient({ embedKey }: { embedKey: string }) {
       )}
 
       {/* Footer */}
-      <div style={{ marginTop: 16, paddingTop: 10, borderTop: "1px solid rgba(51,65,85,0.3)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ marginTop: 16, paddingTop: 10, borderTop: `1px solid ${THEME.borderLight}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <a
           href="https://recepdemirborsa.com"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ fontSize: 11, color: "#334155" }}
+          style={{ fontSize: 11, color: THEME.textMuted }}
         >
           recepdemirborsa.com
         </a>
         {lastRefresh && (
-          <span style={{ fontSize: 11, color: "#334155" }}>
+          <span style={{ fontSize: 11, color: THEME.textMuted }}>
             {lastRefresh.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })} güncellendi
           </span>
         )}
