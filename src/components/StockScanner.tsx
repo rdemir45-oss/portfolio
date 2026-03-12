@@ -906,15 +906,13 @@ export default function StockScanner() {
                 <HiLogout className="w-4 h-4" />
                 <span className="hidden sm:inline">Çıkış</span>
               </button>
-              {isAdmin && (
-                <a
-                  href="/hisse-teknik-analizi/taramalarim"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-800/60 text-blue-400 bg-blue-950/20 hover:border-blue-500 hover:bg-blue-950/40 transition-colors text-sm"
-                >
-                  <TbSearch className="w-4 h-4" />
-                  <span className="hidden sm:inline">Taramalarım</span>
-                </a>
-              )}
+              <a
+                href="/hisse-teknik-analizi/taramalarim"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-800/60 text-blue-400 bg-blue-950/20 hover:border-blue-500 hover:bg-blue-950/40 transition-colors text-sm"
+              >
+                <TbSearch className="w-4 h-4" />
+                <span className="hidden sm:inline">Taramalarım</span>
+              </a>
             </div>
           </div>
 

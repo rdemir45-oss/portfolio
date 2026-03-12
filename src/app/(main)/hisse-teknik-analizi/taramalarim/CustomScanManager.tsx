@@ -590,8 +590,6 @@ export default function CustomScanManager() {
     ]);
     if (scansRes.status === 401) { router.push("/hisse-teknik-analizi/login"); return; }
     const profileJson = profileRes.ok ? await profileRes.json() : {};
-    // Admin değilse ana tarama sayfasına yönlendir
-    if (profileJson.isAdmin !== true) { router.push("/hisse-teknik-analizi"); return; }
     const scansData = await scansRes.json();
     setScans(Array.isArray(scansData) ? scansData : []);
     const plan = profileJson.plan ?? "starter";

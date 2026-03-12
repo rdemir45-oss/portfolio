@@ -13,6 +13,7 @@ import {
   TbCheck,
   TbAlertCircle,
   TbChartBar,
+  TbSearch,
 } from "react-icons/tb";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -251,11 +252,35 @@ export default function ProfilPage() {
             </motion.div>
           )}
 
-          {/* Şifre Değiştir */}
+          {/* Taramalarım Linki */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
+            className="bg-[#0a1628] border border-slate-800 rounded-2xl p-6"
+          >
+            <a
+              href="/hisse-teknik-analizi/taramalarim"
+              className="flex items-center justify-between group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-blue-950/40 border border-blue-900/50">
+                  <TbSearch className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Özel Taramalarım</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Python veya kural tabanlı tarama oluştur, çalıştır</p>
+                </div>
+              </div>
+              <span className="text-slate-600 group-hover:text-blue-400 transition-colors text-lg">→</span>
+            </a>
+          </motion.div>
+
+          {/* Şifre Değiştir */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
             className="bg-[#0a1628] border border-slate-800 rounded-2xl p-6"
           >
             <div className="flex items-center gap-2 mb-5">
