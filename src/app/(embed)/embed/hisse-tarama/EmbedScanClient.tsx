@@ -220,7 +220,7 @@ function CategoryRow({ cat, c }: { cat: ScanCategory; c: typeof colors.emerald }
                     key={ticker}
                     href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noreferrer"
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
