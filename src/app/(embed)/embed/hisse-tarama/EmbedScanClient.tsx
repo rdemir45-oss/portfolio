@@ -157,7 +157,7 @@ function CategoryRow({ cat, c }: { cat: ScanCategory; c: typeof colors.emerald }
   const [open, setOpen] = useState(false);
 
   return (
-    <div style={{ borderRadius: 10, border: `1px solid ${c.border}`, overflow: "hidden", marginBottom: 6 }}>
+    <div style={{ borderRadius: 10, border: `1px solid ${THEME.border}`, overflow: "hidden", marginBottom: 6 }}>
       <button
         onClick={() => setOpen((v) => !v)}
         style={{
@@ -168,11 +168,12 @@ function CategoryRow({ cat, c }: { cat: ScanCategory; c: typeof colors.emerald }
           padding: "10px 14px",
           background: THEME.card,
           color: THEME.text,
+          borderLeft: `3px solid ${c.border}`,
         }}
       >
         <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
           <span>{cat.emoji}</span>
-          <span>{cat.label}</span>
+          <span style={{ color: THEME.text }}>{cat.label}</span>
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
@@ -181,18 +182,18 @@ function CategoryRow({ cat, c }: { cat: ScanCategory; c: typeof colors.emerald }
               fontWeight: 700,
               padding: "2px 8px",
               borderRadius: 999,
-              background: cat.count > 0 ? c.badge : "rgba(51,65,85,0.8)",
-              color: cat.count > 0 ? c.text : "#64748b",
+              background: cat.count > 0 ? c.badge : "rgba(255,255,255,0.05)",
+              color: cat.count > 0 ? c.text : THEME.textMuted,
             }}
           >
             {cat.count}
           </span>
-          <span style={{ color: "#64748b", fontSize: 12 }}>{open ? "▲" : "▼"}</span>
+          <span style={{ color: THEME.textMuted, fontSize: 12 }}>{open ? "▲" : "▼"}</span>
         </span>
       </button>
 
       {open && (
-        <div style={{ padding: "0 14px 12px", borderTop: `1px solid ${c.border}` }}>
+        <div style={{ padding: "0 14px 12px", borderTop: `1px solid ${THEME.borderLight}`, background: THEME.bg }}>
           {(cat.stocks ?? []).length === 0 ? (
             <p style={{ fontSize: 12, color: "#475569", fontStyle: "italic", marginTop: 8 }}>
               Sinyal bulunamadı.
@@ -247,7 +248,7 @@ function GroupBlock({ group, cats }: { group: ScanGroup; cats: ScanCategory[] })
   const total = cats.reduce((a, cat) => a + cat.count, 0);
 
   return (
-    <div style={{ borderRadius: 14, border: `1px solid ${c.border}`, overflow: "hidden", marginBottom: 12 }}>
+    <div style={{ borderRadius: 14, border: `1px solid ${THEME.border}`, overflow: "hidden", marginBottom: 12 }}>
       <button
         onClick={() => setCollapsed((v) => !v)}
         style={{
@@ -256,17 +257,25 @@ function GroupBlock({ group, cats }: { group: ScanGroup; cats: ScanCategory[] })
           alignItems: "center",
           justifyContent: "space-between",
           padding: "14px 18px",
-          background: c.bg,
-          color: "#e2e8f0",
+          background: THEME.card,
+          color: THEME.text,
+          borderLeft: `4px solid ${c.text}`,
         }}
       >
         <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 18 }}>{group.emoji}</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: c.text }}>{group.label}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: THEME.text }}>{group.label}</span>
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 18, fontWeight: 900, color: c.text }}>{total}</span>
-          <span style={{ color: "#64748b", fontSize: 12 }}>{collapsed ? "▼" : "▲"}</span>
+          <span style={{
+            fontSize: 15,
+            fontWeight: 900,
+            padding: "2px 10px",
+            borderRadius: 999,
+            background: c.badge,
+            color: c.text,
+          }}>{total}</span>
+          <span style={{ color: THEME.textMuted, fontSize: 12 }}>{collapsed ? "▼" : "▲"}</span>
         </span>
       </button>
 
