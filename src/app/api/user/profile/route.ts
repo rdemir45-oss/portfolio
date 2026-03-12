@@ -55,11 +55,17 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Admin kontrolü: ADMIN_SCANNER_USERNAMES="user1,user2" şeklinde Railway'de set edilir
+  const adminNames = (process.env.ADMIN_SCANNER_USERNAMES ?? "")
+    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const isAdmin = adminNames.length > 0 && adminNames.includes(user.username.toLowerCase());
+
   return NextResponse.json({
     telegramChatId:  data?.telegram_chat_id  ?? "",
     alertCategories: data?.alert_categories  ?? [],
     alertsEnabled:   data?.alerts_enabled    ?? false,
     plan:            data?.plan              ?? "starter",
+    isAdmin,
   });
 }
 

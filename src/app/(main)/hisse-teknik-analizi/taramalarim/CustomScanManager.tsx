@@ -491,13 +491,13 @@ export default function CustomScanManager() {
       fetch("/api/user/profile"),
     ]);
     if (scansRes.status === 401) { router.push("/hisse-teknik-analizi/login"); return; }
+    const profileJson = profileRes.ok ? await profileRes.json() : {};
+    // Admin değilse ana tarama sayfasına yönlendir
+    if (profileJson.isAdmin !== true) { router.push("/hisse-teknik-analizi"); return; }
     const scansData = await scansRes.json();
     setScans(Array.isArray(scansData) ? scansData : []);
-    if (profileRes.ok) {
-      const p = await profileRes.json();
-      const plan = p.plan ?? "starter";
-      setPlanInfo({ plan, limit: PLAN_LIMITS[plan] ?? 1 });
-    }
+    const plan = profileJson.plan ?? "starter";
+    setPlanInfo({ plan, limit: PLAN_LIMITS[plan] ?? 1 });
     setLoading(false);
   }, [router]);
 

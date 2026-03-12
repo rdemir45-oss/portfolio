@@ -625,6 +625,7 @@ export default function StockScanner() {
   const [expandedGroups, setExpandedGroups]   = useState<Set<string>>(new Set());
 
   const [plan, setPlan]                         = useState<string>("starter");
+  const [isAdmin, setIsAdmin]                   = useState(false);
   const [remoteGroups, setRemoteGroups]           = useState<DbScanGroup[] | null>(null);
 
   // ── Dinamik grup türemeleri ───────────────────────────────────────────────
@@ -673,6 +674,7 @@ export default function StockScanner() {
         setAlertChatId(d.telegramChatId ?? "");
         setAlertEnabled(d.alertsEnabled  ?? false);
         setPlan(d.plan ?? "starter");
+        setIsAdmin(d.isAdmin === true);
         // Eski grup ID'lerini bireysel key'lere dönüştür
         const cats: string[] = d.alertCategories ?? [];
         const expanded = cats.flatMap((id: string) => {
@@ -895,13 +897,15 @@ export default function StockScanner() {
                 <HiLogout className="w-4 h-4" />
                 <span className="hidden sm:inline">Çıkış</span>
               </button>
-              <a
-                href="/hisse-teknik-analizi/taramalarim"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-800/60 text-blue-400 bg-blue-950/20 hover:border-blue-500 hover:bg-blue-950/40 transition-colors text-sm"
-              >
-                <TbSearch className="w-4 h-4" />
-                <span className="hidden sm:inline">Taramalarım</span>
-              </a>
+              {isAdmin && (
+                <a
+                  href="/hisse-teknik-analizi/taramalarim"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-800/60 text-blue-400 bg-blue-950/20 hover:border-blue-500 hover:bg-blue-950/40 transition-colors text-sm"
+                >
+                  <TbSearch className="w-4 h-4" />
+                  <span className="hidden sm:inline">Taramalarım</span>
+                </a>
+              )}
             </div>
           </div>
 
