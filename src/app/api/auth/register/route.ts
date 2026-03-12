@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { registerSchema } from "@/lib/schemas";
 import crypto from "crypto";
 
 function hashPassword(password: string): { hash: string; salt: string } {
@@ -14,7 +15,7 @@ function hashPassword(password: string): { hash: string; salt: string } {
 export async function POST(req: NextRequest) {
   // 5 kayıt talebi / saat — spam koruması
   const ip = getClientIp(req);
-  const rl = rateLimit(`register:${ip}`, { limit: 5, windowSec: 60 * 60 });
+  const rl = await rateLimit(`register:${ip}`, { limit: 5, windowSec: 60 * 60 });
   if (!rl.success) {
     return NextResponse.json(
       { error: "Çok fazla kayıt denemesi. 1 saat sonra tekrar deneyin." },
@@ -25,39 +26,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { username?: string; password?: string };
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
 
-  const username = (body.username ?? "").trim().toLowerCase();
-  const password = body.password ?? "";
-
-  if (!username || !password) {
-    return NextResponse.json(
-      { error: "Kullanıcı adı ve şifre gerekli." },
-      { status: 400 }
-    );
+  const parsed = registerSchema.safeParse(raw);
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? "Geçersiz veri.";
+    return NextResponse.json({ error: msg }, { status: 422 });
   }
 
-  if (!/^[a-z0-9_]{3,30}$/.test(username)) {
-    return NextResponse.json(
-      {
-        error:
-          "Kullanıcı adı 3-30 karakter olmalı; sadece harf, rakam ve _ içerebilir.",
-      },
-      { status: 400 }
-    );
-  }
-
-  if (password.length < 6) {
-    return NextResponse.json(
-      { error: "Şifre en az 6 karakter olmalı." },
-      { status: 400 }
-    );
-  }
+  const { username, password } = parsed.data;
 
   const { data: existing } = await supabase
     .from("scanner_users")

@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-async function verifyViewerToken(token: string, secret: string): Promise<boolean> {
+/**
+ * Edge-compatible HMAC-SHA256 token doğrulama (Web Crypto API).
+ * admin_token ve viewer_token için kullanılır.
+ * admin_token: payload = base64url({ exp }) — sadece süre kontrolü
+ * viewer_token: payload = base64url({ id, username }) — eski format, süre yok
+ */
+async function verifyHmacToken(
+  token: string,
+  secret: string,
+  checkExpiry: boolean
+): Promise<boolean> {
   const dot = token.lastIndexOf(".");
   if (dot === -1) return false;
   const payload = token.slice(0, dot);
@@ -16,12 +26,19 @@ async function verifyViewerToken(token: string, secret: string): Promise<boolean
     );
     const b64 = sig.replace(/-/g, "+").replace(/_/g, "/");
     const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    return await crypto.subtle.verify(
+    const valid = await crypto.subtle.verify(
       "HMAC",
       key,
       bytes,
       new TextEncoder().encode(payload)
     );
+    if (!valid) return false;
+    if (checkExpiry) {
+      const b64Payload = payload.replace(/-/g, "+").replace(/_/g, "/");
+      const { exp } = JSON.parse(atob(b64Payload));
+      return typeof exp === "number" && Math.floor(Date.now() / 1000) < exp;
+    }
+    return true;
   } catch {
     return false;
   }
@@ -35,7 +52,9 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/admin")) {
     const token = request.cookies.get("admin_token")?.value;
-    if (!token || token !== process.env.ADMIN_SECRET) {
+    const secret = process.env.ADMIN_SECRET;
+    const valid = secret && token ? await verifyHmacToken(token, secret, true) : false;
+    if (!valid) {
       return NextResponse.redirect(new URL("/admin/login", request.url));
     }
   }
@@ -51,7 +70,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/hisse-teknik-analizi")) {
     const token = request.cookies.get("viewer_token")?.value;
     const secret = process.env.SCAN_SESSION_SECRET;
-    const valid = secret && token ? await verifyViewerToken(token, secret) : false;
+    const valid = secret && token ? await verifyHmacToken(token, secret, false) : false;
     if (!valid) {
       return NextResponse.redirect(
         new URL("/hisse-teknik-analizi/login", request.url)

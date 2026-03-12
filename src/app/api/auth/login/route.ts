@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { loginSchema } from "@/lib/schemas";
 import crypto from "crypto";
 
 function verifyPassword(password: string, hash: string, salt: string): boolean {
@@ -23,7 +24,7 @@ function createViewerToken(id: string, username: string, secret: string): string
 export async function POST(req: NextRequest) {
   // 10 deneme / 15 dakika — brute-force koruması
   const ip = getClientIp(req);
-  const rl = rateLimit(`login:${ip}`, { limit: 10, windowSec: 60 * 15 });
+  const rl = await rateLimit(`login:${ip}`, { limit: 10, windowSec: 60 * 15 });
   if (!rl.success) {
     return NextResponse.json(
       { error: "Çok fazla giriş denemesi. 15 dakika sonra tekrar deneyin." },
@@ -34,22 +35,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { username?: string; password?: string };
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
 
-  const username = (body.username ?? "").trim().toLowerCase();
-  const password = body.password ?? "";
-
-  if (!username || !password) {
-    return NextResponse.json(
-      { error: "Kullanıcı adı ve şifre gerekli." },
-      { status: 401 }
-    );
+  const parsed = loginSchema.safeParse(raw);
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? "Geçersiz veri.";
+    return NextResponse.json({ error: msg }, { status: 422 });
   }
+
+  const { username, password } = parsed.data;
 
   const { data: user } = await supabase
     .from("scanner_users")

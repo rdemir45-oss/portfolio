@@ -5,7 +5,7 @@ import { rateLimit, getClientIp } from "@/lib/rate-limit";
 export async function POST(req: NextRequest) {
   // 3 talep / saat — spam koruması
   const ip = getClientIp(req);
-  const rl = rateLimit(`whatsapp:${ip}`, { limit: 3, windowSec: 60 * 60 });
+  const rl = await rateLimit(`whatsapp:${ip}`, { limit: 3, windowSec: 60 * 60 });
   if (!rl.success) {
     return NextResponse.json(
       { error: "Çok fazla talep gönderdiniz. 1 saat sonra tekrar deneyin." },

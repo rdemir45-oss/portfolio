@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Geçersiz token." }, { status: 401 });
 
   // Rate limiting: 30 istek / dakika per kullanıcı
-  const rl = rateLimit(`scan-groups:${user.id}`, { limit: 30, windowSec: 60 });
+  const rl = await rateLimit(`scan-groups:${user.id}`, { limit: 30, windowSec: 60 });
   if (!rl.success) {
     return NextResponse.json(
       { error: "Çok fazla istek. Lütfen bekleyin." },

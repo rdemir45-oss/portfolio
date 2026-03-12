@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { contactSchema } from "@/lib/schemas";
 
 export async function POST(req: NextRequest) {
   // 5 mesaj / saat
   const ip = getClientIp(req);
-  const rl = rateLimit(`contact:${ip}`, { limit: 5, windowSec: 60 * 60 });
+  const rl = await rateLimit(`contact:${ip}`, { limit: 5, windowSec: 60 * 60 });
   if (!rl.success) {
     return NextResponse.json(
       { error: "Çok fazla mesaj gönderdiniz. 1 saat sonra tekrar deneyin." },
@@ -16,18 +17,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { name?: string; email?: string; message?: string };
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
 
-  const { name, email, message } = body;
-
-  if (!name || !email || !message) {
-    return NextResponse.json({ error: "Tüm alanlar zorunludur." }, { status: 400 });
+  const parsed = contactSchema.safeParse(raw);
+  if (!parsed.success) {
+    const message = parsed.error.issues[0]?.message ?? "Geçersiz veri.";
+    return NextResponse.json({ error: message }, { status: 422 });
   }
+
+  const { name, email, message } = parsed.data;
 
   const { error } = await supabase
     .from("messages")

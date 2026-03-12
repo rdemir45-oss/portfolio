@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
+import { indicatorWriteSchema, indicatorUpdateSchema } from "@/lib/schemas";
 
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
@@ -24,15 +25,26 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
-  const body = await req.json();
-  const { data, error } = await supabase.from("indicators").insert([body]).select().single();
+  let raw: unknown;
+  try { raw = await req.json(); } catch { return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 }); }
+  const parsed = indicatorWriteSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Geçersiz veri." }, { status: 422 });
+  }
+  const { data, error } = await supabase.from("indicators").insert([parsed.data]).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }
 
 export async function PUT(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
-  const { id, ...fields } = await req.json();
+  let raw: unknown;
+  try { raw = await req.json(); } catch { return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 }); }
+  const parsed = indicatorUpdateSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Geçersiz veri." }, { status: 422 }); 
+  }
+  const { id, ...fields } = parsed.data;
   const { data, error } = await supabase.from("indicators").update(fields).eq("id", id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
