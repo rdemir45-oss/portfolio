@@ -11,7 +11,11 @@ const ALLOWED_ORIGINS = new Set(["https://www.orionstrateji.com", "https://orion
 function isAllowedOrigin(req: NextRequest): boolean {
   const origin  = req.headers.get("origin")  ?? "";
   const referer = req.headers.get("referer") ?? "";
-  if (origin && ALLOWED_ORIGINS.has(origin)) return true;
+  // Same-origin istekler (embed sayfasının kendi JS'i) — Origin header yok
+  if (!origin) return true;
+  // Başka domain'den gelen cross-origin istekler: izin verilenler listesi
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  // Referer kontrolü (ekstra güvence)
   try {
     const host = new URL(referer).hostname;
     return host === "www.orionstrateji.com" || host === "orionstrateji.com";
