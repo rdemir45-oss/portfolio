@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("scanner_users")
-    .select("telegram_chat_id, alert_categories, alerts_enabled, plan")
+    .select("telegram_chat_id, alert_categories, alerts_enabled, plan, created_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -61,11 +61,13 @@ export async function GET(req: NextRequest) {
   const isAdmin = adminNames.length > 0 && adminNames.includes(user.username.toLowerCase());
 
   return NextResponse.json({
+    username:        user.username,
     telegramChatId:  data?.telegram_chat_id  ?? "",
     alertCategories: data?.alert_categories  ?? [],
     alertsEnabled:   data?.alerts_enabled    ?? false,
     plan:            data?.plan              ?? "starter",
     isAdmin,
+    createdAt:       data?.created_at        ?? null,
   });
 }
 
