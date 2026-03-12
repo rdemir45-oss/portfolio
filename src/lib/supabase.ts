@@ -91,3 +91,46 @@ export interface DbScanGroup {
   is_bull: boolean;
   created_at?: string;
 }
+
+// ── Kullanıcıya özel tarama sistemi ─────────────────────────────────────────
+
+export type RuleIndicator =
+  | "RSI" | "EMA" | "SMA" | "MACD" | "VOLUME" | "PRICE_CHANGE"
+  | "BOLLINGER" | "STOCH";
+
+export type RuleCondition =
+  | "lt" | "gt" | "lte" | "gte" | "cross_above" | "cross_below"
+  | "price_above" | "price_below" | "squeeze" | "spike";
+
+export interface ScanRule {
+  indicator: RuleIndicator;
+  condition: RuleCondition;
+  period?: number;
+  period2?: number;
+  value?: number;
+  multiplier?: number;
+}
+
+export interface ScanRuleGroup {
+  operator: "AND" | "OR";
+  rules: ScanRule[];
+}
+
+export interface DbCustomScan {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string | null;
+  rules: ScanRuleGroup;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbCustomScanResult {
+  id: string;
+  scan_id: string;
+  user_id: string;
+  tickers: string[];
+  ran_at: string;
+}
