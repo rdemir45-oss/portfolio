@@ -32,21 +32,23 @@ interface ScanData {
 
 // ── Orion teması renk haritası ───────────────────────────────────────────────
 const THEME = {
-  bg:          "#0f1117",
-  card:        "#161b27",
-  cardHover:   "#1c2333",
-  border:      "#2a3040",
-  borderLight: "#1e2538",
-  text:        "#e2e8f0",
-  textMuted:   "#8892a4",
+  bg:          "#0b0e17",
+  card:        "#131720",
+  cardInner:   "#0f1219",
+  border:      "rgba(255,255,255,0.08)",
+  borderLight: "rgba(255,255,255,0.05)",
+  text:        "#f0f4f8",
+  textSub:     "#c8d0dc",
+  textMuted:   "#6b7a99",
   green:       "#22c55e",
-  greenBg:     "rgba(34,197,94,0.12)",
-  greenBorder: "rgba(34,197,94,0.3)",
-  red:         "#ef4444",
-  redBg:       "rgba(239,68,68,0.12)",
-  redBorder:   "rgba(239,68,68,0.3)",
-  accent:      "#3b82f6",
-  accentBg:    "rgba(59,130,246,0.12)",
+  greenBg:     "rgba(34,197,94,0.1)",
+  greenBorder: "rgba(34,197,94,0.25)",
+  red:         "#f87171",
+  redBg:       "rgba(248,113,113,0.1)",
+  redBorder:   "rgba(248,113,113,0.25)",
+  accent:      "#60a5fa",
+  accentBg:    "rgba(96,165,250,0.1)",
+  font:        "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 };
 
 const colors: Record<string, { bg: string; border: string; text: string; badge: string; ticker: string }> = {
@@ -54,36 +56,36 @@ const colors: Record<string, { bg: string; border: string; text: string; badge: 
     bg:     THEME.greenBg,
     border: THEME.greenBorder,
     text:   THEME.green,
-    badge:  "rgba(34,197,94,0.2)",
-    ticker: "rgba(34,197,94,0.08)",
+    badge:  "rgba(34,197,94,0.15)",
+    ticker: "rgba(34,197,94,0.07)",
   },
   sky: {
     bg:     THEME.accentBg,
-    border: "rgba(59,130,246,0.3)",
-    text:   "#60a5fa",
-    badge:  "rgba(59,130,246,0.2)",
-    ticker: "rgba(59,130,246,0.08)",
+    border: "rgba(96,165,250,0.25)",
+    text:   THEME.accent,
+    badge:  "rgba(96,165,250,0.15)",
+    ticker: "rgba(96,165,250,0.07)",
   },
   violet: {
-    bg:     "rgba(139,92,246,0.1)",
-    border: "rgba(139,92,246,0.3)",
+    bg:     "rgba(167,139,250,0.08)",
+    border: "rgba(167,139,250,0.25)",
     text:   "#a78bfa",
-    badge:  "rgba(139,92,246,0.2)",
-    ticker: "rgba(139,92,246,0.08)",
+    badge:  "rgba(167,139,250,0.15)",
+    ticker: "rgba(167,139,250,0.07)",
   },
   amber: {
-    bg:     "rgba(245,158,11,0.1)",
-    border: "rgba(245,158,11,0.3)",
-    text:   "#f59e0b",
-    badge:  "rgba(245,158,11,0.2)",
-    ticker: "rgba(245,158,11,0.08)",
+    bg:     "rgba(251,191,36,0.08)",
+    border: "rgba(251,191,36,0.25)",
+    text:   "#fbbf24",
+    badge:  "rgba(251,191,36,0.15)",
+    ticker: "rgba(251,191,36,0.07)",
   },
   rose: {
     bg:     THEME.redBg,
     border: THEME.redBorder,
     text:   THEME.red,
-    badge:  "rgba(239,68,68,0.2)",
-    ticker: "rgba(239,68,68,0.08)",
+    badge:  "rgba(248,113,113,0.15)",
+    ticker: "rgba(248,113,113,0.07)",
   },
 };
 
@@ -157,7 +159,12 @@ function CategoryRow({ cat, c }: { cat: ScanCategory; c: typeof colors.emerald }
   const [open, setOpen] = useState(false);
 
   return (
-    <div style={{ borderRadius: 10, border: `1px solid ${THEME.border}`, overflow: "hidden", marginBottom: 6 }}>
+    <div style={{
+      borderRadius: 8,
+      border: `1px solid ${THEME.border}`,
+      overflow: "hidden",
+      marginBottom: 4,
+    }}>
       <button
         onClick={() => setOpen((v) => !v)}
         style={{
@@ -165,41 +172,47 @@ function CategoryRow({ cat, c }: { cat: ScanCategory; c: typeof colors.emerald }
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "10px 14px",
-          background: THEME.card,
+          padding: "9px 14px",
+          background: THEME.cardInner,
           color: THEME.text,
+          fontFamily: THEME.font,
           borderLeft: `3px solid ${c.border}`,
+          cursor: "pointer",
+          border: "none",
+          borderLeft: `3px solid ${c.border}`,
+          textAlign: "left",
         }}
       >
-        <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
-          <span>{cat.emoji}</span>
-          <span style={{ color: THEME.text }}>{cat.label}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 500, letterSpacing: "0.01em" }}>
+          <span style={{ fontSize: 14 }}>{cat.emoji}</span>
+          <span style={{ color: THEME.textSub }}>{cat.label}</span>
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
             style={{
               fontSize: 11,
               fontWeight: 700,
-              padding: "2px 8px",
+              padding: "2px 9px",
               borderRadius: 999,
-              background: cat.count > 0 ? c.badge : "rgba(255,255,255,0.05)",
+              background: cat.count > 0 ? c.badge : "rgba(255,255,255,0.04)",
               color: cat.count > 0 ? c.text : THEME.textMuted,
+              letterSpacing: "0.02em",
             }}
           >
             {cat.count}
           </span>
-          <span style={{ color: THEME.textMuted, fontSize: 12 }}>{open ? "▲" : "▼"}</span>
+          <span style={{ color: THEME.textMuted, fontSize: 10 }}>{open ? "▲" : "▼"}</span>
         </span>
       </button>
 
       {open && (
-        <div style={{ padding: "0 14px 12px", borderTop: `1px solid ${THEME.borderLight}`, background: THEME.bg }}>
+        <div style={{ padding: "8px 14px 12px", borderTop: `1px solid ${THEME.borderLight}`, background: THEME.bg }}>
           {(cat.stocks ?? []).length === 0 ? (
-            <p style={{ fontSize: 12, color: "#475569", fontStyle: "italic", marginTop: 8 }}>
+            <p style={{ fontSize: 12, color: THEME.textMuted, fontStyle: "italic", marginTop: 6 }}>
               Sinyal bulunamadı.
             </p>
           ) : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 8 }}>
               {cat.stocks.map((row) => {
                 const ticker = typeof row === "string" ? row : row.ticker;
                 const change = typeof row === "object" ? row.changePct : undefined;
@@ -212,24 +225,25 @@ function CategoryRow({ cat, c }: { cat: ScanCategory; c: typeof colors.emerald }
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 4,
+                      gap: 5,
                       fontSize: 12,
-                      fontFamily: "monospace",
+                      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                       fontWeight: 700,
                       padding: "4px 10px",
-                      borderRadius: 8,
+                      borderRadius: 6,
                       border: `1px solid ${c.border}`,
                       background: c.ticker,
                       color: c.text,
+                      textDecoration: "none",
+                      letterSpacing: "0.03em",
                     }}
                   >
                     {ticker}
                     {change !== undefined && (
-                      <span style={{ fontSize: 10, fontWeight: 400, color: change >= 0 ? THEME.green : THEME.red }}>
+                      <span style={{ fontSize: 10, fontWeight: 500, color: change >= 0 ? THEME.green : THEME.red }}>
                         {change >= 0 ? "+" : ""}{change.toFixed(1)}%
                       </span>
                     )}
-                    <span style={{ fontSize: 10, opacity: 0.5 }}>↗</span>
                   </a>
                 );
               })}
@@ -243,12 +257,17 @@ function CategoryRow({ cat, c }: { cat: ScanCategory; c: typeof colors.emerald }
 
 // ── Grup bloğu ─────────────────────────────────────────────────────────────────
 function GroupBlock({ group, cats }: { group: ScanGroup; cats: ScanCategory[] }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const c = colors[group.color] ?? colors.emerald;
   const total = cats.reduce((a, cat) => a + cat.count, 0);
 
   return (
-    <div style={{ borderRadius: 14, border: `1px solid ${THEME.border}`, overflow: "hidden", marginBottom: 12 }}>
+    <div style={{
+      borderRadius: 10,
+      border: `1px solid ${THEME.border}`,
+      overflow: "hidden",
+      marginBottom: 8,
+    }}>
       <button
         onClick={() => setCollapsed((v) => !v)}
         style={{
@@ -256,33 +275,39 @@ function GroupBlock({ group, cats }: { group: ScanGroup; cats: ScanCategory[] })
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "14px 18px",
+          padding: "13px 18px",
           background: THEME.card,
           color: THEME.text,
+          fontFamily: THEME.font,
           borderLeft: `4px solid ${c.text}`,
+          cursor: "pointer",
+          border: "none",
+          borderLeft: `4px solid ${c.text}`,
+          textAlign: "left",
         }}
       >
         <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 18 }}>{group.emoji}</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: THEME.text }}>{group.label}</span>
+          <span style={{ fontSize: 17 }}>{group.emoji}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: THEME.text, letterSpacing: "0.01em" }}>{group.label}</span>
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{
-            fontSize: 15,
-            fontWeight: 900,
-            padding: "2px 10px",
+            fontSize: 13,
+            fontWeight: 800,
+            padding: "3px 11px",
             borderRadius: 999,
             background: c.badge,
             color: c.text,
+            letterSpacing: "0.02em",
           }}>{total}</span>
-          <span style={{ color: THEME.textMuted, fontSize: 12 }}>{collapsed ? "▼" : "▲"}</span>
+          <span style={{ color: THEME.textMuted, fontSize: 11 }}>{collapsed ? "▼" : "▲"}</span>
         </span>
       </button>
 
       {!collapsed && (
-        <div style={{ padding: "10px 12px", background: THEME.bg }}>
+        <div style={{ padding: "8px 10px 10px", background: THEME.bg, borderTop: `1px solid ${THEME.borderLight}` }}>
           {cats.length === 0 ? (
-            <p style={{ fontSize: 12, color: "#475569", fontStyle: "italic", padding: "4px 2px" }}>
+            <p style={{ fontSize: 12, color: THEME.textMuted, fontStyle: "italic", padding: "6px 4px" }}>
               Bu grupta sinyal yok.
             </p>
           ) : (
@@ -338,24 +363,24 @@ export default function EmbedScanClient({ embedKey }: { embedKey: string }) {
   }));
 
   return (
-    <div style={{ padding: "12px 14px", maxWidth: 800, margin: "0 auto" }}>
+    <div style={{ padding: "14px 16px", maxWidth: 820, margin: "0 auto", fontFamily: THEME.font }}>
       {/* Başlık */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 16,
+          marginBottom: 14,
           paddingBottom: 12,
           borderBottom: `1px solid ${THEME.border}`,
         }}
       >
         <div>
-          <h1 style={{ fontSize: 16, fontWeight: 800, color: THEME.text, margin: 0 }}>
+          <h1 style={{ fontSize: 15, fontWeight: 700, color: THEME.text, margin: 0, letterSpacing: "0.01em" }}>
             📡 BIST Teknik Analiz Taraması
           </h1>
           {data?.minutesAgo !== undefined && data?.minutesAgo !== null && (
-            <p style={{ fontSize: 11, color: "#64748b", margin: "2px 0 0" }}>
+            <p style={{ fontSize: 11, color: THEME.textMuted, margin: "3px 0 0", letterSpacing: "0.01em" }}>
               Son tarama: {timeAgoLabel(data.minutesAgo)}
             </p>
           )}
@@ -365,11 +390,15 @@ export default function EmbedScanClient({ embedKey }: { embedKey: string }) {
           disabled={loading}
           style={{
             fontSize: 12,
-            padding: "6px 12px",
-            borderRadius: 8,
+            fontFamily: THEME.font,
+            fontWeight: 500,
+            padding: "6px 14px",
+            borderRadius: 7,
             border: `1px solid ${THEME.border}`,
             background: THEME.card,
-            color: loading ? "#475569" : THEME.textMuted,
+            color: loading ? THEME.textMuted : THEME.textSub,
+            cursor: loading ? "default" : "pointer",
+            letterSpacing: "0.02em",
           }}
         >
           {loading ? "⟳ Yükleniyor..." : "⟳ Yenile"}

@@ -2,14 +2,20 @@
 export default function EmbedLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      </head>
       <body style={{
         margin: 0,
         padding: 0,
-        background: "#0f1117",
+        background: "#0b0e17",
         color: "#e2e8f0",
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         fontSize: "14px",
         lineHeight: "1.5",
+        WebkitFontSmoothing: "antialiased",
       }}>
         {children}
       </body>
