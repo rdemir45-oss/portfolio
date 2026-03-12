@@ -318,7 +318,7 @@ function GroupBlock({ group, cats }: { group: ScanGroup; cats: ScanCategory[] })
 }
 
 // ── Ana bileşen ────────────────────────────────────────────────────────────────
-export default function EmbedScanClient({ embedKey }: { embedKey: string }) {
+export default function EmbedScanClient() {
   const [data, setData] = useState<ScanData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -328,7 +328,7 @@ export default function EmbedScanClient({ embedKey }: { embedKey: string }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/embed/scan?key=${encodeURIComponent(embedKey)}`, { cache: "no-store" });
+      const res = await fetch(`/api/embed/scan`, { cache: "no-store" });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error ?? `HTTP ${res.status}`);
@@ -340,7 +340,7 @@ export default function EmbedScanClient({ embedKey }: { embedKey: string }) {
     } finally {
       setLoading(false);
     }
-  }, [embedKey]);
+  }, []);
 
   useEffect(() => {
     load();

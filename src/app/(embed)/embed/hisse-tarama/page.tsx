@@ -1,29 +1,30 @@
+import { headers } from "next/headers";
 import EmbedScanClient from "./EmbedScanClient";
 
-export async function generateMetadata() {
+export function generateMetadata() {
   return {
     title: "BIST Teknik Analiz Taraması",
     robots: { index: false, follow: false },
   };
 }
 
-export default async function EmbedPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ key?: string }>;
-}) {
-  const { key } = await searchParams;
-  const embedKey = process.env.EMBED_READ_KEY ?? "";
-  const valid = !!embedKey && !!key && key === embedKey;
+export default async function EmbedPage() {
+  const headersList = await headers();
+  const referer = headersList.get("referer") ?? "";
 
-  if (!valid) {
+  let refererHost = "";
+  try { refererHost = new URL(referer).hostname; } catch { /* no referer */ }
+
+  const allowed = refererHost === "www.orionstrateji.com" || refererHost === "orionstrateji.com";
+
+  if (!allowed) {
     return (
       <div style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
         <p style={{ fontSize: "24px", marginBottom: "8px" }}>🔒</p>
-        <p>Geçersiz veya eksik anahtar.</p>
+        <p>Bu içerik yalnızca yetkili sitede görüntülenebilir.</p>
       </div>
     );
   }
 
-  return <EmbedScanClient embedKey={key!} />;
+  return <EmbedScanClient />;
 }
