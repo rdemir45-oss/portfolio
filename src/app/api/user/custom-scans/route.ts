@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import crypto from "crypto";
 import type { ScanRuleGroup } from "@/lib/supabase";
+import { validateScanCode } from "@/lib/scan-code-validator";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("custom_scans")
-    .select("id, name, description, rules, is_active, created_at, updated_at")
+    .select("id, name, description, scan_type, rules, python_code, is_active, created_at, updated_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -101,14 +102,38 @@ export async function POST(req: NextRequest) {
   const b = body as Record<string, unknown>;
   const name = ((b.name ?? "") as string).toString().trim().slice(0, 60);
   const description = (b.description ?? "").toString().trim().slice(0, 200) || null;
+  const scanType = b.scan_type === "python" ? "python" : "rules";
 
   if (!name) return NextResponse.json({ error: "Tarama adı gerekli." }, { status: 422 });
+
+  if (scanType === "python") {
+    // Python kodu modunda
+    const pythonCode = typeof b.python_code === "string" ? b.python_code : "";
+    const validation = validateScanCode(pythonCode);
+    if (!validation.valid) return NextResponse.json({ error: validation.error }, { status: 422 });
+
+    const { data, error } = await supabase
+      .from("custom_scans")
+      .insert({
+        user_id: user.id, name, description,
+        scan_type: "python",
+        python_code: pythonCode,
+        rules: { operator: "AND", rules: [] },
+      })
+      .select("id, name, description, scan_type, rules, python_code, is_active, created_at, updated_at")
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data, { status: 201 });
+  }
+
+  // Kural modu
   if (!validateRules(b.rules)) return NextResponse.json({ error: "Geçersiz kural yapısı." }, { status: 422 });
 
   const { data, error } = await supabase
     .from("custom_scans")
-    .insert({ user_id: user.id, name, description, rules: b.rules })
-    .select("id, name, description, rules, is_active, created_at, updated_at")
+    .insert({ user_id: user.id, name, description, scan_type: "rules", rules: b.rules })
+    .select("id, name, description, scan_type, rules, python_code, is_active, created_at, updated_at")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

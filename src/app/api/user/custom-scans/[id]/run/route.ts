@@ -87,20 +87,34 @@ export async function POST(
   // Taramayı çek + sahiplik kontrolü
   const { data: scan } = await supabase
     .from("custom_scans")
-    .select("id, rules, is_active")
+    .select("id, scan_type, rules, python_code, is_active")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!scan)          return NextResponse.json({ error: "Tarama bulunamadı." }, { status: 404 });
+  if (!scan)           return NextResponse.json({ error: "Tarama bulunamadı." }, { status: 404 });
   if (!scan.is_active) return NextResponse.json({ error: "Tarama devre dışı." }, { status: 400 });
 
   if (!SCAN_API_URL || !SCAN_API_KEY) {
     return NextResponse.json({ error: "Tarama servisi yapılandırılmamış." }, { status: 503 });
   }
 
-  // Python motoruna gönder
-  const query = rulesToQueryString(scan.rules as ScanRuleGroup);
+  // Python motoruna gönderilecek payload
+  let requestBody: Record<string, unknown>;
+
+  if (scan.scan_type === "python" && scan.python_code) {
+    // Python kodu modunda — kodu doğrula ve gönder
+    const { validateScanCode } = await import("@/lib/scan-code-validator");
+    const validation = validateScanCode(scan.python_code as string);
+    if (!validation.valid) {
+      return NextResponse.json({ error: `Kod geçersiz: ${validation.error}` }, { status: 422 });
+    }
+    requestBody = { mode: "python", python_code: scan.python_code };
+  } else {
+    // Kural modu — kuralları sorgu dizisine çevir
+    const query = rulesToQueryString(scan.rules as ScanRuleGroup);
+    requestBody = { query, rules: scan.rules };
+  }
 
   let tickers: string[] = [];
   try {
@@ -110,7 +124,7 @@ export async function POST(
         "X-API-Key": SCAN_API_KEY,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query, rules: scan.rules }),
+      body: JSON.stringify(requestBody),
     });
     if (res.ok) {
       const data = await res.json();

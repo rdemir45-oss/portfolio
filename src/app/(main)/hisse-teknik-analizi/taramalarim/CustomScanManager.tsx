@@ -4,9 +4,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   TbPlus, TbTrash, TbEdit, TbPlayerPlay, TbCheck, TbX,
   TbChevronDown, TbChevronUp, TbExternalLink, TbAlertCircle,
-  TbLoader2, TbSearch,
+  TbLoader2, TbSearch, TbCode, TbListCheck,
 } from "react-icons/tb";
 import type { DbCustomScan, ScanRule, ScanRuleGroup, RuleIndicator, RuleCondition } from "@/lib/supabase";
+import { validateScanCode, PYTHON_TEMPLATE } from "@/lib/scan-code-validator";
 import { useRouter } from "next/navigation";
 
 // ── Seçenek listeleri ─────────────────────────────────────────────────────────
@@ -188,12 +189,18 @@ function ScanModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [name, setName]     = useState(scan?.name ?? "");
-  const [desc, setDesc]     = useState(scan?.description ?? "");
-  const [operator, setOp]   = useState<"AND" | "OR">(scan?.rules.operator ?? "AND");
-  const [rules, setRules]   = useState<ScanRule[]>(scan?.rules.rules ?? [emptyRule()]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState<string | null>(null);
+  const [tab, setTab]           = useState<"rules" | "python">(scan?.scan_type === "python" ? "python" : "rules");
+  const [name, setName]         = useState(scan?.name ?? "");
+  const [desc, setDesc]         = useState(scan?.description ?? "");
+  // Rules tab state
+  const [operator, setOp]       = useState<"AND" | "OR">(scan?.rules?.operator ?? "AND");
+  const [rules, setRules]       = useState<ScanRule[]>(scan?.rules?.rules?.length ? scan.rules.rules : [emptyRule()]);
+  // Python tab state
+  const [pythonCode, setPython] = useState<string>(scan?.python_code ?? PYTHON_TEMPLATE);
+  const [codeError, setCodeErr] = useState<string | null>(null);
+
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
   const addRule = () => {
     if (rules.length >= 10) return;
@@ -206,11 +213,32 @@ function ScanModal({
 
   const removeRule = (i: number) => setRules(rules.filter((_, idx) => idx !== i));
 
+  const handlePythonChange = (code: string) => {
+    setPython(code);
+    if (codeError) {
+      const check = validateScanCode(code);
+      setCodeErr(check.valid ? null : (check.error ?? null));
+    }
+  };
+
   const save = async () => {
     if (!name.trim()) { setError("Tarama adı gerekli."); return; }
-    setSaving(true); setError(null);
-    const ruleGroup: ScanRuleGroup = { operator, rules };
-    const body = { name: name.trim(), description: desc.trim() || null, rules: ruleGroup };
+    setSaving(true); setError(null); setCodeErr(null);
+
+    let body: Record<string, unknown>;
+
+    if (tab === "python") {
+      const check = validateScanCode(pythonCode);
+      if (!check.valid) {
+        setCodeErr(check.error ?? "Kod geçersiz.");
+        setSaving(false);
+        return;
+      }
+      body = { name: name.trim(), description: desc.trim() || null, scan_type: "python", python_code: pythonCode };
+    } else {
+      const ruleGroup: ScanRuleGroup = { operator, rules };
+      body = { name: name.trim(), description: desc.trim() || null, scan_type: "rules", rules: ruleGroup };
+    }
 
     const url    = scan ? `/api/user/custom-scans/${scan.id}` : "/api/user/custom-scans";
     const method = scan ? "PATCH" : "POST";
@@ -243,7 +271,7 @@ function ScanModal({
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+        <div className="px-6 py-5 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Ad */}
           <div>
             <label className="block text-xs font-semibold text-slate-400 mb-1.5">Tarama Adı</label>
@@ -268,50 +296,105 @@ function ScanModal({
             />
           </div>
 
-          {/* Operatör */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-2">Kurallar arası bağlantı</label>
-            <div className="flex gap-3">
-              {(["AND", "OR"] as const).map((op) => (
-                <button
-                  key={op}
-                  onClick={() => setOp(op)}
-                  className={`px-5 py-1.5 rounded-lg text-sm font-bold border transition-colors ${
-                    operator === op
-                      ? "bg-blue-600 border-blue-500 text-white"
-                      : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {op === "AND" ? "VE (AND) — Tümü sağlanmalı" : "VEYA (OR) — Biri yeterli"}
-                </button>
-              ))}
-            </div>
+          {/* Sekme seçici */}
+          <div className="flex gap-2 p-1 bg-white/[0.04] rounded-xl border border-white/8">
+            <button
+              onClick={() => setTab("rules")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                tab === "rules"
+                  ? "bg-blue-600 text-white shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <TbListCheck size={15} /> Kural Oluşturucu
+            </button>
+            <button
+              onClick={() => setTab("python")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                tab === "python"
+                  ? "bg-violet-600 text-white shadow"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <TbCode size={15} /> Python Kodu
+            </button>
           </div>
 
-          {/* Kurallar */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-slate-400">Kurallar ({rules.length}/10)</label>
+          {/* ── Kural Oluşturucu ── */}
+          {tab === "rules" && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-2">Kurallar arası bağlantı</label>
+                <div className="flex gap-3">
+                  {(["AND", "OR"] as const).map((op) => (
+                    <button
+                      key={op}
+                      onClick={() => setOp(op)}
+                      className={`px-5 py-1.5 rounded-lg text-sm font-bold border transition-colors ${
+                        operator === op
+                          ? "bg-blue-600 border-blue-500 text-white"
+                          : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      {op === "AND" ? "VE (AND) — Tümü sağlanmalı" : "VEYA (OR) — Biri yeterli"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-semibold text-slate-400">Kurallar ({rules.length}/10)</label>
+                </div>
+                <div className="space-y-2">
+                  {rules.map((rule, i) => (
+                    <RuleRow
+                      key={i} rule={rule} index={i}
+                      onChange={(r) => updateRule(i, r)}
+                      onRemove={() => removeRule(i)}
+                      canRemove={rules.length > 1}
+                    />
+                  ))}
+                </div>
+                {rules.length < 10 && (
+                  <button
+                    onClick={addRule}
+                    className="mt-3 flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    <TbPlus size={15} /> Kural Ekle
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── Python Kod Editörü ── */}
+          {tab === "python" && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-slate-400">Python Tarama Kodu</label>
+                <span className="text-xs text-slate-600">{pythonCode.length} / 3000 karakter</span>
+              </div>
+              <textarea
+                value={pythonCode}
+                onChange={(e) => handlePythonChange(e.target.value)}
+                spellCheck={false}
+                rows={18}
+                className={`w-full font-mono text-xs leading-5 bg-[#080b10] border rounded-xl px-4 py-4 text-slate-200 placeholder-slate-700 focus:outline-none resize-y min-h-[200px] ${
+                  codeError ? "border-red-500/50" : "border-white/10 focus:border-violet-500"
+                }`}
+                style={{ tabSize: 4 }}
+              />
+              {codeError ? (
+                <div className="mt-2 flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                  <TbAlertCircle size={14} className="shrink-0 mt-0.5" /> {codeError}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-slate-600">
+                  <span className="text-violet-400 font-semibold">İpucu:</span> Tüm yorumlar (#) açıklama içindir — silebilir veya düzenleyebilirsiniz. Son satırda <code className="bg-white/5 px-1 rounded">signal = ...</code> ataması zorunludur.
+                </p>
+              )}
             </div>
-            <div className="space-y-2">
-              {rules.map((rule, i) => (
-                <RuleRow
-                  key={i} rule={rule} index={i}
-                  onChange={(r) => updateRule(i, r)}
-                  onRemove={() => removeRule(i)}
-                  canRemove={rules.length > 1}
-                />
-              ))}
-            </div>
-            {rules.length < 10 && (
-              <button
-                onClick={addRule}
-                className="mt-3 flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                <TbPlus size={15} /> Kural Ekle
-              </button>
-            )}
-          </div>
+          )}
 
           {error && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
@@ -328,7 +411,9 @@ function ScanModal({
           <button
             onClick={save}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 transition-colors"
+            className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50 transition-colors ${
+              tab === "python" ? "bg-violet-600 hover:bg-violet-500" : "bg-blue-600 hover:bg-blue-500"
+            }`}
           >
             {saving ? <TbLoader2 size={15} className="animate-spin" /> : <TbCheck size={15} />}
             {scan ? "Güncelle" : "Oluştur"}
@@ -452,16 +537,29 @@ function ScanCard({
         </div>
       </div>
 
-      {/* Kural özeti */}
+      {/* Kural / Python özeti */}
       <div className="px-5 pb-1 flex flex-wrap gap-1.5">
-        {scan.rules.rules.map((r, i) => (
-          <span key={i} className="text-xs px-2 py-0.5 rounded-md bg-white/5 text-slate-400 border border-white/8 font-mono">
-            {r.indicator}{r.period ? `(${r.period})` : ""} {r.condition.replace(/_/g," ")} {r.value ?? r.multiplier ?? ""}
-          </span>
-        ))}
-        <span className="text-xs px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">
-          {scan.rules.operator}
-        </span>
+        {scan.scan_type === "python" ? (
+          <>
+            <span className="text-xs px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-400 border border-violet-500/25 font-semibold flex items-center gap-1">
+              <TbCode size={11} /> Python
+            </span>
+            <span className="text-xs px-2 py-0.5 rounded-md bg-white/5 text-slate-500 border border-white/8 font-mono">
+              Özel kod taraması
+            </span>
+          </>
+        ) : (
+          <>
+            {scan.rules.rules.map((r, i) => (
+              <span key={i} className="text-xs px-2 py-0.5 rounded-md bg-white/5 text-slate-400 border border-white/8 font-mono">
+                {r.indicator}{r.period ? `(${r.period})` : ""} {r.condition.replace(/_/g," ")} {r.value ?? r.multiplier ?? ""}
+              </span>
+            ))}
+            <span className="text-xs px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">
+              {scan.rules.operator}
+            </span>
+          </>
+        )}
       </div>
 
       {/* Çalıştır paneli */}

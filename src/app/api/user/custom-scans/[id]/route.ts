@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import crypto from "crypto";
 import type { ScanRuleGroup } from "@/lib/supabase";
+import { validateScanCode } from "@/lib/scan-code-validator";
 
 export const dynamic = "force-dynamic";
 
@@ -76,9 +77,34 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (b.description !== undefined) updates.description = b.description?.toString().trim().slice(0, 200) || null;
   if (b.is_active !== undefined)   updates.is_active   = Boolean(b.is_active);
-  if (b.rules !== undefined) {
-    if (!validateRules(b.rules)) return NextResponse.json({ error: "Geçersiz kural yapısı." }, { status: 422 });
-    updates.rules = b.rules;
+
+  if (b.scan_type !== undefined) {
+    const scanType = b.scan_type === "python" ? "python" : "rules";
+    updates.scan_type = scanType;
+
+    if (scanType === "python") {
+      const pythonCode = typeof b.python_code === "string" ? b.python_code : "";
+      const validation = validateScanCode(pythonCode);
+      if (!validation.valid) return NextResponse.json({ error: validation.error }, { status: 422 });
+      updates.python_code = pythonCode;
+    } else {
+      if (b.rules !== undefined) {
+        if (!validateRules(b.rules)) return NextResponse.json({ error: "Geçersiz kural yapısı." }, { status: 422 });
+        updates.rules = b.rules;
+      }
+      updates.python_code = null;
+    }
+  } else {
+    if (b.python_code !== undefined && b.python_code !== null) {
+      const pythonCode = typeof b.python_code === "string" ? b.python_code : "";
+      const validation = validateScanCode(pythonCode);
+      if (!validation.valid) return NextResponse.json({ error: validation.error }, { status: 422 });
+      updates.python_code = pythonCode;
+    }
+    if (b.rules !== undefined) {
+      if (!validateRules(b.rules)) return NextResponse.json({ error: "Geçersiz kural yapısı." }, { status: 422 });
+      updates.rules = b.rules;
+    }
   }
 
   const { data, error } = await supabase
@@ -86,7 +112,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .update(updates)
     .eq("id", id)
     .eq("user_id", user.id)
-    .select("id, name, description, rules, is_active, created_at, updated_at")
+    .select("id, name, description, scan_type, rules, python_code, is_active, created_at, updated_at")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

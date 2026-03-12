@@ -121,7 +121,9 @@ export interface DbCustomScan {
   user_id: string;
   name: string;
   description?: string | null;
+  scan_type: "rules" | "python";
   rules: ScanRuleGroup;
+  python_code?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

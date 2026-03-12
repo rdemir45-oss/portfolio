@@ -6,7 +6,9 @@ CREATE TABLE IF NOT EXISTS custom_scans (
   user_id     text NOT NULL,           -- scanner_users.id
   name        text NOT NULL,
   description text,
-  rules       jsonb NOT NULL,          -- kural motoru JSON
+  scan_type   text NOT NULL DEFAULT 'rules' CHECK (scan_type IN ('rules', 'python')),
+  rules       jsonb NOT NULL DEFAULT '{"operator":"AND","rules":[]}',
+  python_code text,                    -- kullanıcı Python kodu (scan_type='python')
   is_active   boolean DEFAULT true,
   created_at  timestamptz DEFAULT now(),
   updated_at  timestamptz DEFAULT now()
