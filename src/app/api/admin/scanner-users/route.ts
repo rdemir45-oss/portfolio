@@ -10,12 +10,22 @@ const SUBSCRIPTION_DURATIONS: Record<string, number> = {
 
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
-  const { data, error } = await supabase
+
+  // subscription kolonları varsa onlarla, yoksa (migrasyon henüz çalıştırılmadıysa) temel kolonlarla döner
+  let { data, error } = await supabase
     .from("scanner_users")
     .select("id, username, status, plan, subscription_plan, subscription_expires_at, created_at")
     .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    const fallback = await supabase
+      .from("scanner_users")
+      .select("id, username, status, plan, created_at")
+      .order("created_at", { ascending: false });
+    if (fallback.error) return NextResponse.json({ error: fallback.error.message }, { status: 500 });
+    data = fallback.data;
+  }
+
   return NextResponse.json(data ?? []);
 }
 
