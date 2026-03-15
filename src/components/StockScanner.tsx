@@ -16,10 +16,7 @@ import {
   TbChartCandle,
   TbActivity,
   TbWaveSine,
-  TbArrowUpRight,
-  TbArrowDownRight,
   TbFlame,
-  TbDroplet,
   TbChartBar,
   TbTriangle,
   TbExternalLink,
@@ -31,7 +28,6 @@ import {
   TbDeviceFloppy,
   TbCheck,
   TbSearch,
-  TbCrown,
   TbUser,
 } from "react-icons/tb";
 import { useRouter } from "next/navigation";
@@ -171,6 +167,10 @@ const colorMap = {
     ticker: "border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/40 bg-emerald-950/30",
     label: "text-emerald-400",
     divider: "border-emerald-900/30",
+    sidebar: "border-l-emerald-500 text-emerald-400 bg-emerald-950/30",
+    sidebarActive: "bg-emerald-950/50 border border-emerald-700/60 text-emerald-300",
+    dot: "bg-emerald-400",
+    progress: "bg-emerald-500",
   },
   sky: {
     border: "border-sky-800/50",
@@ -181,6 +181,10 @@ const colorMap = {
     ticker: "border-sky-700/50 text-sky-400 hover:bg-sky-900/40 bg-sky-950/30",
     label: "text-sky-400",
     divider: "border-sky-900/30",
+    sidebar: "border-l-sky-500 text-sky-400 bg-sky-950/30",
+    sidebarActive: "bg-sky-950/50 border border-sky-700/60 text-sky-300",
+    dot: "bg-sky-400",
+    progress: "bg-sky-500",
   },
   violet: {
     border: "border-violet-800/50",
@@ -191,6 +195,10 @@ const colorMap = {
     ticker: "border-violet-700/50 text-violet-400 hover:bg-violet-900/40 bg-violet-950/30",
     label: "text-violet-400",
     divider: "border-violet-900/30",
+    sidebar: "border-l-violet-500 text-violet-400 bg-violet-950/30",
+    sidebarActive: "bg-violet-950/50 border border-violet-700/60 text-violet-300",
+    dot: "bg-violet-400",
+    progress: "bg-violet-500",
   },
   amber: {
     border: "border-amber-800/50",
@@ -201,6 +209,10 @@ const colorMap = {
     ticker: "border-amber-700/50 text-amber-400 hover:bg-amber-900/40 bg-amber-950/30",
     label: "text-amber-400",
     divider: "border-amber-900/30",
+    sidebar: "border-l-amber-500 text-amber-400 bg-amber-950/30",
+    sidebarActive: "bg-amber-950/50 border border-amber-700/60 text-amber-300",
+    dot: "bg-amber-400",
+    progress: "bg-amber-500",
   },
   rose: {
     border: "border-rose-800/50",
@@ -211,6 +223,10 @@ const colorMap = {
     ticker: "border-rose-700/50 text-rose-400 hover:bg-rose-900/40 bg-rose-950/30",
     label: "text-rose-400",
     divider: "border-rose-900/30",
+    sidebar: "border-l-rose-500 text-rose-400 bg-rose-950/30",
+    sidebarActive: "bg-rose-950/50 border border-rose-700/60 text-rose-300",
+    dot: "bg-rose-400",
+    progress: "bg-rose-500",
   },
 };
 
@@ -223,114 +239,63 @@ function timeAgoLabel(minutesAgo: number | null): string {
   return m > 0 ? `${h} sa ${m} dk önce` : `${h} sa önce`;
 }
 
-// ── Tek kategori satırı ────────────────────────────────────────────────────────
-function CategoryRow({
-  cat,
-  color,
-  favorites,
-  toggleFavorite,
+// ── Sidebar — tek grup satırı ─────────────────────────────────────────────────
+function SidebarGroupItem({
+  group,
+  cats,
+  isActive,
+  onSelect,
 }: {
-  cat: ScanCategory;
-  color: keyof typeof colorMap;
-  favorites: Set<string>;
-  toggleFavorite: (ticker: string) => void;
+  group: GroupDef;
+  cats: ScanCategory[];
+  isActive: boolean;
+  onSelect: () => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const c = colorMap[color];
+  const c = colorMap[group.color];
+  const totalSignals = cats.reduce((a, cat) => a + cat.count, 0);
+  const activeCats = cats.filter((cat) => cat.count > 0).length;
+  const progress = cats.length > 0 ? Math.round((activeCats / cats.length) * 100) : 0;
 
   return (
-    <div className={`rounded-xl border ${c.border} overflow-hidden`}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className={`w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors`}
-        aria-expanded={open}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-lg leading-none">{cat.emoji}</span>
-          <span className="text-sm font-semibold text-slate-200 truncate text-left">
-            {cat.label}
-          </span>
+    <button
+      onClick={onSelect}
+      className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 ${
+        isActive
+          ? c.sidebarActive
+          : "border-transparent hover:bg-slate-800/40 text-slate-400 hover:text-slate-200"
+      }`}
+    >
+      <div className="flex items-center gap-2.5">
+        <div className={`shrink-0 p-1 rounded-lg border ${c.icon}`}>{group.icon}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <span className={`text-xs font-semibold truncate ${isActive ? c.label : ""}`}>
+              {group.label}
+            </span>
+            <span className={`shrink-0 text-xs font-black px-1.5 py-0.5 rounded-full ${
+              totalSignals > 0 ? c.badge : "bg-slate-800/60 text-slate-600"
+            }`}>
+              {totalSignals}
+            </span>
+          </div>
+          {/* Mini progress bar */}
+          <div className="mt-1 h-0.5 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${c.progress}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-slate-600 mt-0.5">
+            {activeCats > 0 ? `${activeCats}/${cats.length} aktif` : "Sinyal yok"}
+          </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0 ml-3">
-          <span
-            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              cat.count > 0 ? c.badge : "bg-slate-800 text-slate-500"
-            }`}
-          >
-            {cat.count}
-          </span>
-          {open ? (
-            <HiChevronUp className="text-slate-500 w-4 h-4" />
-          ) : (
-            <HiChevronDown className="text-slate-500 w-4 h-4" />
-          )}
-        </div>
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18 }}
-          >
-            <div className={`px-4 pb-4 border-t ${c.divider}`}>
-              {(cat.stocks ?? []).length === 0 ? (
-                <p className="text-xs text-slate-500 italic mt-3">
-                  Bu formasyonda hisse bulunamadı.
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {(cat.stocks ?? []).map((row) => {
-                    const ticker = typeof row === "string" ? row : row.ticker;
-                    const change = typeof row === "object" ? row.changePct : undefined;
-                    return (
-                    <React.Fragment key={ticker}>
-                    <a
-                      href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`inline-flex items-center gap-1 text-xs font-mono font-bold px-2.5 py-1 rounded-lg border transition-colors ${c.ticker}`}
-                    >
-                      {ticker}
-                      {change !== undefined && (
-                        <span className={`text-[10px] font-normal ${
-                          change >= 0 ? "text-emerald-400" : "text-rose-400"
-                        }`}>
-                          {change >= 0 ? "+" : ""}{change.toFixed(1)}%
-                        </span>
-                      )}
-                      <TbExternalLink size={10} className="opacity-50" />
-                    </a>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggleFavorite(ticker); }}
-                      className={`p-0.5 rounded transition-colors ${
-                        favorites.has(ticker)
-                          ? "text-amber-400 hover:text-amber-300"
-                          : "text-slate-700 hover:text-amber-400"
-                      }`}
-                      title={favorites.has(ticker) ? "Favorilerden çıkar" : "Favorilere ekle"}
-                    >
-                      {favorites.has(ticker)
-                        ? <TbStarFilled size={11} />
-                        : <TbStar size={11} />}
-                    </button>
-                    </React.Fragment>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      </div>
+    </button>
   );
 }
 
-// ── Grup bloğu ─────────────────────────────────────────────────────────────────
-function GroupBlock({
+// ── Sağ panel — seçili grubun içeriği ─────────────────────────────────────────
+function ResultPanel({
   group,
   cats,
   favorites,
@@ -341,69 +306,162 @@ function GroupBlock({
   favorites: Set<string>;
   toggleFavorite: (ticker: string) => void;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
   const c = colorMap[group.color];
   const totalSignals = cats.reduce((a, cat) => a + cat.count, 0);
-  const activeCats = cats.filter((cat) => cat.count > 0).length;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`rounded-2xl border ${c.border} overflow-hidden`}
+      key={group.id}
+      initial={{ opacity: 0, x: 12 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.18 }}
+      className="h-full"
     >
-      {/* Grup başlığı */}
-      <button
-        onClick={() => setCollapsed((v) => !v)}
-        className={`w-full flex items-center justify-between px-5 py-4 ${c.headerBg} hover:brightness-110 transition-all`}
-      >
+      {/* Panel başlık */}
+      <div className={`flex items-center justify-between px-5 py-4 rounded-2xl border mb-3 ${c.border} ${c.headerBg}`}>
         <div className="flex items-center gap-3">
-          <div className={`p-1.5 rounded-lg border ${c.icon}`}>{group.icon}</div>
-          <div className="text-left">
-            <p className={`text-sm font-bold ${c.label}`}>{group.label}</p>
+          <div className={`p-2 rounded-xl border ${c.icon}`}>{group.icon}</div>
+          <div>
+            <h2 className={`text-base font-black ${c.label}`}>{group.label}</h2>
             <p className="text-xs text-slate-500 mt-0.5">{group.desc}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className={`text-lg font-black ${c.label}`}>{totalSignals}</p>
-            <p className="text-xs text-slate-600">
-              {cats.length === 0 ? "Sinyal yok" : `${activeCats} aktif sinyal`}
-            </p>
+        <div className="text-right">
+          <p className={`text-2xl font-black ${c.label}`}>{totalSignals}</p>
+          <p className="text-[10px] text-slate-600 uppercase tracking-widest">sinyal</p>
+        </div>
+      </div>
+
+      {/* Kategoriler */}
+      <div className="space-y-3">
+        {cats.length === 0 ? (
+          <div className="rounded-xl border border-slate-800 bg-slate-900/20 p-8 text-center">
+            <p className="text-slate-600 text-sm">Bu grupta kategori tanımlanmamış.</p>
           </div>
-          <span className={`sm:hidden text-sm font-black ${c.label}`}>{totalSignals}</span>
-          {collapsed ? (
-            <HiChevronDown className="text-slate-500 w-4 h-4" />
+        ) : (
+          cats.map((cat) => (
+            <CategoryCard
+              key={cat.key}
+              cat={cat}
+              color={group.color}
+              favorites={favorites}
+              toggleFavorite={toggleFavorite}
+            />
+          ))
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Kategori kartı (yeni, daha zengin) ────────────────────────────────────────
+function CategoryCard({
+  cat,
+  color,
+  favorites,
+  toggleFavorite,
+}: {
+  cat: ScanCategory;
+  color: keyof typeof colorMap;
+  favorites: Set<string>;
+  toggleFavorite: (ticker: string) => void;
+}) {
+  const [open, setOpen] = useState(cat.count > 0);
+  const c = colorMap[color];
+
+  return (
+    <div className={`rounded-xl border overflow-hidden transition-colors ${
+      cat.count > 0 ? c.border : "border-slate-800/50"
+    }`}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors ${
+          cat.count > 0 ? c.headerBg : "bg-slate-900/20"
+        }`}
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-base leading-none">{cat.emoji}</span>
+          <span className={`text-sm font-semibold truncate text-left ${
+            cat.count > 0 ? "text-slate-200" : "text-slate-600"
+          }`}>
+            {cat.label}
+          </span>
+          {cat.count === 0 && (
+            <span className="text-[10px] text-slate-700 italic">sinyal yok</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          <span className={`text-xs font-black px-2 py-0.5 rounded-full ${
+            cat.count > 0 ? c.badge : "bg-slate-800/40 text-slate-700"
+          }`}>
+            {cat.count}
+          </span>
+          {open ? (
+            <HiChevronUp className="text-slate-600 w-3.5 h-3.5" />
           ) : (
-            <HiChevronUp className="text-slate-500 w-4 h-4" />
+            <HiChevronDown className="text-slate-600 w-3.5 h-3.5" />
           )}
         </div>
       </button>
 
-      {/* Kategoriler */}
-      <AnimatePresence initial={false}>
-        {!collapsed && (
+      <AnimatePresence>
+        {open && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
           >
-            <div className={`p-3 space-y-2 ${c.bg}`}>
-              {cats.length === 0 ? (
-                <p className="text-xs text-slate-600 italic px-1 py-2">
-                  Bugün bu grupta sinyal çıkmadı.
+            <div className={`px-4 pb-4 border-t ${c.divider}`}>
+              {(cat.stocks ?? []).length === 0 ? (
+                <p className="text-xs text-slate-600 italic mt-3">
+                  Bu formasyonda hisse bulunamadı.
                 </p>
               ) : (
-                cats.map((cat) => (
-                  <CategoryRow key={cat.key} cat={cat} color={group.color} favorites={favorites} toggleFavorite={toggleFavorite} />
-                ))
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {(cat.stocks ?? []).map((row) => {
+                    const ticker = typeof row === "string" ? row : row.ticker;
+                    const change = typeof row === "object" ? row.changePct : undefined;
+                    return (
+                      <React.Fragment key={ticker}>
+                        <a
+                          href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`inline-flex items-center gap-1 text-xs font-mono font-bold px-2.5 py-1 rounded-lg border transition-colors ${c.ticker}`}
+                        >
+                          {ticker}
+                          {change !== undefined && (
+                            <span className={`text-[10px] font-normal ${
+                              change >= 0 ? "text-emerald-400" : "text-rose-400"
+                            }`}>
+                              {change >= 0 ? "+" : ""}{change.toFixed(1)}%
+                            </span>
+                          )}
+                          <TbExternalLink size={10} className="opacity-50" />
+                        </a>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(ticker); }}
+                          className={`p-0.5 rounded transition-colors ${
+                            favorites.has(ticker)
+                              ? "text-amber-400 hover:text-amber-300"
+                              : "text-slate-700 hover:text-amber-400"
+                          }`}
+                          title={favorites.has(ticker) ? "Favorilerden çıkar" : "Favorilere ekle"}
+                        >
+                          {favorites.has(ticker) ? <TbStarFilled size={11} /> : <TbStar size={11} />}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 }
 
@@ -628,6 +686,7 @@ export default function StockScanner() {
   const [plan, setPlan]                         = useState<string>("starter");
   const [isAdmin, setIsAdmin]                   = useState(false);
   const [remoteGroups, setRemoteGroups]           = useState<DbScanGroup[] | null>(null);
+  const [selectedGroupId, setSelectedGroupId]   = useState<string | null>(null);
 
   // ── Dinamik grup türemeleri ───────────────────────────────────────────────
   const activeGroups = (remoteGroups && remoteGroups.length > 0)
@@ -797,6 +856,10 @@ export default function StockScanner() {
   // Grubun hiç key'i yoksa gizle (boş/tanımsız grup); key tanımlıysa sinyal olmasa da göster
   const visibleGroupData = groupedData.filter(({ group }) => group.keys.length > 0);
 
+  // Seçili grup — varsayılan olarak ilk grup
+  const effectiveGroupId = selectedGroupId ?? visibleGroupData[0]?.group.id ?? null;
+  const selectedEntry = visibleGroupData.find((x) => x.group.id === effectiveGroupId) ?? visibleGroupData[0] ?? null;
+
   // Gruplanmamış kategoriler (API'den yeni gelen ama tanımlı olmayan)
   const activeAllGroupedKeys = activeGroups.flatMap((g) => g.keys);
   const ungroupedCats = (data?.categories ?? []).filter(
@@ -843,454 +906,396 @@ export default function StockScanner() {
           />
         )}
       </AnimatePresence>
-      <section id="hisse-teknik-analizi" className="py-20 px-4 sm:px-6">
-      <div className="max-w-4xl mx-auto">
-        {/* ── Başlık ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <p className="text-xs font-semibold tracking-[0.2em] text-emerald-500 uppercase mb-2">
-                Otomatik Tarama
-              </p>
-              <h1 className="text-3xl md:text-4xl font-black text-white mb-2">
-                Hisse <span className="text-emerald-400">Teknik</span> Analizi
-              </h1>
-              <p className="text-slate-400 text-sm max-w-xl">
-                BIST hisseleri her 30 dakikada bir otomatik taranır. Formasyon, RSI, MACD ve harmonik
-                sinyaller gruplandırılmış olarak listelenir.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={load}
-                disabled={loading}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-emerald-700 transition-colors text-sm disabled:opacity-40"
-              >
-                <HiRefresh className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">Yenile</span>
-              </button>
-              <button
-                onClick={() => { setAlertPanelOpen((v) => !v); if (!alertPanelOpen) loadProfile(); }}
-                className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-colors text-sm ${
-                  alertEnabled && alertChatId
-                    ? "border-emerald-600 text-emerald-400 bg-emerald-950/30 hover:bg-emerald-950/50"
-                    : "border-emerald-800/60 text-emerald-500 bg-emerald-950/20 hover:border-emerald-500 hover:text-emerald-400"
-                }`}
-                title="Bildirim Ayarları"
-              >
-                {alertEnabled && alertChatId
-                  ? <TbBell className="w-4 h-4" />
-                  : <TbBellOff className="w-4 h-4" />
-                }
-                <span className="hidden sm:inline">Bildirim</span>
-                {!alertChatId && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                )}
-              </button>
-              <a
-                href="/hisse-teknik-analizi/profil"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-colors text-sm"
-                title="Profilim"
-              >
-                <TbUser className="w-4 h-4" />
-                <span className="hidden sm:inline">Profilim</span>
-              </a>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-800 transition-colors text-sm"
-              >
-                <HiLogout className="w-4 h-4" />
-                <span className="hidden sm:inline">Çıkış</span>
-              </button>
-              <a
-                href="/hisse-teknik-analizi/taramalarim"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-800/60 text-blue-400 bg-blue-950/20 hover:border-blue-500 hover:bg-blue-950/40 transition-colors text-sm"
-              >
-                <TbSearch className="w-4 h-4" />
-                <span className="hidden sm:inline">Taramalarım</span>
-              </a>
-            </div>
-          </div>
 
-          {/* Durum */}
-          {data && (
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-              <span className="flex items-center gap-1">
-                <HiClock className="w-3.5 h-3.5" />
-                {data.lastRun ? `Son tarama: ${timeAgoLabel(data.minutesAgo)}` : "Henüz tarama yapılmadı"}
-              </span>
-              {data.status === "running" && (
-                <span className="flex items-center gap-1 text-amber-400">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  Tarama devam ediyor…
+      <section id="hisse-teknik-analizi" className="py-12 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+
+          {/* ── Başlık + Toolbar ── */}
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.2em] text-emerald-500 uppercase mb-1">
+                  Otomatik Tarama
+                </p>
+                <h1 className="text-2xl md:text-3xl font-black text-white">
+                  Hisse <span className="text-emerald-400">Teknik</span> Analizi
+                </h1>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={load}
+                  disabled={loading}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-emerald-700 transition-colors text-sm disabled:opacity-40"
+                >
+                  <HiRefresh className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline">Yenile</span>
+                </button>
+                <button
+                  onClick={() => { setAlertPanelOpen((v) => !v); if (!alertPanelOpen) loadProfile(); }}
+                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg border transition-colors text-sm ${
+                    alertEnabled && alertChatId
+                      ? "border-emerald-600 text-emerald-400 bg-emerald-950/30 hover:bg-emerald-950/50"
+                      : "border-emerald-800/60 text-emerald-500 bg-emerald-950/20 hover:border-emerald-500 hover:text-emerald-400"
+                  }`}
+                  title="Bildirim Ayarları"
+                >
+                  {alertEnabled && alertChatId ? <TbBell className="w-4 h-4" /> : <TbBellOff className="w-4 h-4" />}
+                  <span className="hidden sm:inline">Bildirim</span>
+                  {!alertChatId && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  )}
+                </button>
+                <a
+                  href="/hisse-teknik-analizi/profil"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-colors text-sm"
+                  title="Profilim"
+                >
+                  <TbUser className="w-4 h-4" />
+                  <span className="hidden sm:inline">Profilim</span>
+                </a>
+                <a
+                  href="/hisse-teknik-analizi/taramalarim"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-800/60 text-blue-400 bg-blue-950/20 hover:border-blue-500 hover:bg-blue-950/40 transition-colors text-sm"
+                >
+                  <TbSearch className="w-4 h-4" />
+                  <span className="hidden sm:inline">Taramalarım</span>
+                </a>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-800 transition-colors text-sm"
+                >
+                  <HiLogout className="w-4 h-4" />
+                  <span className="hidden sm:inline">Çıkış</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Durum satırı */}
+            {data && (
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                <span className="flex items-center gap-1">
+                  <HiClock className="w-3 h-3" />
+                  {data.lastRun ? `Son tarama: ${timeAgoLabel(data.minutesAgo)}` : "Henüz tarama yapılmadı"}
                 </span>
-              )}
-            </div>
-          )}
-        </motion.div>
+                {data.status === "running" && (
+                  <span className="flex items-center gap-1.5 text-amber-400 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    Tarama devam ediyor…
+                  </span>
+                )}
+              </div>
+            )}
+          </motion.div>
 
-        {/* ── Bildirim Ayarları Paneli ── */}
-        <AnimatePresence>
-          {alertPanelOpen && (
-            <motion.div
-              key="alert-panel"
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              className="mb-6"
-            >
-              <div className="rounded-2xl border border-emerald-800/60 bg-emerald-950/20 overflow-hidden">
-                {/* Panel başlık */}
-                <div className="flex items-center justify-between px-5 py-4 bg-emerald-950/30 border-b border-emerald-900/30">
-                  <div className="flex items-center gap-3">
-                    <div className="p-1.5 rounded-lg border border-emerald-800/50 bg-emerald-950/50">
-                      <TbBell size={16} className="text-emerald-400" />
+          {/* ── Bildirim Paneli ── */}
+          <AnimatePresence>
+            {alertPanelOpen && (
+              <motion.div
+                key="alert-panel"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="mb-6"
+              >
+                <div className="rounded-2xl border border-emerald-800/60 bg-emerald-950/20 overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-4 bg-emerald-950/30 border-b border-emerald-900/30">
+                    <div className="flex items-center gap-3">
+                      <div className="p-1.5 rounded-lg border border-emerald-800/50 bg-emerald-950/50">
+                        <TbBell size={16} className="text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-emerald-300">Telegram Bildirim Ayarları</p>
+                        <p className="text-xs text-emerald-700 mt-0.5">Seçtiğin kategorilerde sinyal çıkınca mesaj al</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-emerald-300">Telegram Bildirim Ayarları</p>
-                      <p className="text-xs text-emerald-700 mt-0.5">Seçtiğin kategorilerde sinyal çıkınca mesaj al</p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500 hidden sm:block">{alertEnabled ? "Açık" : "Kapalı"}</span>
+                      <button
+                        onClick={() => setAlertEnabled((v) => !v)}
+                        className={`relative w-11 h-6 rounded-full transition-colors ${alertEnabled ? "bg-emerald-600" : "bg-slate-700"}`}
+                      >
+                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${alertEnabled ? "translate-x-5" : "translate-x-0"}`} />
+                      </button>
                     </div>
                   </div>
-                  {/* Master toggle — her zaman görünür */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-slate-500 hidden sm:block">
-                      {alertEnabled ? "Açık" : "Kapalı"}
-                    </span>
-                    <button
-                      onClick={() => setAlertEnabled((v) => !v)}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${
-                        alertEnabled ? "bg-emerald-600" : "bg-slate-700"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                          alertEnabled ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-5 space-y-5">
-                  {alertLoading ? (
+                  <div className="p-5 space-y-5">
+                    {alertLoading ? (
                       <div className="space-y-3">
                         <div className="h-4 w-32 bg-slate-800/50 rounded animate-pulse" />
                         <div className="h-10 bg-slate-800/50 rounded animate-pulse" />
                       </div>
                     ) : (
-                    <>
-                      {/* Chat ID */}
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                          Telegram Chat ID
-                        </label>
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="text-xs text-slate-600 flex-1">
-                            Önce botu başlatın, ardından{" "}
-                            <span className="text-emerald-500 font-mono">/mychatid</span>{" "}
-                            yazın ve çıkan numarayı yapıştırın.
-                          </p>
-                          <a
-                            href="https://t.me/RdAlgoBildirim_Bot"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-950/50 border border-sky-800/60 hover:bg-sky-900/50 transition-colors text-sky-400 text-xs font-semibold"
-                          >
-                            <TbBrandTelegram size={14} />
-                            Botu Aç
-                          </a>
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Telegram Chat ID</label>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-xs text-slate-600 flex-1">
+                              Önce botu başlatın, ardından <span className="text-emerald-500 font-mono">/mychatid</span> yazın ve çıkan numarayı yapıştırın.
+                            </p>
+                            <a href="https://t.me/RdAlgoBildirim_Bot" target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-950/50 border border-sky-800/60 hover:bg-sky-900/50 transition-colors text-sky-400 text-xs font-semibold">
+                              <TbBrandTelegram size={14} />Botu Aç
+                            </a>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <TbBrandTelegram size={16} className="text-sky-400 shrink-0" />
+                            <input
+                              type="text" inputMode="numeric" placeholder="örn: 123456789"
+                              value={alertChatId}
+                              onChange={(e) => setAlertChatId(e.target.value.replace(/[^-\d]/g, ""))}
+                              className="flex-1 bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-600 transition-colors"
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <TbBrandTelegram size={16} className="text-sky-400 shrink-0" />
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            placeholder="örn: 123456789"
-                            value={alertChatId}
-                            onChange={(e) => setAlertChatId(e.target.value.replace(/[^-\d]/g, ""))}
-                            className="flex-1 bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-600 transition-colors"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Kategori seçimi */}
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                          Hangi Sinyallerde Bildirim Alayım?
-                        </label>
-                        <div className="space-y-1.5">
-                          {activeAlertGroups.map((g) => {
-                            const full    = isGroupFull(g.id);
-                            const partial = isGroupPartial(g.id);
-                            const open    = expandedGroups.has(g.id);
-                            const selectedCount = g.keys.filter((k) => alertCategories.includes(k.id)).length;
-                            return (
-                              <div
-                                key={g.id}
-                                className={`rounded-xl border overflow-hidden transition-colors ${
-                                  full ? "border-emerald-700/70" : partial ? "border-emerald-900/50" : "border-slate-800"
-                                }`}
-                              >
-                                {/* Grup satırı */}
-                                <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-900/40">
-                                  {/* Grup checkbox */}
-                                  <button
-                                    onClick={() => toggleGroup(g.id)}
-                                    className={`flex items-center justify-center w-5 h-5 rounded border shrink-0 transition-colors ${
-                                      full
-                                        ? "bg-emerald-600 border-emerald-500"
-                                        : partial
-                                        ? "bg-emerald-950 border-emerald-700"
-                                        : "bg-slate-800 border-slate-600 hover:border-slate-400"
-                                    }`}
-                                  >
-                                    {full    && <TbCheck size={11} className="text-white" />}
-                                    {partial && <span className="w-2 h-0.5 bg-emerald-400 rounded-full" />}
-                                  </button>
-                                  <span className="text-base leading-none">{g.emoji}</span>
-                                  <span className={`flex-1 text-sm font-semibold ${
-                                    full || partial ? "text-white" : "text-slate-400"
-                                  }`}>
-                                    {g.label}
-                                  </span>
-                                  {(full || partial) && (
-                                    <span className="text-xs text-emerald-600 shrink-0">{selectedCount}/{g.keys.length}</span>
-                                  )}
-                                  {/* Genişlet butonu */}
-                                  <button
-                                    onClick={() =>
-                                      setExpandedGroups((prev) => {
-                                        const next = new Set(prev);
-                                        next.has(g.id) ? next.delete(g.id) : next.add(g.id);
-                                        return next;
-                                      })
-                                    }
-                                    className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
-                                  >
-                                    {open ? <HiChevronUp size={14} /> : <HiChevronDown size={14} />}
-                                  </button>
-                                </div>
-                                {/* Bireysel key'ler */}
-                                {open && (
-                                  <div className="px-3 pb-2 pt-1 bg-slate-950/50 border-t border-slate-800/50 grid grid-cols-1 sm:grid-cols-2 gap-0.5">
-                                    {g.keys.map((k) => {
-                                      const keyActive = alertCategories.includes(k.id);
-                                      return (
-                                        <button
-                                          key={k.id}
-                                          onClick={() => toggleKey(k.id)}
-                                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors ${
-                                            keyActive
-                                              ? "text-emerald-300"
-                                              : "text-slate-500 hover:text-slate-300"
-                                          }`}
-                                        >
-                                          <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                            keyActive ? "bg-emerald-600 border-emerald-500" : "border-slate-600"
-                                          }`}>
-                                            {keyActive && <TbCheck size={9} className="text-white" />}
-                                          </div>
-                                          <span className="text-xs">{k.label}</span>
-                                        </button>
-                                      );
-                                    })}
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Hangi Sinyallerde Bildirim Alayım?</label>
+                          <div className="space-y-1.5">
+                            {activeAlertGroups.map((g) => {
+                              const full = isGroupFull(g.id);
+                              const partial = isGroupPartial(g.id);
+                              const open = expandedGroups.has(g.id);
+                              const selectedCount = g.keys.filter((k) => alertCategories.includes(k.id)).length;
+                              return (
+                                <div key={g.id} className={`rounded-xl border overflow-hidden transition-colors ${full ? "border-emerald-700/70" : partial ? "border-emerald-900/50" : "border-slate-800"}`}>
+                                  <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-900/40">
+                                    <button onClick={() => toggleGroup(g.id)} className={`flex items-center justify-center w-5 h-5 rounded border shrink-0 transition-colors ${full ? "bg-emerald-600 border-emerald-500" : partial ? "bg-emerald-950 border-emerald-700" : "bg-slate-800 border-slate-600 hover:border-slate-400"}`}>
+                                      {full && <TbCheck size={11} className="text-white" />}
+                                      {partial && <span className="w-2 h-0.5 bg-emerald-400 rounded-full" />}
+                                    </button>
+                                    <span className="text-base leading-none">{g.emoji}</span>
+                                    <span className={`flex-1 text-sm font-semibold ${full || partial ? "text-white" : "text-slate-400"}`}>{g.label}</span>
+                                    {(full || partial) && <span className="text-xs text-emerald-600 shrink-0">{selectedCount}/{g.keys.length}</span>}
+                                    <button onClick={() => setExpandedGroups((prev) => { const next = new Set(prev); next.has(g.id) ? next.delete(g.id) : next.add(g.id); return next; })} className="p-1 text-slate-500 hover:text-slate-300 transition-colors">
+                                      {open ? <HiChevronUp size={14} /> : <HiChevronDown size={14} />}
+                                    </button>
                                   </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                                  {open && (
+                                    <div className="px-3 pb-2 pt-1 bg-slate-950/50 border-t border-slate-800/50 grid grid-cols-1 sm:grid-cols-2 gap-0.5">
+                                      {g.keys.map((k) => {
+                                        const keyActive = alertCategories.includes(k.id);
+                                        return (
+                                          <button key={k.id} onClick={() => toggleKey(k.id)} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-colors ${keyActive ? "text-emerald-300" : "text-slate-500 hover:text-slate-300"}`}>
+                                            <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${keyActive ? "bg-emerald-600 border-emerald-500" : "border-slate-600"}`}>
+                                              {keyActive && <TbCheck size={9} className="text-white" />}
+                                            </div>
+                                            <span className="text-xs">{k.label}</span>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
+                        <div className="flex items-center gap-3">
+                          <button onClick={saveProfile} disabled={alertSaving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors disabled:opacity-50">
+                            <TbDeviceFloppy size={16} />
+                            {alertSaving ? "Kaydediliyor..." : "Kaydet"}
+                          </button>
+                          {alertMsg && (
+                            <p className={`text-sm ${alertMsg.type === "ok" ? "text-emerald-400" : "text-rose-400"}`}>
+                              {alertMsg.type === "ok" ? "✅ " : "❌ "}{alertMsg.text}
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                      {/* Kaydet */}
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={saveProfile}
-                          disabled={alertSaving}
-                          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
-                        >
-                          <TbDeviceFloppy size={16} />
-                          {alertSaving ? "Kaydediliyor..." : "Kaydet"}
-                        </button>
-                        {alertMsg && (
-                          <p className={`text-sm ${
-                            alertMsg.type === "ok" ? "text-emerald-400" : "text-rose-400"
-                          }`}>
-                            {alertMsg.type === "ok" ? "✅ " : "❌ "}{alertMsg.text}
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  )}
+          {/* ── İstatistik Şeridi ── */}
+          {data && !loading && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-6">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {/* Toplam */}
+                <div className="col-span-1 bg-[#0a1628] border border-slate-800 rounded-2xl p-3 flex flex-col items-center gap-1">
+                  <TbChartLine size={18} className="text-slate-500" />
+                  <p className="text-xl font-black text-white">{totalSignals}</p>
+                  <p className="text-[10px] text-slate-600 uppercase tracking-wide">Toplam</p>
+                </div>
+                {/* Bull */}
+                <div className="col-span-1 bg-emerald-950/30 border border-emerald-900/50 rounded-2xl p-3 flex flex-col items-center gap-1">
+                  <HiTrendingUp size={18} className="text-emerald-400" />
+                  <p className="text-xl font-black text-emerald-400">{bullSignals}</p>
+                  <p className="text-[10px] text-emerald-700 uppercase tracking-wide">Bullish</p>
+                </div>
+                {/* Bear */}
+                <div className="col-span-1 bg-rose-950/20 border border-rose-900/40 rounded-2xl p-3 flex flex-col items-center gap-1">
+                  <HiTrendingDown size={18} className="text-rose-400" />
+                  <p className="text-xl font-black text-rose-400">{bearSignals}</p>
+                  <p className="text-[10px] text-rose-700 uppercase tracking-wide">Bearish</p>
+                </div>
+                {/* Bull/Bear oranı */}
+                <div className="col-span-3 sm:col-span-2 bg-slate-900/40 border border-slate-800 rounded-2xl p-3 flex flex-col justify-center gap-2">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-emerald-500 font-semibold">BULL {totalSignals > 0 ? Math.round((bullSignals / totalSignals) * 100) : 0}%</span>
+                    <span className="text-rose-500 font-semibold">BEAR {totalSignals > 0 ? Math.round((bearSignals / totalSignals) * 100) : 0}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-rose-950/60 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
+                      style={{ width: totalSignals > 0 ? `${Math.round((bullSignals / totalSignals) * 100)}%` : "50%" }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-600 text-center">
+                    {overlappingTickers.length > 0 ? `${overlappingTickers.length} hisse 2+ kategoride` : "Sinyal dağılımı"}
+                  </p>
                 </div>
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* ── Özet Stat Kartları ── */}
-        {data && !loading && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-3 gap-3 mb-8"
-          >
-            <div className="bg-[#0a1628] border border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center gap-1">
-              <TbChartLine size={20} className="text-slate-400 mb-0.5" />
-              <p className="text-2xl font-black text-white">{totalSignals}</p>
-              <p className="text-xs text-slate-500 text-center">Toplam Sinyal</p>
+          {/* ── Favoriler ── */}
+          {!loading && !error && data && favorites.size > 0 && (
+            <div className="mb-5">
+              <FavoritesSection favorites={favorites} scanCategories={data.categories} toggleFavorite={toggleFavorite} />
             </div>
-            <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-2xl p-4 flex flex-col items-center justify-center gap-1">
-              <div className="flex items-center gap-1 mb-0.5">
-                <HiTrendingUp size={18} className="text-emerald-400" />
-                <TbArrowUpRight size={14} className="text-emerald-500" />
-              </div>
-              <p className="text-2xl font-black text-emerald-400">{bullSignals}</p>
-              <p className="text-xs text-emerald-600 text-center">Bullish</p>
-            </div>
-            <div className="bg-rose-950/20 border border-rose-900/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1">
-              <div className="flex items-center gap-1 mb-0.5">
-                <HiTrendingDown size={18} className="text-rose-400" />
-                <TbArrowDownRight size={14} className="text-rose-500" />
-              </div>
-              <p className="text-2xl font-black text-rose-400">{bearSignals}</p>
-              <p className="text-xs text-rose-700 text-center">Bearish</p>
-            </div>
-          </motion.div>
-        )}
+          )}
 
-        {/* ── Skeleton ── */}
-        {loading && !data && (
-          <div className="space-y-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-16 rounded-2xl bg-slate-800/40 animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {/* ── Hata ── */}
-        {error && (
-          <div className="rounded-xl border border-rose-900/50 bg-rose-950/20 p-6 text-center">
-            <p className="text-rose-400 font-semibold mb-1">Bağlantı Hatası</p>
-            <p className="text-slate-500 text-sm mb-3">{error}</p>
-            <button onClick={load} className="text-xs text-emerald-400 hover:underline">
-              Tekrar dene
-            </button>
-          </div>
-        )}
-
-        {/* ── Favoriler ── */}
-        {!loading && !error && data && (
-          <FavoritesSection
-            favorites={favorites}
-            scanCategories={data.categories}
-            toggleFavorite={toggleFavorite}
-          />
-        )}
-
-        {/* ── Ortak Sinyaller ── */}
-        {!loading && !error && overlappingTickers.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="mb-5 rounded-2xl border border-amber-700/50 bg-amber-950/20 overflow-hidden"
-          >
-            <div className="flex items-center gap-3 px-5 py-4 bg-amber-950/30 border-b border-amber-800/30">
-              <div className="p-1.5 rounded-lg border border-amber-800/50 bg-amber-950/50">
-                <TbStarFilled size={16} className="text-amber-400" />
+          {/* ── Ortak Sinyaller (compact) ── */}
+          {!loading && !error && overlappingTickers.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-5 rounded-2xl border border-amber-700/40 bg-amber-950/10 overflow-hidden">
+              <div className="flex items-center gap-2.5 px-4 py-3 bg-amber-950/20 border-b border-amber-800/20">
+                <TbStarFilled size={14} className="text-amber-400" />
+                <p className="text-sm font-bold text-amber-300">Ortak Sinyaller</p>
+                <span className="text-xs text-amber-700">{overlappingTickers.length} hisse 2+ kategoride</span>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-amber-300">Birden Fazla Teknikte Ortak Hisseler</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  {overlappingTickers.length} hisse 2+ sinyal kategorisinde birden yer alıyor
-                </p>
-              </div>
-            </div>
-            <div className="p-4">
-              <div className="flex flex-wrap gap-2">
+              <div className="px-4 py-3 flex flex-wrap gap-2">
                 {overlappingTickers.map(([ticker, info]) => (
-                  <a
-                    key={ticker}
-                    href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group relative inline-flex flex-col items-center gap-0.5"
-                    title={info.categories.join(" · ")}
+                  <a key={ticker} href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`} target="_blank" rel="noopener noreferrer" title={info.categories.join(" · ")}
+                    className="inline-flex items-center gap-1.5 text-xs font-mono font-black px-2.5 py-1.5 rounded-xl border border-amber-600/50 text-amber-300 bg-amber-950/30 hover:bg-amber-800/40 hover:border-amber-500 transition-colors"
                   >
-                    <span className="inline-flex items-center gap-1.5 text-sm font-mono font-black px-3 py-1.5 rounded-xl border border-amber-600/60 text-amber-300 bg-amber-950/40 hover:bg-amber-800/40 hover:border-amber-500 transition-colors">
-                      {ticker}
-                      <span className="flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-[10px] font-black text-black">
-                        {info.count}
-                      </span>
-                    </span>
-                    <span className="text-[9px] text-amber-700 group-hover:text-amber-500 transition-colors truncate max-w-[80px] text-center">
-                      {info.categories.slice(0, 2).join(", ")}
-                      {info.categories.length > 2 && ` +${info.categories.length - 2}`}
-                    </span>
+                    {ticker}
+                    <span className={`flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-black ${
+                      info.count >= 4 ? "bg-emerald-400 text-black" : info.count >= 3 ? "bg-amber-400 text-black" : "bg-amber-700 text-amber-200"
+                    }`}>{info.count}</span>
                   </a>
                 ))}
               </div>
+            </motion.div>
+          )}
+
+          {/* ── Skeleton ── */}
+          {loading && !data && (
+            <div className="flex gap-4">
+              <div className="w-56 shrink-0 space-y-2">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-14 rounded-xl bg-slate-800/40 animate-pulse" />
+                ))}
+              </div>
+              <div className="flex-1 space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-14 rounded-xl bg-slate-800/40 animate-pulse" />
+                ))}
+              </div>
             </div>
-          </motion.div>
-        )}
+          )}
 
-        {/* ── Gruplandırılmış içerik ── */}
-        {!loading && !error && data && (
-          <div className="space-y-4">
-            {visibleGroupData.map(({ group, cats }) => (
-              <GroupBlock key={group.id} group={group} cats={cats} favorites={favorites} toggleFavorite={toggleFavorite} />
-            ))}
+          {/* ── Hata ── */}
+          {error && (
+            <div className="rounded-xl border border-rose-900/50 bg-rose-950/20 p-6 text-center">
+              <p className="text-rose-400 font-semibold mb-1">Bağlantı Hatası</p>
+              <p className="text-slate-500 text-sm mb-3">{error}</p>
+              <button onClick={load} className="text-xs text-emerald-400 hover:underline">Tekrar dene</button>
+            </div>
+          )}
 
-            {/* Gruplanmamış kategoriler */}
-            {ungroupedCats.length > 0 && (
-              <div className="rounded-2xl border border-slate-800 overflow-hidden">
-                <div className="flex items-center gap-3 px-5 py-4 bg-slate-900/50">
-                  <div className="p-1.5 rounded-lg border text-slate-400 bg-slate-800/50 border-slate-700/50">
-                    <TbFlame size={16} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-300">Diğer Sinyaller</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Gruplanmamış tarama sonuçları</p>
-                  </div>
-                </div>
-                <div className="p-3 space-y-2 bg-slate-900/20">
-                  {ungroupedCats.map((cat) => (
-                    <CategoryRow
-                      key={cat.key}
-                      cat={cat}
-                      color={activeBullKeys.includes(cat.key) ? "emerald" : "rose"}
+          {/* ── Ana İki Sütunlu Layout ── */}
+          {!loading && !error && data && (
+            <div className="flex gap-4 items-start">
+
+              {/* Sol Sidebar — Grup Listesi */}
+              <motion.div
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 }}
+                className="w-52 shrink-0 space-y-1 sticky top-20"
+              >
+                <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest px-3 mb-2">Kategoriler</p>
+                {visibleGroupData.map(({ group, cats }) => (
+                  <SidebarGroupItem
+                    key={group.id}
+                    group={group}
+                    cats={cats}
+                    isActive={effectiveGroupId === group.id}
+                    onSelect={() => setSelectedGroupId(group.id)}
+                  />
+                ))}
+
+                {/* Özel: Gruplanmamış */}
+                {ungroupedCats.length > 0 && (
+                  <button
+                    onClick={() => setSelectedGroupId("__ungrouped__")}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 ${
+                      effectiveGroupId === "__ungrouped__"
+                        ? "bg-slate-800/60 border border-slate-600 text-slate-300"
+                        : "border-transparent hover:bg-slate-800/40 text-slate-500 hover:text-slate-300"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 rounded-lg border text-slate-500 border-slate-700/50 bg-slate-800/40">
+                        <TbFlame size={14} />
+                      </div>
+                      <span className="text-xs font-semibold flex-1">Diğer</span>
+                      <span className="text-xs font-black text-slate-600">{ungroupedCats.reduce((a, c) => a + c.count, 0)}</span>
+                    </div>
+                  </button>
+                )}
+              </motion.div>
+
+              {/* Sağ Panel — Seçili Grubun İçeriği */}
+              <div className="flex-1 min-w-0">
+                <AnimatePresence mode="wait">
+                  {effectiveGroupId === "__ungrouped__" ? (
+                    <motion.div key="ungrouped" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18 }}>
+                      <div className="flex items-center justify-between px-5 py-4 rounded-2xl border border-slate-800 bg-slate-900/30 mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl border border-slate-700/50 bg-slate-800/40 text-slate-400"><TbFlame size={16} /></div>
+                          <div>
+                            <h2 className="text-base font-black text-slate-300">Diğer Sinyaller</h2>
+                            <p className="text-xs text-slate-600 mt-0.5">Gruplanmamış tarama sonuçları</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        {ungroupedCats.map((cat) => (
+                          <CategoryCard key={cat.key} cat={cat} color={activeBullKeys.includes(cat.key) ? "emerald" : "rose"} favorites={favorites} toggleFavorite={toggleFavorite} />
+                        ))}
+                      </div>
+                    </motion.div>
+                  ) : selectedEntry ? (
+                    <ResultPanel
+                      key={selectedEntry.group.id}
+                      group={selectedEntry.group}
+                      cats={selectedEntry.cats}
                       favorites={favorites}
                       toggleFavorite={toggleFavorite}
                     />
-                  ))}
-                </div>
+                  ) : null}
+                </AnimatePresence>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* ── Bekliyor ── */}
-        {!loading && !error && data?.status === "pending" && (
-          <div className="mt-6 text-center text-slate-500 text-sm">
-            İlk tarama başlatılıyor, lütfen bekleyin…
-          </div>
-        )}
+          {/* ── Pending ── */}
+          {!loading && !error && data?.status === "pending" && (
+            <div className="mt-6 text-center text-slate-500 text-sm">
+              İlk tarama başlatılıyor, lütfen bekleyin…
+            </div>
+          )}
 
-        {/* ── Yasal uyarı ── */}
-        <p className="mt-8 text-xs text-slate-700 border-l-2 border-slate-800 pl-3">
-          Bu sayfa yalnızca teknik formasyon tespiti yapar. Yatırım tavsiyesi değildir.
-          Tüm kararlar yatırımcının kendi sorumluluğundadır.
-        </p>
-      </div>
-    </section>
+          {/* ── Yasal uyarı ── */}
+          <p className="mt-8 text-xs text-slate-700 border-l-2 border-slate-800 pl-3">
+            Bu sayfa yalnızca teknik formasyon tespiti yapar. Yatırım tavsiyesi değildir.
+            Tüm kararlar yatırımcının kendi sorumluluğundadır.
+          </p>
+        </div>
+      </section>
     </>
   );
 }
-
