@@ -1130,7 +1130,7 @@ export default function StockScanner() {
                 {/* Bull */}
                 <div className="col-span-1 bg-emerald-950/30 border border-emerald-900/50 rounded-2xl p-3 flex flex-col items-center gap-1">
                   <HiTrendingUp size={18} className="text-emerald-400" />
-                  <p className="text-xl font-black text-emerald-400">{bullSignals}</p>
+                  <p className="text-xl font-black text-emerald-400">{bullSignals - reversalSignals}</p>
                   <p className="text-[10px] text-emerald-700 uppercase tracking-wide">Bullish</p>
                 </div>
                 {/* Bear */}
