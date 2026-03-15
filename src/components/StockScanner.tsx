@@ -113,7 +113,7 @@ const GROUPS: GroupDef[] = [
   },
   {
     id: "bearish",
-    label: "Satış Sinyalleri",
+    label: "Bearish Formasyonlar",
     desc: "Aşağı kırılım ve tersine dönüş formasyonları",
     icon: <HiTrendingDown size={16} />,
     color: "rose",
@@ -156,6 +156,8 @@ const BULL_KEYS = [
   "hbreak", "price_desc_break", "harmonic_long",
   "rsi_pos_div",
 ];
+
+const REVERSAL_KEYS = ["ikili_dip_break", "harmonic_long"];
 
 const colorMap = {
   emerald: {
@@ -513,7 +515,7 @@ const ALERT_GROUPS_DETAILED = [
     ],
   },
   {
-    id: "bearish", label: "Satış Sinyalleri", emoji: "📉",
+    id: "bearish", label: "Bearish Formasyonlar", emoji: "📉",
     keys: [
       { id: "death_cross",         label: "Ölüm Kesişimi"           },
       { id: "obo_break",            label: "OBO (Baş-Omuz)"          },
@@ -893,7 +895,13 @@ export default function StockScanner() {
   const bullSignals = (data?.categories ?? [])
     .filter((c) => activeBullKeys.includes(c.key))
     .reduce((a, c) => a + c.count, 0);
-  const bearSignals = totalSignals - bullSignals;
+  // harmonic_short bear'a dahil
+  const bearSignals = (data?.categories ?? [])
+    .filter((c) => !activeBullKeys.includes(c.key) || c.key === "harmonic_short")
+    .reduce((a, c) => a + c.count, 0);
+  const reversalSignals = (data?.categories ?? [])
+    .filter((c) => REVERSAL_KEYS.includes(c.key))
+    .reduce((a, c) => a + c.count, 0);
 
   return (
     <>
@@ -1112,7 +1120,7 @@ export default function StockScanner() {
           {/* ── İstatistik Şeridi ── */}
           {data && !loading && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="mb-6">
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {/* Toplam */}
                 <div className="col-span-1 bg-[#0a1628] border border-slate-800 rounded-2xl p-3 flex flex-col items-center gap-1">
                   <TbChartLine size={18} className="text-slate-500" />
@@ -1130,6 +1138,12 @@ export default function StockScanner() {
                   <HiTrendingDown size={18} className="text-rose-400" />
                   <p className="text-xl font-black text-rose-400">{bearSignals}</p>
                   <p className="text-[10px] text-rose-700 uppercase tracking-wide">Bearish</p>
+                </div>
+                {/* Dönüş Sinyali */}
+                <div className="col-span-1 bg-violet-950/20 border border-violet-900/40 rounded-2xl p-3 flex flex-col items-center gap-1">
+                  <TbActivity size={18} className="text-violet-400" />
+                  <p className="text-xl font-black text-violet-400">{reversalSignals}</p>
+                  <p className="text-[10px] text-violet-700 uppercase tracking-wide">Dönüş</p>
                 </div>
                 {/* Bull/Bear oranı */}
                 <div className="col-span-3 sm:col-span-2 bg-slate-900/40 border border-slate-800 rounded-2xl p-3 flex flex-col justify-center gap-2">
