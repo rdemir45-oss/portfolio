@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -8,17 +9,37 @@ const SCAN_API_KEY = process.env.SCAN_API_KEY ?? "";
 
 const ALLOWED_ORIGINS = new Set(["https://www.orionstrateji.com", "https://orionstrateji.com"]);
 
+// İzinli hostname'ler (hem embed sitesi hem orion)
+const ALLOWED_HOSTS = new Set([
+  "www.orionstrateji.com",
+  "orionstrateji.com",
+  "recepdemirborsa.com",
+  "www.recepdemirborsa.com",
+]);
+
 function isAllowedOrigin(req: NextRequest): boolean {
   const origin  = req.headers.get("origin")  ?? "";
   const referer = req.headers.get("referer") ?? "";
-  // Same-origin istekler (embed sayfasının kendi JS'i) — Origin header yok
-  if (!origin) return true;
-  // Başka domain'den gelen cross-origin istekler: izin verilenler listesi
+  const reqHost = (req.headers.get("host") ?? "").split(":")[0]; // port'u at
+
+  // Origin boşsa → same-origin fetch (tarayıcı embed sayfasından)
+  // Referer header'ından host doğrulaması yap; eksikse reddet
+  if (!origin) {
+    if (!referer) return false;
+    try {
+      const refHost = new URL(referer).hostname;
+      // Referer, isteğin yapıldığı sunucunun kendisiyse geç
+      return refHost === reqHost || ALLOWED_HOSTS.has(refHost);
+    } catch { return false; }
+  }
+
+  // Cross-origin: izin verilenler listesinde olmalı
   if (ALLOWED_ORIGINS.has(origin)) return true;
-  // Referer kontrolü (ekstra güvence)
+
+  // Ek güvence: Referer da kontrol et
   try {
-    const host = new URL(referer).hostname;
-    return host === "www.orionstrateji.com" || host === "orionstrateji.com";
+    const refHost = new URL(referer).hostname;
+    return ALLOWED_HOSTS.has(refHost);
   } catch { return false; }
 }
 
@@ -42,6 +63,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       { error: "Yetkisiz erişim." },
       { status: 403 }
+    );
+  }
+
+  // Embed endpoint rate limit: dakikada 20 istek
+  const ip = getClientIp(req);
+  const rl = await rateLimit(`embed:${ip}`, { limit: 20, windowSec: 60 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Çok fazla istek." },
+      { status: 429, headers: corsHeaders(req) }
     );
   }
 
