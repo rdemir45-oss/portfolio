@@ -17,21 +17,12 @@ WHERE id = 'rsi'
   AND NOT (keys @> '[{"id":"rsi_desc_break"}]');
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- 2) SuperTrend grubu — mevcut keys'i tamamen yenisiyle değiştir
---    (supertrend_up, supertrend_down, supertrend_bull üç key)
---
---  • supertrend_up   = SuperTrend Yukarı Kıran   (Diğer'de görünen kategori)
---  • supertrend_down = SuperTrend Aşağı Kıran
---  • supertrend_bull = Mevcut Alımda Olanlar       (ST sinyal hâlâ aktif/alım üstü)
---
---  ⚠️  Dış scan API'den gelen gerçek key adları farklıysa bu değerleri güncelleyin.
---     /api/scan yanıtındaki categories[].key alanından doğrulayabilirsiniz.
+-- 2) SuperTrend grubu — gerçek API key adı `supertrend_crossup` olarak doğrulandı
+--    (/api/scan/public yanıtından alındı)
+--    “Aşağı kıran” ve “mevcut alımda” key'leri henüz API'de tanımlı değil;
+--    daha sonra eklenirse bu SQL'i güncelleyerek çalıştırın.
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 UPDATE scan_groups
-SET keys = '[
-  {"id": "supertrend_up",   "label": "SuperTrend Yukarı Kıran"},
-  {"id": "supertrend_down", "label": "SuperTrend Aşağı Kıran"},
-  {"id": "supertrend_bull", "label": "Mevcut Alımda Olanlar"}
-]'::jsonb
+SET keys = '[{"id": "supertrend_crossup", "label": "SuperTrend Yukarı Kıran"}]'::jsonb
 WHERE label ILIKE '%supertrend%';

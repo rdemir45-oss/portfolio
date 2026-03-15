@@ -66,13 +66,14 @@ const ALL_KNOWN_KEYS: { id: string; label: string; group: string }[] = [
   { id: "obo_break",        label: "OBO (Baş-Omuz)",              group: "Satış Sinyalleri" },
   { id: "ikili_tepe_break", label: "İkili Tepe (M)",              group: "Satış Sinyalleri" },
   // Bearish / RSI — geçiş döneminde bearish'ten rsi'ye taşınan
-  { id: "rsi_desc_break",   label: "RSI Düşen Trend Kırılım",     group: "RSI Analizleri" },
-  // Supertrend
-  { id: "supertrend",       label: "Supertrend (Genel)",          group: "Supertrend" },
-  { id: "supertrend_up",    label: "SuperTrend Yukarı Kıran",     group: "Supertrend" },
-  { id: "supertrend_down",  label: "SuperTrend Aşağı Kıran",      group: "Supertrend" },
-  { id: "supertrend_bull",  label: "Mevcut Alımda Olanlar",       group: "Supertrend" },
-  { id: "supertrend_bear",  label: "Supertrend Satış Sinyali",    group: "Supertrend" },
+  { id: "rsi_desc_break",      label: "RSI Düşen Trend Kırılım",     group: "RSI Analizleri" },
+  // Supertrend — gerçek API key adı supertrend_crossup olarak doğrulandı
+  { id: "supertrend_crossup",  label: "SuperTrend Yukarı Kıran",     group: "Supertrend" },
+  { id: "supertrend",          label: "Supertrend (Genel)",          group: "Supertrend" },
+  { id: "supertrend_up",       label: "SuperTrend Yukarı",           group: "Supertrend" },
+  { id: "supertrend_down",     label: "SuperTrend Aşağı Kıran",      group: "Supertrend" },
+  { id: "supertrend_bull",     label: "Mevcut Alımda Olanlar",       group: "Supertrend" },
+  { id: "supertrend_bear",     label: "Supertrend Satış Sinyali",    group: "Supertrend" },
 ];
 
 // ─── Icon kataloğu ────────────────────────────────────────────────────────────
