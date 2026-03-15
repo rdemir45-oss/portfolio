@@ -57,27 +57,38 @@ export async function POST(req: NextRequest) {
 
   const { username, password } = parsed.data;
 
-  const { data: user } = await supabase
+  const { data: user, error: userError } = await supabase
     .from("scanner_users")
     .select("id, username, password_hash, salt, status, subscription_expires_at")
     .eq("username", username)
     .maybeSingle();
 
-  if (!user || !verifyPassword(password, user.password_hash, user.salt)) {
+  // subscription_expires_at kolonu henüz yoksa (migrasyon bekleniyor) temel sorguya düş
+  let resolvedUser = user;
+  if (userError) {
+    const { data: fallbackUser } = await supabase
+      .from("scanner_users")
+      .select("id, username, password_hash, salt, status")
+      .eq("username", username)
+      .maybeSingle();
+    resolvedUser = fallbackUser ? { ...fallbackUser, subscription_expires_at: null } : null;
+  }
+
+  if (!resolvedUser || !verifyPassword(password, resolvedUser.password_hash, resolvedUser.salt)) {
     return NextResponse.json(
       { error: "Kullanıcı adı veya şifre hatalı." },
       { status: 401 }
     );
   }
 
-  if (user.status === "pending") {
+  if (resolvedUser.status === "pending") {
     return NextResponse.json(
       { error: "Hesabınız henüz onaylanmadı. Onaylandığında giriş yapabilirsiniz." },
       { status: 403 }
     );
   }
 
-  if (user.status === "rejected") {
+  if (resolvedUser.status === "rejected") {
     return NextResponse.json(
       { error: "Hesabınız reddedildi." },
       { status: 403 }
@@ -85,8 +96,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Abonelik süresi kontrolü
-  if (user.subscription_expires_at) {
-    const expiresAt = new Date(user.subscription_expires_at).getTime();
+  if (resolvedUser.subscription_expires_at) {
+    const expiresAt = new Date(resolvedUser.subscription_expires_at).getTime();
     if (Date.now() >= expiresAt) {
       return NextResponse.json(
         { error: "Abonelik süreniz dolmuştur. Yenileme için yönetici ile iletişime geçin." },
@@ -103,11 +114,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const sub_exp = user.subscription_expires_at
-    ? Math.floor(new Date(user.subscription_expires_at).getTime() / 1000)
+  const sub_exp = resolvedUser.subscription_expires_at
+    ? Math.floor(new Date(resolvedUser.subscription_expires_at).getTime() / 1000)
     : null;
 
-  const token = createViewerToken(user.id, user.username, secret, sub_exp);
+  const token = createViewerToken(resolvedUser.id, resolvedUser.username, secret, sub_exp);
 
   // maxAge: abonelik bitiş süresi varsa ona göre, yoksa 30 gün
   const maxAge = sub_exp
