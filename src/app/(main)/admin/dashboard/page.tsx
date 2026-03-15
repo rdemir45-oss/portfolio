@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff } from "react-icons/tb";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff, TbKey, TbCopy, TbWifi, TbWifiOff } from "react-icons/tb";
 import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser, DbLiveStream } from "@/lib/supabase";
 
 const catColors: Record<string, string> = {
@@ -37,6 +37,10 @@ export default function AdminDashboard() {
   const [deletingScannerUser, setDeletingScannerUser] = useState<string | null>(null);
   const [updatingScannerUser, setUpdatingScannerUser] = useState<string | null>(null);
   const [renewingScannerUser, setRenewingScannerUser] = useState<string | null>(null);
+  const [resettingPassword, setResettingPassword] = useState<string | null>(null);
+  const [tempPasswordModal, setTempPasswordModal] = useState<{ username: string; password: string } | null>(null);
+  const [clearingRateLimit, setClearingRateLimit] = useState(false);
+  const [rateLimitIp, setRateLimitIp] = useState("");
   const [seeding, setSeeding] = useState(false);
   const [seedingPosts, setSeedingPosts] = useState(false);
   const router = useRouter();
@@ -103,6 +107,42 @@ export default function AdminDashboard() {
     });
     await fetchAll();
     setRenewingScannerUser(null);
+  }
+
+  async function handleResetPassword(id: string, username: string) {
+    if (!confirm(`"${username}" kullanıcısının şifresi sıfırlanacak. Devam?`)) return;
+    setResettingPassword(id);
+    const res = await fetch(`/api/admin/scanner-users?id=${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reset-password" }),
+    });
+    const data = await res.json();
+    if (res.ok && data.tempPassword) {
+      setTempPasswordModal({ username, password: data.tempPassword });
+    } else {
+      alert("Şifre sıfırlanamadı: " + (data.error ?? "Bilinmeyen hata"));
+    }
+    setResettingPassword(null);
+  }
+
+  async function handleClearRateLimit() {
+    const ip = rateLimitIp.trim();
+    if (!ip) return;
+    setClearingRateLimit(true);
+    const res = await fetch("/api/admin/scanner-users?id=none", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "clear-ratelimit", ip }),
+    });
+    if (res.ok) {
+      alert(`"${ip}" IP adresi için giriş kilidi kaldırıldı.`);
+      setRateLimitIp("");
+    } else {
+      const data = await res.json();
+      alert("Hata: " + (data.error ?? "Bilinmeyen hata"));
+    }
+    setClearingRateLimit(false);
   }
 
   async function handleAddStream() {
@@ -209,6 +249,40 @@ export default function AdminDashboard() {
   return (
     <main className="min-h-screen px-4 sm:px-8 pt-10 pb-20">
       <div className="max-w-5xl mx-auto">
+        {/* Geçici Şifre Modalı */}
+        {tempPasswordModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+            <div className="bg-[#0a1628] border border-slate-700 rounded-2xl p-8 w-full max-w-sm shadow-2xl">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-xl bg-amber-950/50 border border-amber-800/50">
+                  <TbKey size={24} className="text-amber-400" />
+                </div>
+              </div>
+              <h2 className="text-lg font-bold text-white text-center mb-1">Geçici Şifre</h2>
+              <p className="text-slate-400 text-sm text-center mb-5">
+                <span className="text-white font-semibold">{tempPasswordModal.username}</span> kullanıcısının şifresi sıfırlandı. Bu şifreyi kullanıcıya iletin:
+              </p>
+              <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 mb-5">
+                <span className="flex-1 text-amber-400 font-mono text-lg font-bold tracking-widest select-all">{tempPasswordModal.password}</span>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(tempPasswordModal.password); }}
+                  className="p-1.5 text-slate-400 hover:text-white transition-colors"
+                  title="Kopyala"
+                >
+                  <TbCopy size={16} />
+                </button>
+              </div>
+              <p className="text-xs text-slate-600 text-center mb-5">Bu şifre bir kez gösterilir, sayfayı kapatmadan kopyalayın.</p>
+              <button
+                onClick={() => setTempPasswordModal(null)}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2.5 rounded-xl transition-colors"
+              >
+                Tamam, Kapattım
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between mb-10">
           <div>
@@ -577,11 +651,32 @@ export default function AdminDashboard() {
           {/* Scanner Users Tab */}
           {tab === "scannerUsers" && (
             <>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-white">Hisse Analiz Üyeleri</h2>
                 <span className="text-sm text-slate-500">
                   {scannerUsers.filter(u => u.status === "pending").length} bekleyen onay
                 </span>
+              </div>
+              {/* Rate limit sıfırlama */}
+              <div className="flex items-center gap-2 mb-6 bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3">
+                <TbWifiOff size={15} className="text-amber-400 shrink-0" />
+                <span className="text-xs text-slate-400 shrink-0">Giriş kilidi kaldır:</span>
+                <input
+                  type="text"
+                  placeholder="IP adresi (örn: 85.123.45.67)"
+                  value={rateLimitIp}
+                  onChange={(e) => setRateLimitIp(e.target.value)}
+                  className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 focus:outline-none min-w-0"
+                  onKeyDown={(e) => { if (e.key === "Enter") handleClearRateLimit(); }}
+                />
+                <button
+                  onClick={handleClearRateLimit}
+                  disabled={clearingRateLimit || !rateLimitIp.trim()}
+                  className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-800/60 rounded-lg hover:bg-amber-900/40 transition-colors disabled:opacity-50"
+                >
+                  <TbWifi size={13} />
+                  {clearingRateLimit ? "Kaldırılıyor..." : "Kilidi Kaldır"}
+                </button>
               </div>
               {loading ? (
                 <p className="text-slate-500 text-sm py-8 text-center">Yükleniyor...</p>
@@ -717,6 +812,15 @@ export default function AdminDashboard() {
                             Reddet
                           </button>
                         )}
+                        <button
+                          onClick={() => handleResetPassword(u.id, u.username)}
+                          disabled={resettingPassword === u.id}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-amber-400 hover:text-white bg-amber-950/40 hover:bg-amber-700 border border-amber-800/60 rounded-lg transition-colors disabled:opacity-50"
+                          title="Geçici şifre ata"
+                        >
+                          <TbKey size={13} />
+                          {resettingPassword === u.id ? "..." : "Şifre Sıfırla"}
+                        </button>
                         <button
                           onClick={() => handleDeleteScannerUser(u.id, u.username)}
                           disabled={deletingScannerUser === u.id}

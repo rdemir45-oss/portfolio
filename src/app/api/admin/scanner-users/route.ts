@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
+import { clearRateLimit } from "@/lib/rate-limit";
+import crypto from "crypto";
 
 const SUBSCRIPTION_DURATIONS: Record<string, number> = {
   weekly: 7 * 24 * 60 * 60 * 1000,
@@ -32,11 +34,33 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
   const id = req.nextUrl.searchParams.get("id");
-  let body: { status?: string; plan?: string; subscription_plan?: string };
+  let body: { status?: string; plan?: string; subscription_plan?: string; action?: string; ip?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
+  }
+
+  // ── Şifre sıfırlama ──────────────────────────────────────────────────────
+  if (body.action === "reset-password") {
+    if (!id) return NextResponse.json({ error: "ID gerekli." }, { status: 400 });
+    const tempPassword = crypto.randomBytes(5).toString("hex"); // 10 karakter hex
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = crypto.pbkdf2Sync(tempPassword, salt, 100_000, 64, "sha512").toString("hex");
+    const { error } = await supabase
+      .from("scanner_users")
+      .update({ password_hash: hash, salt })
+      .eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, tempPassword });
+  }
+
+  // ── Rate limit sıfırlama ─────────────────────────────────────────────────
+  if (body.action === "clear-ratelimit") {
+    const ip = body.ip?.trim();
+    if (!ip) return NextResponse.json({ error: "IP gerekli." }, { status: 400 });
+    await clearRateLimit(`login:${ip}`);
+    return NextResponse.json({ ok: true });
   }
 
   const updates: Record<string, string | null> = {};
@@ -57,7 +81,6 @@ export async function PATCH(req: NextRequest) {
 
   if (body.subscription_plan !== undefined) {
     if (body.subscription_plan === null || body.subscription_plan === "") {
-      // Abonelik kaldır
       updates.subscription_plan = null;
       updates.subscription_expires_at = null;
     } else {

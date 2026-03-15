@@ -115,3 +115,16 @@ export function getClientIp(req: { headers: { get(name: string): string | null }
   );
 }
 
+/**
+ * Verilen identifier için rate limit kaydını siler.
+ * Upstash Redis varsa orada, yoksa in-memory store'da siler.
+ */
+export async function clearRateLimit(identifier: string): Promise<void> {
+  if (redis) {
+    // Upstash sliding window key formatı: "rl:<identifier>"
+    await redis.del(`rl:${identifier}`);
+  } else {
+    store.delete(identifier);
+  }
+}
+
