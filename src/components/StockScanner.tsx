@@ -1158,29 +1158,6 @@ export default function StockScanner() {
             </div>
           )}
 
-          {/* ── Ortak Sinyaller (compact) ── */}
-          {!loading && !error && overlappingTickers.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-5 rounded-2xl border border-amber-700/40 bg-amber-950/10 overflow-hidden">
-              <div className="flex items-center gap-2.5 px-4 py-3 bg-amber-950/20 border-b border-amber-800/20">
-                <TbStarFilled size={14} className="text-amber-400" />
-                <p className="text-sm font-bold text-amber-300">Ortak Sinyaller</p>
-                <span className="text-xs text-amber-700">{overlappingTickers.length} hisse 2+ kategoride</span>
-              </div>
-              <div className="px-4 py-3 flex flex-wrap gap-2">
-                {overlappingTickers.map(([ticker, info]) => (
-                  <a key={ticker} href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`} target="_blank" rel="noopener noreferrer" title={info.categories.join(" · ")}
-                    className="inline-flex items-center gap-1.5 text-xs font-mono font-black px-2.5 py-1.5 rounded-xl border border-amber-600/50 text-amber-300 bg-amber-950/30 hover:bg-amber-800/40 hover:border-amber-500 transition-colors"
-                  >
-                    {ticker}
-                    <span className={`flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-black ${
-                      info.count >= 4 ? "bg-emerald-400 text-black" : info.count >= 3 ? "bg-amber-400 text-black" : "bg-amber-700 text-amber-200"
-                    }`}>{info.count}</span>
-                  </a>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
           {/* ── Skeleton ── */}
           {loading && !data && (
             <div className="flex gap-4">
@@ -1228,6 +1205,41 @@ export default function StockScanner() {
                   />
                 ))}
 
+                {/* Ortak Sinyaller */}
+                {overlappingTickers.length > 0 && (
+                  <button
+                    onClick={() => setSelectedGroupId("__overlapping__")}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 ${
+                      effectiveGroupId === "__overlapping__"
+                        ? "bg-amber-950/50 border border-amber-700/60 text-amber-300"
+                        : "border-transparent hover:bg-slate-800/40 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`shrink-0 p-1 rounded-lg border ${
+                        effectiveGroupId === "__overlapping__"
+                          ? "text-amber-400 bg-amber-950/50 border-amber-900/50"
+                          : "text-slate-500 border-slate-700/50 bg-slate-800/40"
+                      }`}>
+                        <TbStarFilled size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className={`text-xs font-semibold truncate ${
+                            effectiveGroupId === "__overlapping__" ? "text-amber-400" : ""
+                          }`}>Ortak Sinyaller</span>
+                          <span className={`shrink-0 text-xs font-black px-1.5 py-0.5 rounded-full ${
+                            effectiveGroupId === "__overlapping__"
+                              ? "bg-amber-800/60 text-amber-300"
+                              : "bg-slate-800/60 text-slate-400"
+                          }`}>{overlappingTickers.length}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-600 mt-0.5">2+ kategoride görünen</p>
+                      </div>
+                    </div>
+                  </button>
+                )}
+
                 {/* Özel: Gruplanmamış */}
                 {ungroupedCats.length > 0 && (
                   <button
@@ -1252,7 +1264,52 @@ export default function StockScanner() {
               {/* Sağ Panel — Seçili Grubun İçeriği */}
               <div className="flex-1 min-w-0">
                 <AnimatePresence mode="wait">
-                  {effectiveGroupId === "__ungrouped__" ? (
+                  {effectiveGroupId === "__overlapping__" ? (
+                    <motion.div key="overlapping" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18 }}>
+                      <div className="flex items-center justify-between px-5 py-4 rounded-2xl border border-amber-700/50 bg-amber-950/20 mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-xl border border-amber-800/50 bg-amber-950/50 text-amber-400">
+                            <TbStarFilled size={16} />
+                          </div>
+                          <div>
+                            <h2 className="text-base font-black text-amber-300">Ortak Sinyaller</h2>
+                            <p className="text-xs text-slate-500 mt-0.5">Aynı günde 2 veya daha fazla kategoride sinyal veren hisseler</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-amber-400">{overlappingTickers.length}</p>
+                          <p className="text-[10px] text-slate-600 uppercase tracking-widest">hisse</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {overlappingTickers.map(([ticker, info]) => (
+                          <div key={ticker} className="flex items-center justify-between px-4 py-3 rounded-xl border border-amber-800/30 bg-amber-950/10 hover:bg-amber-950/20 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <span className={`flex items-center justify-center w-7 h-7 rounded-full text-sm font-black ${
+                                info.count >= 4 ? "bg-emerald-400 text-black" : info.count >= 3 ? "bg-amber-400 text-black" : "bg-amber-800/60 text-amber-200"
+                              }`}>{info.count}</span>
+                              <div>
+                                <a
+                                  href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="text-sm font-mono font-black text-amber-300 hover:text-amber-200 hover:underline"
+                                >{ticker}</a>
+                                <p className="text-[10px] text-slate-600 mt-0.5">{info.categories.join(" · ")}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${
+                                info.isBull
+                                  ? "text-emerald-400 border-emerald-800/50 bg-emerald-950/30"
+                                  : "text-rose-400 border-rose-800/50 bg-rose-950/30"
+                              }`}>{info.isBull ? "↑ Bull" : "↓ Bear"}</span>
+                              <TbExternalLink size={12} className="text-slate-600" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  ) : effectiveGroupId === "__ungrouped__" ? (
                     <motion.div key="ungrouped" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18 }}>
                       <div className="flex items-center justify-between px-5 py-4 rounded-2xl border border-slate-800 bg-slate-900/30 mb-3">
                         <div className="flex items-center gap-3">
