@@ -65,8 +65,11 @@ const ALL_KNOWN_KEYS: { id: string; label: string; group: string }[] = [
   { id: "death_cross",      label: "Ölüm Kesişimi",               group: "Satış Sinyalleri" },
   { id: "obo_break",        label: "OBO (Baş-Omuz)",              group: "Satış Sinyalleri" },
   { id: "ikili_tepe_break", label: "İkili Tepe (M)",              group: "Satış Sinyalleri" },
+  // Bearish / RSI — geçiş döneminde bearish'ten rsi'ye taşınan
+  { id: "rsi_desc_break",   label: "RSI Düşen Trend Kırılım",     group: "RSI Analizleri" },
   // Supertrend
   { id: "supertrend",       label: "Supertrend (Genel)",          group: "Supertrend" },
+  { id: "supertrend_up",    label: "SuperTrend Yukarı",           group: "Supertrend" },
   { id: "supertrend_bull",  label: "Supertrend Alış Sinyali",     group: "Supertrend" },
   { id: "supertrend_bear",  label: "Supertrend Satış Sinyali",    group: "Supertrend" },
 ];
