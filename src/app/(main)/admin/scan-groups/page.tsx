@@ -69,8 +69,9 @@ const ALL_KNOWN_KEYS: { id: string; label: string; group: string }[] = [
   { id: "rsi_desc_break",   label: "RSI Düşen Trend Kırılım",     group: "RSI Analizleri" },
   // Supertrend
   { id: "supertrend",       label: "Supertrend (Genel)",          group: "Supertrend" },
-  { id: "supertrend_up",    label: "SuperTrend Yukarı",           group: "Supertrend" },
-  { id: "supertrend_bull",  label: "Supertrend Alış Sinyali",     group: "Supertrend" },
+  { id: "supertrend_up",    label: "SuperTrend Yukarı Kıran",     group: "Supertrend" },
+  { id: "supertrend_down",  label: "SuperTrend Aşağı Kıran",      group: "Supertrend" },
+  { id: "supertrend_bull",  label: "Mevcut Alımda Olanlar",       group: "Supertrend" },
   { id: "supertrend_bear",  label: "Supertrend Satış Sinyali",    group: "Supertrend" },
 ];
 

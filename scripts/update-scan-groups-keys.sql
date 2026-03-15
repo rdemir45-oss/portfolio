@@ -1,7 +1,7 @@
--- ─── RSI Düşen Trend Kırılımı → RSI Analizleri grubuna ekle ───────────────────
--- rsi_desc_break zaten bearish grubunda olabilir; önce oradan çıkar, sonra rsi grubuna ekle
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- 1) RSI Düşen Trend Kırılımı → Bearish grubundan çıkar, RSI Analizleri'ne ekle
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- 1) Bearish grubundan çıkar (varsa)
 UPDATE scan_groups
 SET keys = (
   SELECT jsonb_agg(k)
@@ -11,23 +11,27 @@ SET keys = (
 WHERE id = 'bearish'
   AND keys @> '[{"id":"rsi_desc_break"}]';
 
--- 2) RSI grubuna ekle (yoksa)
 UPDATE scan_groups
 SET keys = keys || '[{"id":"rsi_desc_break","label":"RSI Düşen Trend Kırılım"}]'::jsonb
 WHERE id = 'rsi'
   AND NOT (keys @> '[{"id":"rsi_desc_break"}]');
 
--- ─── SuperTrend Yukarı → SuperTrend grubuna ekle ──────────────────────────────
--- NOT: Aşağıdaki WHERE koşulunda SuperTrend grubunun gerçek `id`'sini kullanın.
--- Admin paneli → Tarama Grupları açılınca URL'deki veya grup adından anlaşılır.
--- Genellikle id = 'supertrend' ya da 'supertrend_indicator' olur.
--- Uygun `id`'yi tespit edip hangi satırın güncelleneceğini doğrulayın:
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- 2) SuperTrend grubu — mevcut keys'i tamamen yenisiyle değiştir
+--    (supertrend_up, supertrend_down, supertrend_bull üç key)
+--
+--  • supertrend_up   = SuperTrend Yukarı Kıran   (Diğer'de görünen kategori)
+--  • supertrend_down = SuperTrend Aşağı Kıran
+--  • supertrend_bull = Mevcut Alımda Olanlar       (ST sinyal hâlâ aktif/alım üstü)
+--
+--  ⚠️  Dış scan API'den gelen gerçek key adları farklıysa bu değerleri güncelleyin.
+--     /api/scan yanıtındaki categories[].key alanından doğrulayabilirsiniz.
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- Önce mevcut SuperTrend grubunun id'sini listeleyin:
--- SELECT id, label FROM scan_groups WHERE label ILIKE '%supertrend%';
-
--- Sonra uygun id ile güncelleyin (supertrend_up key adı kesin değilse dış servise bakın):
 UPDATE scan_groups
-SET keys = keys || '[{"id":"supertrend_up","label":"SuperTrend Yukarı"}]'::jsonb
-WHERE label ILIKE '%supertrend%'
-  AND NOT (keys @> '[{"id":"supertrend_up"}]');
+SET keys = '[
+  {"id": "supertrend_up",   "label": "SuperTrend Yukarı Kıran"},
+  {"id": "supertrend_down", "label": "SuperTrend Aşağı Kıran"},
+  {"id": "supertrend_bull", "label": "Mevcut Alımda Olanlar"}
+]'::jsonb
+WHERE label ILIKE '%supertrend%';
