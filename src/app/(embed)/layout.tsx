@@ -1,3 +1,5 @@
+import "../globals.css";
+
 // Embed sayfaları için bağımsız root layout — ana layout'taki Navbar/Footer uygulanmaz.
 export default function EmbedLayout({ children }: { children: React.ReactNode }) {
   return (
