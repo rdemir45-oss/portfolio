@@ -125,6 +125,7 @@ export default function ScannerRegister() {
                     Küçük harf, rakam ve _ kullanılabilir (3-30 karakter)
                   </p>
                 </div>
+
                 <input
                   type="password"
                   value={password}
@@ -133,6 +134,7 @@ export default function ScannerRegister() {
                   autoComplete="new-password"
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-600 transition-colors"
                 />
+
                 <input
                   type="password"
                   value={password2}
@@ -141,7 +143,9 @@ export default function ScannerRegister() {
                   autoComplete="new-password"
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-600 transition-colors"
                 />
+
                 {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+
                 <button
                   type="submit"
                   disabled={loading || !username || !password || !password2}
