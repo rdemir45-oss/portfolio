@@ -360,6 +360,32 @@ export default function EmbedScanClient() {
       }),
   }));
 
+  // İstatistikler
+  const allCats = data?.categories ?? [];
+  const totalSignals   = allCats.reduce((a, c) => a + c.count, 0);
+  const reversalSignals = allCats.filter((c) => REVERSAL_EMBED_KEYS.has(c.key)).reduce((a, c) => a + c.count, 0);
+  const bullSignalsRaw  = allCats.filter((c) => BULL_EMBED_KEYS.has(c.key)).reduce((a, c) => a + c.count, 0);
+  const bullSignals     = bullSignalsRaw - reversalSignals;
+  const bearSignals     = allCats.filter((c) => !BULL_EMBED_KEYS.has(c.key) || c.key === "harmonic_short").reduce((a, c) => a + c.count, 0);
+
+  // Ortak sinyaller
+  const tickerMap = new Map<string, { count: number; labels: string[] }>();
+  for (const cat of allCats) {
+    for (const row of cat.stocks ?? []) {
+      const ticker = typeof row === "string" ? row : row.ticker;
+      const existing = tickerMap.get(ticker);
+      if (existing) {
+        existing.count++;
+        if (!existing.labels.includes(cat.label)) existing.labels.push(cat.label);
+      } else {
+        tickerMap.set(ticker, { count: 1, labels: [cat.label] });
+      }
+    }
+  }
+  const overlapping = [...tickerMap.entries()]
+    .filter(([, v]) => v.count >= 2)
+    .sort((a, b) => b[1].count - a[1].count);
+
   return (
     <div style={{ padding: "14px 16px", maxWidth: 820, margin: "0 auto", fontFamily: THEME.font }}>
       {/* Başlık */}
@@ -428,6 +454,90 @@ export default function EmbedScanClient() {
 
       {data && (
         <div>
+          {/* ── Stats şeridi ── */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 14 }}>
+            {[
+              { label: "TOPLAM",  value: totalSignals,   color: THEME.textSub,  bg: THEME.card },
+              { label: "BULLISH", value: bullSignals,    color: THEME.green,    bg: "rgba(34,197,94,0.08)" },
+              { label: "BEARISH", value: bearSignals,    color: THEME.red,      bg: "rgba(248,113,113,0.08)" },
+              { label: "DÖNÜŞ",   value: reversalSignals, color: "#a78bfa",    bg: "rgba(167,139,250,0.08)" },
+            ].map(({ label, value, color, bg }) => (
+              <div key={label} style={{
+                borderRadius: 8,
+                border: `1px solid ${THEME.border}`,
+                background: bg,
+                padding: "10px 8px",
+                textAlign: "center",
+                fontFamily: THEME.font,
+              }}>
+                <p style={{ fontSize: 18, fontWeight: 800, color, margin: 0, lineHeight: 1 }}>{value}</p>
+                <p style={{ fontSize: 10, color: THEME.textMuted, margin: "4px 0 0", letterSpacing: "0.08em" }}>{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Ortak Sinyaller ── */}
+          {overlapping.length > 0 && (
+            <div style={{
+              borderRadius: 10,
+              border: "1px solid rgba(251,191,36,0.25)",
+              background: "rgba(251,191,36,0.05)",
+              marginBottom: 10,
+              overflow: "hidden",
+            }}>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 14px",
+                borderBottom: "1px solid rgba(251,191,36,0.12)",
+                background: "rgba(251,191,36,0.08)",
+              }}>
+                <span style={{ fontSize: 13 }}>⭐</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#fbbf24", fontFamily: THEME.font }}>Ortak Sinyaller</span>
+                <span style={{ fontSize: 11, color: "rgba(251,191,36,0.5)", fontFamily: THEME.font }}>{overlapping.length} hisse 2+ kategoride</span>
+              </div>
+              <div style={{ padding: "8px 12px", display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {overlapping.map(([ticker, info]) => (
+                  <a
+                    key={ticker}
+                    href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
+                    target="_blank" rel="noreferrer"
+                    title={info.labels.join(" · ")}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      fontSize: 12,
+                      fontFamily: "'JetBrains Mono','Fira Code',monospace",
+                      fontWeight: 700,
+                      padding: "4px 9px",
+                      borderRadius: 7,
+                      border: "1px solid rgba(251,191,36,0.35)",
+                      background: "rgba(251,191,36,0.08)",
+                      color: "#fbbf24",
+                      textDecoration: "none",
+                    }}
+                  >
+                    {ticker}
+                    <span style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      fontSize: 10,
+                      fontWeight: 900,
+                      background: info.count >= 4 ? THEME.green : info.count >= 3 ? "#fbbf24" : "rgba(251,191,36,0.4)",
+                      color: info.count >= 3 ? "#000" : "#fbbf24",
+                    }}>{info.count}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {groupedData.map(({ group, cats }) => (
             <GroupBlock key={group.id} group={group} cats={cats} />
           ))}
