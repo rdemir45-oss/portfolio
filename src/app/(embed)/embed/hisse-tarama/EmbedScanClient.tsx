@@ -141,9 +141,20 @@ const STATIC_GROUPS: ScanGroup[] = [
       { id: "obo_break", label: "Baş-Omuz" },
       { id: "ikili_tepe_break", label: "İkili Tepe (M)" },
       { id: "rsi_desc_break", label: "RSI Düşen Trend Kırılım" },
+      { id: "triangle_break_down", label: "Üçgen Aşağı Kıran" },
     ],
   },
 ];
+
+const BULL_EMBED_KEYS = new Set([
+  "rsi_os", "vol_spike", "macd_cross", "bb_squeeze",
+  "strong_up", "golden_cross", "tobo_break",
+  "channel_break", "triangle_break_up", "trend_break",
+  "ikili_dip_break", "fibo_setup", "rsi_asc_break", "rsi_tobo",
+  "hbreak", "price_desc_break", "harmonic_long", "rsi_pos_div",
+]);
+
+const REVERSAL_EMBED_KEYS = new Set(["ikili_dip_break", "harmonic_long"]);
 
 function timeAgoLabel(m: number | null): string {
   if (m === null) return "";
