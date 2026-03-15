@@ -121,9 +121,14 @@ export function getClientIp(req: { headers: { get(name: string): string | null }
  */
 export async function clearRateLimit(identifier: string): Promise<void> {
   if (redis) {
-    // Upstash sliding window key formatı: "rl:<identifier>"
-    await redis.del(`rl:${identifier}`);
+    // Upstash sliding window, "rl:{identifier}:{windowId}" formatında key saklar.
+    // Tüm window bucket'larını silmek için KEYS pattern kullanılır.
+    const keys = await redis.keys(`rl:${identifier}*`);
+    if (keys.length > 0) {
+      await redis.del(...(keys as [string, ...string[]]));
+    }
   } else {
+    // In-memory: identifier tam eşleşme ile silinir
     store.delete(identifier);
   }
 }
