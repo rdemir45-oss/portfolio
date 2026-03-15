@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { injectTriangleSplit } from "@/lib/scan-transform";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -96,7 +97,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(await res.json(), { headers: corsHeaders(req) });
+    return NextResponse.json(injectTriangleSplit(await res.json()), { headers: corsHeaders(req) });
   } catch {
     return NextResponse.json(
       { error: "Tarama servisine bağlanılamadı." },

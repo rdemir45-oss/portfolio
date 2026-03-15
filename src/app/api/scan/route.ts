@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { injectTriangleSplit } from "@/lib/scan-transform";
 
 const SCAN_API_URL          = process.env.SCAN_API_URL ?? "";
 const SCAN_API_KEY          = process.env.SCAN_API_KEY ?? "";
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(injectTriangleSplit(data));
   } catch {
     return NextResponse.json(
       { error: "Tarama servisine bağlanılamadı." },

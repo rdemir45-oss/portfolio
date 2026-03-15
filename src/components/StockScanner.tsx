@@ -74,7 +74,7 @@ const GROUPS: GroupDef[] = [
     color: "emerald",
     keys: [
       "strong_up", "golden_cross", "tobo_break",
-      "channel_break", "triangle_break", "trend_break",
+      "channel_break", "triangle_break_up", "trend_break",
       "ikili_dip_break", "price_desc_break", "hbreak", "fibo_setup",
       "rsi_asc_break", "rsi_tobo", "rsi_pos_div",
     ],
@@ -117,7 +117,7 @@ const GROUPS: GroupDef[] = [
     desc: "Aşağı kırılım ve tersine dönüş formasyonları",
     icon: <HiTrendingDown size={16} />,
     color: "rose",
-    keys: ["death_cross", "obo_break", "ikili_tepe_break", "rsi_desc_break"],
+    keys: ["death_cross", "obo_break", "ikili_tepe_break", "rsi_desc_break", "triangle_break_down"],
   },
 ];
 
@@ -151,7 +151,7 @@ function dbGroupToGroupDef(g: DbScanGroup): GroupDef {
 const BULL_KEYS = [
   "rsi_os", "vol_spike", "macd_cross", "bb_squeeze",
   "strong_up", "golden_cross", "tobo_break",
-  "channel_break", "triangle_break", "trend_break",
+  "channel_break", "triangle_break_up", "trend_break",
   "ikili_dip_break", "fibo_setup", "rsi_asc_break", "rsi_tobo",
   "hbreak", "price_desc_break", "harmonic_long",
   "rsi_pos_div",
@@ -473,9 +473,9 @@ const ALERT_GROUPS_DETAILED = [
       { id: "strong_up",        label: "Güçlü Yükseliş"         },
       { id: "golden_cross",     label: "Altın Kesişim"           },
       { id: "tobo_break",       label: "TOBO (Ters Baş-Omuz)"   },
-      { id: "channel_break",    label: "Kanal Kırılımı"          },
-      { id: "triangle_break",   label: "Üçgen Kırılımı"          },
-      { id: "trend_break",      label: "Trend Kırılımı"          },
+      { id: "channel_break",       label: "Kanal Kırılımı"          },
+      { id: "triangle_break_up",   label: "Üçgen Yukarı Kıran"      },
+      { id: "trend_break",         label: "Trend Kırılımı"          },
       { id: "ikili_dip_break",  label: "İkili Dip (W)"           },
       { id: "price_desc_break", label: "Düşen Trend Kırılımı"   },
       { id: "hbreak",           label: "Yatay Direnç Kırılımı"  },
@@ -515,10 +515,11 @@ const ALERT_GROUPS_DETAILED = [
   {
     id: "bearish", label: "Satış Sinyalleri", emoji: "📉",
     keys: [
-      { id: "death_cross",      label: "Ölüm Kesişimi"           },
-      { id: "obo_break",        label: "OBO (Baş-Omuz)"          },
-      { id: "ikili_tepe_break", label: "İkili Tepe (M)"          },
-      { id: "rsi_desc_break",   label: "RSI Düşen Trend Kırılım" },
+      { id: "death_cross",         label: "Ölüm Kesişimi"           },
+      { id: "obo_break",            label: "OBO (Baş-Omuz)"          },
+      { id: "ikili_tepe_break",     label: "İkili Tepe (M)"          },
+      { id: "rsi_desc_break",       label: "RSI Düşen Trend Kırılım" },
+      { id: "triangle_break_down",  label: "Üçgen Aşağı Kıran"       },
     ],
   },
 ];
