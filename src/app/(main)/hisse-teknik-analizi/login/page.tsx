@@ -1,11 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { HiLockClosed } from "react-icons/hi";
 import { TbBrandInstagram, TbBrandX, TbPhone, TbCheck } from "react-icons/tb";
 import Link from "next/link";
+
+function ExpiredBanner({ onExpired }: { onExpired: (msg: string) => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("expired") === "1") {
+      onExpired("Abonelik süreniz dolmuştur. Yenileme için yönetici ile iletişime geçin.");
+    }
+  }, [searchParams, onExpired]);
+  return null;
+}
 
 export default function ScannerLogin() {
   const [username, setUsername] = useState("");
@@ -13,19 +23,12 @@ export default function ScannerLogin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [callName, setCallName] = useState("");
   const [callPhone, setCallPhone] = useState("");
   const [callLoading, setCallLoading] = useState(false);
   const [callSent, setCallSent] = useState(false);
   const [callError, setCallError] = useState("");
-
-  useEffect(() => {
-    if (searchParams.get("expired") === "1") {
-      setError("Abonelik süreniz dolmuştur. Yenileme için yönetici ile iletişime geçin.");
-    }
-  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -68,6 +71,9 @@ export default function ScannerLogin() {
 
   return (
     <main className="min-h-screen bg-[#050a0e] flex items-center justify-center px-4 py-12">
+      <Suspense>
+        <ExpiredBanner onExpired={setError} />
+      </Suspense>
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
