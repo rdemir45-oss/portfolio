@@ -55,11 +55,16 @@ export interface DbWhatsappRequest {
   created_at: string;
 }
 
+export type SubscriptionPlan = "weekly" | "monthly" | "yearly";
+
 export interface DbScannerUser {
   id: string;
   username: string;
+  phone?: string | null;
   status: "pending" | "approved" | "rejected";
   plan: "starter" | "pro" | "elite";
+  subscription_plan?: SubscriptionPlan | null;
+  subscription_expires_at?: string | null;
   created_at: string;
 }
 

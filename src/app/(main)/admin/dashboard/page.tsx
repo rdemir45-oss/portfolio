@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown } from "react-icons/tb";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff } from "react-icons/tb";
 import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser, DbLiveStream } from "@/lib/supabase";
 
 const catColors: Record<string, string> = {
@@ -36,6 +36,7 @@ export default function AdminDashboard() {
   const [deleting, setDeleting] = useState<number | null>(null);
   const [deletingScannerUser, setDeletingScannerUser] = useState<string | null>(null);
   const [updatingScannerUser, setUpdatingScannerUser] = useState<string | null>(null);
+  const [renewingScannerUser, setRenewingScannerUser] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [seedingPosts, setSeedingPosts] = useState(false);
   const router = useRouter();
@@ -79,6 +80,29 @@ export default function AdminDashboard() {
     });
     await fetchAll();
     setUpdatingScannerUser(null);
+  }
+
+  async function handleRenewSubscription(id: string, subscription_plan: string) {
+    setRenewingScannerUser(id);
+    await fetch(`/api/admin/scanner-users?id=${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription_plan }),
+    });
+    await fetchAll();
+    setRenewingScannerUser(null);
+  }
+
+  async function handleRemoveSubscription(id: string) {
+    if (!confirm("Bu kullanıcının aboneliği kaldırılsın mı?")) return;
+    setRenewingScannerUser(id);
+    await fetch(`/api/admin/scanner-users?id=${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription_plan: null }),
+    });
+    await fetchAll();
+    setRenewingScannerUser(null);
   }
 
   async function handleAddStream() {
@@ -596,6 +620,22 @@ export default function AdminDashboard() {
                           <span className="text-xs text-slate-600">
                             {new Date(u.created_at).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" })}
                           </span>
+                          {/* Abonelik bilgisi */}
+                          {u.subscription_expires_at && (() => {
+                            const exp = new Date(u.subscription_expires_at);
+                            const isExpired = exp.getTime() < Date.now();
+                            const planLabel = u.subscription_plan === "weekly" ? "Haftalık" : u.subscription_plan === "monthly" ? "Aylık" : u.subscription_plan === "yearly" ? "Yıllık" : "";
+                            return (
+                              <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${
+                                isExpired
+                                  ? "text-red-400 bg-red-950/40 border-red-800/60"
+                                  : "text-sky-400 bg-sky-950/40 border-sky-800/60"
+                              }`}>
+                                <TbCalendar size={10} />
+                                {planLabel}{isExpired ? " – Süresi Doldu" : " – " + exp.toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" })}
+                              </span>
+                            );
+                          })()}
                           <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border font-medium ${
                             u.plan === "elite"
                               ? "text-amber-400 bg-amber-950/40 border-amber-800/60"
@@ -608,7 +648,45 @@ export default function AdminDashboard() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                        {/* Abonelik alanı */}
+                        {(() => {
+                          const isExpired = u.subscription_expires_at
+                            ? new Date(u.subscription_expires_at).getTime() < Date.now()
+                            : false;
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <select
+                                defaultValue=""
+                                onChange={(e) => { if (e.target.value) handleRenewSubscription(u.id, e.target.value); }}
+                                disabled={renewingScannerUser === u.id}
+                                className="text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:border-sky-600 transition-colors disabled:opacity-50"
+                                title="Abonelik süresini başlat / yenile"
+                              >
+                                <option value="" disabled>
+                                  {renewingScannerUser === u.id
+                                    ? "Kaydediliyor..."
+                                    : u.subscription_expires_at
+                                    ? isExpired ? "⚠ Süresi Doldu — Yenile" : "Aboneliği Yenile"
+                                    : "Abonelik Başlat"}
+                                </option>
+                                <option value="weekly">Haftalık (7 gün)</option>
+                                <option value="monthly">Aylık (30 gün)</option>
+                                <option value="yearly">Yıllık (365 gün)</option>
+                              </select>
+                              {u.subscription_expires_at && (
+                                <button
+                                  onClick={() => handleRemoveSubscription(u.id)}
+                                  disabled={renewingScannerUser === u.id}
+                                  title="Aboneliği kaldır"
+                                  className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                  <TbCalendarOff size={14} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
                         <select
                           value={u.plan ?? "starter"}
                           onChange={(e) => handleScannerUserPlan(u.id, e.target.value)}

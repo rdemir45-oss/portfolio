@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { HiLockClosed } from "react-icons/hi";
 import { TbBrandInstagram, TbBrandX, TbPhone, TbCheck } from "react-icons/tb";
@@ -13,12 +13,19 @@ export default function ScannerLogin() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [callName, setCallName] = useState("");
   const [callPhone, setCallPhone] = useState("");
   const [callLoading, setCallLoading] = useState(false);
   const [callSent, setCallSent] = useState(false);
   const [callError, setCallError] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("expired") === "1") {
+      setError("Abonelik süreniz dolmuştur. Yenileme için yönetici ile iletişime geçin.");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

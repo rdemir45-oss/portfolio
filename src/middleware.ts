@@ -76,6 +76,20 @@ export async function middleware(request: NextRequest) {
         new URL("/hisse-teknik-analizi/login", request.url)
       );
     }
+
+    // Abonelik süresi kontrolü: token payload'ındaki sub_exp alanını kontrol et
+    try {
+      const dot = token!.lastIndexOf(".");
+      const payloadB64 = token!.slice(0, dot).replace(/-/g, "+").replace(/_/g, "/");
+      const decoded = JSON.parse(atob(payloadB64));
+      if (typeof decoded.sub_exp === "number" && Math.floor(Date.now() / 1000) >= decoded.sub_exp) {
+        const loginUrl = new URL("/hisse-teknik-analizi/login", request.url);
+        loginUrl.searchParams.set("expired", "1");
+        return NextResponse.redirect(loginUrl);
+      }
+    } catch {
+      // sub_exp alanı yok veya parse hatası → abonelik kontrolü atlanır
+    }
   }
 
   return NextResponse.next();

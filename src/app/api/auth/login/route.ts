@@ -15,8 +15,15 @@ function verifyPassword(password: string, hash: string, salt: string): boolean {
   }
 }
 
-function createViewerToken(id: string, username: string, secret: string): string {
-  const payload = Buffer.from(JSON.stringify({ id, username })).toString("base64url");
+function createViewerToken(
+  id: string,
+  username: string,
+  secret: string,
+  sub_exp: number | null
+): string {
+  const payload = Buffer.from(
+    JSON.stringify(sub_exp !== null ? { id, username, sub_exp } : { id, username })
+  ).toString("base64url");
   const sig = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
   return `${payload}.${sig}`;
 }
@@ -52,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   const { data: user } = await supabase
     .from("scanner_users")
-    .select("id, username, password_hash, salt, status")
+    .select("id, username, password_hash, salt, status, subscription_expires_at")
     .eq("username", username)
     .maybeSingle();
 
@@ -77,6 +84,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Abonelik süresi kontrolü
+  if (user.subscription_expires_at) {
+    const expiresAt = new Date(user.subscription_expires_at).getTime();
+    if (Date.now() >= expiresAt) {
+      return NextResponse.json(
+        { error: "Abonelik süreniz dolmuştur. Yenileme için yönetici ile iletişime geçin." },
+        { status: 403 }
+      );
+    }
+  }
+
   const secret = process.env.SCAN_SESSION_SECRET;
   if (!secret) {
     return NextResponse.json(
@@ -85,14 +103,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const token = createViewerToken(user.id, user.username, secret);
+  const sub_exp = user.subscription_expires_at
+    ? Math.floor(new Date(user.subscription_expires_at).getTime() / 1000)
+    : null;
+
+  const token = createViewerToken(user.id, user.username, secret, sub_exp);
+
+  // maxAge: abonelik bitiş süresi varsa ona göre, yoksa 30 gün
+  const maxAge = sub_exp
+    ? Math.max(sub_exp - Math.floor(Date.now() / 1000), 60)
+    : 60 * 60 * 24 * 30;
 
   const res = NextResponse.json({ ok: true });
   res.cookies.set("viewer_token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30, // 30 gün
+    maxAge,
     path: "/",
   });
   return res;
