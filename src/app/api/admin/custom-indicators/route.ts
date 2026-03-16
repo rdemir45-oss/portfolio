@@ -20,6 +20,19 @@ export async function GET(req: NextRequest) {
       headers: { "X-API-Key": SCAN_API_KEY },
     });
     const data = await res.json();
+    if (!res.ok) return NextResponse.json(data, { status: res.status });
+
+    // Script içeriğini script_path'ten doğrudan API'den çekemeyiz,
+    // register endpoint'i source'u kaydettiğinden /api/indicators/{code}/source kullanırız.
+    // Ama o endpoint yoksa, raw script dosyasını aynı servis üzerinden ister.
+    const srcRes = await fetch(`${SCAN_API_URL}/api/indicators/${encodeURIComponent(code)}/source`, {
+      headers: { "X-API-Key": SCAN_API_KEY },
+    });
+    if (srcRes.ok) {
+      const src = await srcRes.json();
+      data.script = src.script ?? "";
+    }
+
     return NextResponse.json(data, { status: res.status });
   }
 
