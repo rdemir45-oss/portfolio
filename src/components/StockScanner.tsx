@@ -249,27 +249,34 @@ function toHashtags(stocks: ScanCategory["stocks"]): string {
     .join(" ");
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://recepdemirborsa.com";
+// Twitter t.co'ya çevireceği için URL'ler her zaman 23 karakter sayılır
+const T_CO_LEN = 23;
+
 function buildCatTweetText(cat: ScanCategory): string {
   const tickers = toHashtags(cat.stocks);
+  const shareUrl = `${SITE_URL}/share/${cat.key}`;
   const header = `${cat.emoji} ${cat.label} (${cat.count} hisse)\n`;
   const tags = "\n#bist #borsa";
-  const maxLen = 280 - header.length - tags.length;
-  const body = tickers.length > maxLen ? tickers.substring(0, maxLen).trimEnd() : tickers;
-  return header + body + tags;
+  // URL 23 karakter sayılır
+  const budget = 280 - header.length - tags.length - 1 - T_CO_LEN; // 1 = newline before URL
+  const body = tickers.length > budget ? tickers.substring(0, budget).trimEnd() : tickers;
+  return header + body + "\n" + shareUrl + tags;
 }
 
 function buildGroupTweetText(groupLabel: string, cats: ScanCategory[]): string {
   const activeCats = cats.filter((c) => c.count > 0);
   const header = `${groupLabel}\n`;
+  const shareUrl = `${SITE_URL}/hisse-teknik-analizi`;
   const tags = "\n#bist #borsa";
   const lines = activeCats.map((c) => {
     const tickers = toHashtags(c.stocks);
     return `${c.emoji} ${c.label}: ${tickers}`;
   });
   let body = lines.join("\n");
-  const maxLen = 280 - header.length - tags.length;
-  if (body.length > maxLen) body = body.substring(0, maxLen).trimEnd();
-  return header + body + tags;
+  const budget = 280 - header.length - tags.length - 1 - T_CO_LEN;
+  if (body.length > budget) body = body.substring(0, budget).trimEnd();
+  return header + body + "\n" + shareUrl + tags;
 }
 
 function openTweet(text: string) {
