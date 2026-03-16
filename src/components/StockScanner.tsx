@@ -25,6 +25,7 @@ import {
   TbBell,
   TbBellOff,
   TbBrandTelegram,
+  TbBrandX,
   TbDeviceFloppy,
   TbCheck,
   TbSearch,
@@ -241,6 +242,40 @@ function timeAgoLabel(minutesAgo: number | null): string {
   return m > 0 ? `${h} sa ${m} dk önce` : `${h} sa önce`;
 }
 
+// ── Tweet yardımcıları ────────────────────────────────────────────────────────
+function buildCatTweetText(cat: ScanCategory): string {
+  const tickers = (cat.stocks ?? [])
+    .map((r) => (typeof r === "string" ? r : r.ticker))
+    .join(" ");
+  const header = `${cat.emoji} ${cat.label} (${cat.count} hisse)\n`;
+  const tags = "\n#hisse #bist #borsa";
+  const maxLen = 280 - header.length - tags.length;
+  const body = tickers.length > maxLen ? tickers.substring(0, maxLen).trimEnd() : tickers;
+  return header + body + tags;
+}
+
+function buildGroupTweetText(groupLabel: string, cats: ScanCategory[]): string {
+  const activeCats = cats.filter((c) => c.count > 0);
+  const header = `${groupLabel}\n`;
+  const tags = "\n#hisse #bist #borsa";
+  const lines = activeCats.map((c) => {
+    const tickers = (c.stocks ?? []).map((r) => (typeof r === "string" ? r : r.ticker)).join(" ");
+    return `${c.emoji} ${c.label}: ${tickers}`;
+  });
+  let body = lines.join("\n");
+  const maxLen = 280 - header.length - tags.length;
+  if (body.length > maxLen) body = body.substring(0, maxLen).trimEnd();
+  return header + body + tags;
+}
+
+function openTweet(text: string) {
+  window.open(
+    `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+    "_blank",
+    "noopener,noreferrer"
+  );
+}
+
 // ── Sidebar — tek grup satırı ─────────────────────────────────────────────────
 function SidebarGroupItem({
   group,
@@ -328,9 +363,21 @@ function ResultPanel({
             <p className="text-xs text-slate-500 mt-0.5">{group.desc}</p>
           </div>
         </div>
-        <div className="text-right">
-          <p className={`text-2xl font-black ${c.label}`}>{totalSignals}</p>
-          <p className="text-[10px] text-slate-600 uppercase tracking-widest">sinyal</p>
+        <div className="flex items-center gap-3">
+          {totalSignals > 0 && (
+            <button
+              onClick={() => openTweet(buildGroupTweetText(group.label, cats))}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors border-sky-800/50 text-sky-500 hover:text-sky-300 hover:border-sky-600 bg-sky-950/20`}
+              title="Tüm grubu X'te paylaş"
+            >
+              <TbBrandX size={13} />
+              <span className="hidden sm:inline">Paylaş</span>
+            </button>
+          )}
+          <div className="text-right">
+            <p className={`text-2xl font-black ${c.label}`}>{totalSignals}</p>
+            <p className="text-[10px] text-slate-600 uppercase tracking-widest">sinyal</p>
+          </div>
         </div>
       </div>
 
@@ -375,37 +422,48 @@ function CategoryCard({
     <div className={`rounded-xl border overflow-hidden transition-colors ${
       cat.count > 0 ? c.border : "border-slate-800/50"
     }`}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className={`w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors ${
-          cat.count > 0 ? c.headerBg : "bg-slate-900/20"
-        }`}
-        aria-expanded={open}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-base leading-none">{cat.emoji}</span>
-          <span className={`text-sm font-semibold truncate text-left ${
-            cat.count > 0 ? "text-slate-200" : "text-slate-600"
-          }`}>
-            {cat.label}
-          </span>
-          {cat.count === 0 && (
-            <span className="text-[10px] text-slate-700 italic">sinyal yok</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 shrink-0 ml-3">
-          <span className={`text-xs font-black px-2 py-0.5 rounded-full ${
-            cat.count > 0 ? c.badge : "bg-slate-800/40 text-slate-700"
-          }`}>
-            {cat.count}
-          </span>
-          {open ? (
-            <HiChevronUp className="text-slate-600 w-3.5 h-3.5" />
-          ) : (
-            <HiChevronDown className="text-slate-600 w-3.5 h-3.5" />
-          )}
-        </div>
-      </button>
+      <div className={`flex items-center hover:bg-white/5 transition-colors ${
+        cat.count > 0 ? c.headerBg : "bg-slate-900/20"
+      }`}>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex-1 flex items-center justify-between px-4 py-3"
+          aria-expanded={open}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-base leading-none">{cat.emoji}</span>
+            <span className={`text-sm font-semibold truncate text-left ${
+              cat.count > 0 ? "text-slate-200" : "text-slate-600"
+            }`}>
+              {cat.label}
+            </span>
+            {cat.count === 0 && (
+              <span className="text-[10px] text-slate-700 italic">sinyal yok</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-3">
+            <span className={`text-xs font-black px-2 py-0.5 rounded-full ${
+              cat.count > 0 ? c.badge : "bg-slate-800/40 text-slate-700"
+            }`}>
+              {cat.count}
+            </span>
+            {open ? (
+              <HiChevronUp className="text-slate-600 w-3.5 h-3.5" />
+            ) : (
+              <HiChevronDown className="text-slate-600 w-3.5 h-3.5" />
+            )}
+          </div>
+        </button>
+        {cat.count > 0 && (
+          <button
+            onClick={() => openTweet(buildCatTweetText(cat))}
+            className="shrink-0 pr-4 py-3 text-slate-700 hover:text-sky-400 transition-colors"
+            title="X'te paylaş"
+          >
+            <TbBrandX size={13} />
+          </button>
+        )}
+      </div>
 
       <AnimatePresence>
         {open && (
