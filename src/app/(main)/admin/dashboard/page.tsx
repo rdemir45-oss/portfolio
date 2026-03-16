@@ -112,6 +112,15 @@ export default function AdminDashboard() {
   const [ciError, setCiError] = useState("");
   const [ciShowTemplate, setCiShowTemplate] = useState(false);
   const [ciTemplateCopied, setCiTemplateCopied] = useState(false);
+  // Edit state
+  const [ciEditCode, setCiEditCode] = useState<string | null>(null);
+  const [ciEditLoading, setCiEditLoading] = useState(false);
+  const [ciEditForm, setCiEditForm] = useState({ code: "", name: "", description: "", script: "" });
+  const [ciEditGroupMode, setCiEditGroupMode] = useState<"none" | "existing" | "new">("none");
+  const [ciEditGroupId, setCiEditGroupId] = useState("");
+  const [ciEditNewGroup, setCiEditNewGroup] = useState({ id: "", label: "", color: "emerald", emoji: "📊", is_bull: true });
+  const [ciEditSaving, setCiEditSaving] = useState(false);
+  const [ciEditError, setCiEditError] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [deletingScannerUser, setDeletingScannerUser] = useState<string | null>(null);
@@ -213,6 +222,78 @@ export default function AdminDashboard() {
       setCiRunResult(prev => ({ ...prev, [code]: total as number }));
     }
     setCiRunning(null);
+  }
+
+  async function handleCiEditOpen(ci: { code: string; name: string; description: string }) {
+    setCiEditCode(ci.code);
+    setCiEditForm({ code: ci.code, name: ci.name, description: ci.description ?? "", script: "" });
+    setCiEditError("");
+    // Mevcut kategorisini bul
+    const group = scanGroups.find(g => g.keys?.some(k => k.id === ci.code));
+    if (group) { setCiEditGroupMode("existing"); setCiEditGroupId(group.id); }
+    else { setCiEditGroupMode("none"); setCiEditGroupId(""); }
+    setCiEditNewGroup({ id: "", label: "", color: "emerald", emoji: "📊", is_bull: true });
+    // Script içeriğini yükle
+    setCiEditLoading(true);
+    const res = await fetch(`/api/admin/custom-indicators?code=${encodeURIComponent(ci.code)}`);
+    if (res.ok) {
+      const d = await res.json();
+      setCiEditForm(f => ({ ...f, script: d.script ?? "" }));
+    }
+    setCiEditLoading(false);
+  }
+
+  async function handleCiUpdate() {
+    if (!ciEditCode || !ciEditForm.code || !ciEditForm.name || !ciEditForm.script) return;
+    setCiEditSaving(true); setCiEditError("");
+    const oldCode = ciEditCode;
+
+    const res = await fetch(`/api/admin/custom-indicators?code=${encodeURIComponent(oldCode)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: ciEditForm.code, name: ciEditForm.name, description: ciEditForm.description, script: ciEditForm.script }),
+    });
+    if (!res.ok) {
+      const d = await res.json();
+      setCiEditError(d.detail ?? d.error ?? "Güncelleme başarısız.");
+      setCiEditSaving(false);
+      return;
+    }
+
+    const newCode = ciEditForm.code;
+    const newKey = { id: newCode, label: ciEditForm.name };
+
+    // Eski gruptan key'i temizle (kod değiştiyse veya grup değiştiyse)
+    const oldGroup = scanGroups.find(g => g.keys?.some(k => k.id === oldCode));
+    if (oldGroup && (oldCode !== newCode || ciEditGroupMode !== "existing" || ciEditGroupId !== oldGroup.id)) {
+      const cleaned = (oldGroup.keys ?? []).filter(k => k.id !== oldCode);
+      await fetch(`/api/admin/scan-groups?id=${encodeURIComponent(oldGroup.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keys: cleaned }),
+      });
+    }
+
+    // Yeni grup ataması
+    if (ciEditGroupMode === "existing" && ciEditGroupId) {
+      const group = scanGroups.find(g => g.id === ciEditGroupId);
+      const updated = [...(group?.keys ?? []).filter(k => k.id !== oldCode && k.id !== newCode), newKey];
+      await fetch(`/api/admin/scan-groups?id=${encodeURIComponent(ciEditGroupId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keys: updated }),
+      });
+    } else if (ciEditGroupMode === "new" && ciEditNewGroup.id && ciEditNewGroup.label) {
+      await fetch("/api/admin/scan-groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...ciEditNewGroup, keys: [newKey] }),
+      });
+    }
+
+    setCiEditCode(null);
+    await fetchAll();
+    setCiEditSaving(false);
   }
 
   async function handleScannerUserStatus(id: string, status: "approved" | "rejected" | "pending") {
@@ -1186,8 +1267,8 @@ export default function AdminDashboard() {
               ) : (
                 <div className="space-y-3">
                   {customIndicators.map((ci) => (
-                    <div key={ci.code} className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors">
-                      <div className="flex items-center gap-3">
+                    <div key={ci.code} className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden hover:border-slate-700 transition-colors">
+                      <div className="flex items-center gap-3 p-4">
                         <div className="p-2 bg-amber-950/40 border border-amber-900/60 rounded-xl shrink-0">
                           <TbCode size={18} className="text-amber-400" />
                         </div>
@@ -1195,6 +1276,12 @@ export default function AdminDashboard() {
                           <p className="text-sm font-semibold text-white">{ci.name}</p>
                           <p className="text-xs text-slate-500 font-mono">{ci.code}</p>
                           {ci.description && <p className="text-xs text-slate-600 mt-0.5 truncate">{ci.description}</p>}
+                          {/* Kategori etiketi */}
+                          {(() => { const g = scanGroups.find(sg => sg.keys?.some(k => k.id === ci.code)); return g ? (
+                            <span className={`inline-flex items-center gap-1 mt-1.5 text-xs px-2 py-0.5 rounded-full bg-${g.color}-950/40 border border-${g.color}-800/60 text-${g.color}-400`}>
+                              {g.emoji} {g.label}
+                            </span>
+                          ) : null; })()}
                           {ci.keys?.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {ci.keys.map(k => (
@@ -1211,6 +1298,13 @@ export default function AdminDashboard() {
                           )}
                         </div>
                         <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => ciEditCode === ci.code ? setCiEditCode(null) : handleCiEditOpen(ci)}
+                            title="Düzenle"
+                            className={`p-1.5 rounded-lg transition-colors border ${ciEditCode === ci.code ? "text-amber-300 bg-amber-950/40 border-amber-800/60" : "text-slate-500 hover:text-amber-400 hover:bg-amber-950/30 border-transparent hover:border-amber-900/40"}`}
+                          >
+                            <TbEdit size={15} />
+                          </button>
                           <button
                             onClick={() => handleCiRun(ci.code)}
                             disabled={ciRunning === ci.code}
@@ -1230,6 +1324,134 @@ export default function AdminDashboard() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Inline edit panel */}
+                      {ciEditCode === ci.code && (
+                        <div className="border-t border-slate-700/60 bg-[#050a0e]/60 p-4 space-y-3">
+                          <p className="text-xs font-semibold text-amber-400 uppercase tracking-widest">Düzenle</p>
+                          {ciEditLoading ? (
+                            <p className="text-xs text-slate-500 py-3 text-center">Script yükleniyor...</p>
+                          ) : (
+                            <>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <input
+                                  type="text" placeholder="Kod"
+                                  value={ciEditForm.code}
+                                  onChange={(e) => setCiEditForm(f => ({ ...f, code: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") }))}
+                                  className="bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors font-mono"
+                                />
+                                <input
+                                  type="text" placeholder="Görünen Ad"
+                                  value={ciEditForm.name}
+                                  onChange={(e) => setCiEditForm(f => ({ ...f, name: e.target.value }))}
+                                  className="bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors"
+                                />
+                                <input
+                                  type="text" placeholder="Açıklama"
+                                  value={ciEditForm.description}
+                                  onChange={(e) => setCiEditForm(f => ({ ...f, description: e.target.value }))}
+                                  className="bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors"
+                                />
+                              </div>
+                              <textarea
+                                rows={8}
+                                placeholder="Python script..."
+                                value={ciEditForm.script}
+                                onChange={(e) => setCiEditForm(f => ({ ...f, script: e.target.value }))}
+                                className="w-full bg-[#050a0e] border border-slate-700 rounded-lg px-3 py-2 text-sm text-emerald-300 placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors font-mono resize-y"
+                              />
+
+                              {/* Kategori seçimi */}
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold text-slate-400">Kategori</p>
+                                <div className="flex gap-2 flex-wrap">
+                                  {(["none", "existing", "new"] as const).map((mode) => (
+                                    <button key={mode} type="button"
+                                      onClick={() => setCiEditGroupMode(mode)}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                                        ciEditGroupMode === mode
+                                          ? "bg-amber-600/30 border-amber-600 text-amber-300"
+                                          : "bg-transparent border-slate-700 text-slate-500 hover:border-slate-600"
+                                      }`}
+                                    >
+                                      {mode === "none" ? "Kategorisiz" : mode === "existing" ? "Mevcut Kategoriye" : "Yeni Kategori"}
+                                    </button>
+                                  ))}
+                                </div>
+                                {ciEditGroupMode === "existing" && (
+                                  <select
+                                    value={ciEditGroupId}
+                                    onChange={(e) => setCiEditGroupId(e.target.value)}
+                                    className="w-full bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-600 transition-colors"
+                                  >
+                                    <option value="">-- Kategori seçin --</option>
+                                    {scanGroups.map(g => (
+                                      <option key={g.id} value={g.id}>{g.emoji} {g.label}</option>
+                                    ))}
+                                  </select>
+                                )}
+                                {ciEditGroupMode === "new" && (
+                                  <div className="bg-[#0a1628] border border-slate-700 rounded-xl p-3 space-y-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      <input type="text" placeholder="Kategori ID"
+                                        value={ciEditNewGroup.id}
+                                        onChange={(e) => setCiEditNewGroup(f => ({ ...f, id: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") }))}
+                                        className="bg-[#050a0e] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600 font-mono"
+                                      />
+                                      <input type="text" placeholder="Kategori Adı"
+                                        value={ciEditNewGroup.label}
+                                        onChange={(e) => setCiEditNewGroup(f => ({ ...f, label: e.target.value }))}
+                                        className="bg-[#050a0e] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                      <input type="text" placeholder="Emoji"
+                                        value={ciEditNewGroup.emoji}
+                                        onChange={(e) => setCiEditNewGroup(f => ({ ...f, emoji: e.target.value }))}
+                                        className="w-20 bg-[#050a0e] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600"
+                                      />
+                                      <div className="flex gap-1.5">
+                                        {["emerald","sky","violet","amber","rose"].map(c => (
+                                          <button key={c} type="button" onClick={() => setCiEditNewGroup(f => ({ ...f, color: c }))}
+                                            className={`w-6 h-6 rounded-full border-2 transition-all bg-${c}-500 ${ciEditNewGroup.color === c ? "border-white scale-110" : "border-transparent opacity-60 hover:opacity-100"}`}
+                                          />
+                                        ))}
+                                      </div>
+                                      <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                                        <input type="checkbox" checked={ciEditNewGroup.is_bull}
+                                          onChange={(e) => setCiEditNewGroup(f => ({ ...f, is_bull: e.target.checked }))}
+                                          className="rounded border-slate-600"
+                                        />
+                                        Bullish
+                                      </label>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {ciEditError && (
+                                <p className="flex items-center gap-2 text-xs text-red-400"><TbAlertCircle size={14} />{ciEditError}</p>
+                              )}
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleCiUpdate}
+                                  disabled={ciEditSaving || !ciEditForm.code || !ciEditForm.name || !ciEditForm.script}
+                                  className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                                >
+                                  <TbCheck size={15} />
+                                  {ciEditSaving ? "Kaydediliyor..." : "Kaydet"}
+                                </button>
+                                <button
+                                  onClick={() => setCiEditCode(null)}
+                                  className="px-4 py-2 text-slate-400 hover:text-white border border-slate-700 hover:border-slate-600 text-sm rounded-xl transition-colors"
+                                >
+                                  İptal
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

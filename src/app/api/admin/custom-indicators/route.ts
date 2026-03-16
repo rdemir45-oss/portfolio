@@ -9,10 +9,19 @@ export const dynamic = "force-dynamic";
 const UNAUTHORIZED = NextResponse.json({ error: "Yetkisiz." }, { status: 401 });
 const UNAVAILABLE  = NextResponse.json({ error: "Tarama servisi yapılandırılmamış." }, { status: 503 });
 
-/** GET /api/admin/custom-indicators — kayıtlı indikatör listesi */
+/** GET /api/admin/custom-indicators — liste; ?code=xxx → tek indikatör detayı */
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
   if (!SCAN_API_URL || !SCAN_API_KEY) return UNAVAILABLE;
+
+  const code = req.nextUrl.searchParams.get("code");
+  if (code) {
+    const res = await fetch(`${SCAN_API_URL}/api/indicators/${encodeURIComponent(code)}`, {
+      headers: { "X-API-Key": SCAN_API_KEY },
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  }
 
   const res = await fetch(`${SCAN_API_URL}/api/indicators`, {
     headers: { "X-API-Key": SCAN_API_KEY },
@@ -66,6 +75,34 @@ export async function PATCH(req: NextRequest) {
   const res = await fetch(`${SCAN_API_URL}/api/indicators/${encodeURIComponent(code)}/scan`, {
     method: "POST",
     headers: { "X-API-Key": SCAN_API_KEY },
+  });
+  const data = await res.json();
+  return NextResponse.json(data, { status: res.status });
+}
+
+/** PUT /api/admin/custom-indicators?code=xxx — mevcut indikatörü güncelle (script/ad/açıklama) */
+export async function PUT(req: NextRequest) {
+  if (!isAdmin(req)) return UNAUTHORIZED;
+  if (!SCAN_API_URL || !SCAN_API_KEY) return UNAVAILABLE;
+
+  const oldCode = req.nextUrl.searchParams.get("code");
+  if (!oldCode) return NextResponse.json({ error: "code parametresi gerekli." }, { status: 400 });
+
+  const body = await req.json();
+
+  // Kod değiştiyse eski kaydı sil
+  if (body.code && body.code !== oldCode) {
+    await fetch(`${SCAN_API_URL}/api/indicators/${encodeURIComponent(oldCode)}`, {
+      method: "DELETE",
+      headers: { "X-API-Key": SCAN_API_KEY },
+    });
+  }
+
+  // Yeni/güncel kod ile kaydet (register upsert gibi davranır)
+  const res = await fetch(`${SCAN_API_URL}/api/indicators/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-API-Key": SCAN_API_KEY },
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   return NextResponse.json(data, { status: res.status });
