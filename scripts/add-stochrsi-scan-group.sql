@@ -4,7 +4,7 @@
 -- API güncellendikten sonra bu SQL'i çalıştır.
 -- ═══════════════════════════════════════════════════════════════════════════════
 
-INSERT INTO scan_groups (id, label, description, icon, color, is_bull, emoji, keys, sort_order)
+INSERT INTO scan_groups (id, label, description, icon, color, is_bull, emoji, keys)
 VALUES (
   'stochrsi',
   'Stokastik RSI',
@@ -16,8 +16,7 @@ VALUES (
   '[
     {"id":"stoch_rsi_os",      "label":"StochRSI Aşırı Satım (K<20)"},
     {"id":"stoch_rsi_crossup", "label":"StochRSI K, D''yi Yukarı Kesti"}
-  ]'::jsonb,
-  60
+  ]'::jsonb
 )
 ON CONFLICT (id) DO UPDATE
   SET label       = EXCLUDED.label,
