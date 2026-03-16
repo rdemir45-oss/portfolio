@@ -115,6 +115,14 @@ const GROUPS: GroupDef[] = [
     keys: ["vol_spike", "bb_squeeze"],
   },
   {
+    id: "stochrsi",
+    label: "Stokastik RSI",
+    desc: "StochRSI aşırı satım ve kesişim sinyalleri",
+    icon: <TbActivity size={16} />,
+    color: "sky",
+    keys: ["stoch_rsi_os", "stoch_rsi_crossup"],
+  },
+  {
     id: "bearish",
     label: "Bearish Formasyonlar",
     desc: "Aşağı kırılım ve tersine dönüş formasyonları",
@@ -158,6 +166,7 @@ const BULL_KEYS = [
   "ikili_dip_break", "fibo_setup", "rsi_asc_break", "rsi_tobo",
   "hbreak", "price_desc_break", "harmonic_long",
   "rsi_pos_div",
+  "stoch_rsi_os", "stoch_rsi_crossup",
 ];
 
 const REVERSAL_KEYS = ["ikili_dip_break", "harmonic_long"];
@@ -819,6 +828,13 @@ const ALERT_GROUPS_DETAILED = [
     keys: [
       { id: "vol_spike",  label: "Hacim Patlaması"    },
       { id: "bb_squeeze", label: "Bollinger Sıkışması" },
+    ],
+  },
+  {
+    id: "stochrsi", label: "Stokastik RSI", emoji: "📊",
+    keys: [
+      { id: "stoch_rsi_os",      label: "StochRSI Aşırı Satım (K<20)"   },
+      { id: "stoch_rsi_crossup", label: "StochRSI K, D'yi Yukarı Kesti" },
     ],
   },
   {
