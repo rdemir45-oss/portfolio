@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   HiRefresh,
@@ -30,6 +30,8 @@ import {
   TbCheck,
   TbSearch,
   TbUser,
+  TbDownload,
+  TbX,
 } from "react-icons/tb";
 import { useRouter } from "next/navigation";
 import type { DbScanGroup } from "@/lib/supabase";
@@ -250,33 +252,29 @@ function toHashtags(stocks: ScanCategory["stocks"]): string {
 }
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://recepdemirborsa.com";
-// Twitter t.co'ya çevireceği için URL'ler her zaman 23 karakter sayılır
-const T_CO_LEN = 23;
 
+// Görsel manuel eklenecek → URL yok, sadece metin
 function buildCatTweetText(cat: ScanCategory): string {
   const tickers = toHashtags(cat.stocks);
-  const shareUrl = `${SITE_URL}/share/${cat.key}`;
   const header = `${cat.emoji} ${cat.label} (${cat.count} hisse)\n`;
   const tags = "\n#bist #borsa";
-  // URL 23 karakter sayılır
-  const budget = 280 - header.length - tags.length - 1 - T_CO_LEN; // 1 = newline before URL
+  const budget = 280 - header.length - tags.length;
   const body = tickers.length > budget ? tickers.substring(0, budget).trimEnd() : tickers;
-  return header + body + "\n" + shareUrl + tags;
+  return header + body + tags;
 }
 
 function buildGroupTweetText(groupLabel: string, cats: ScanCategory[]): string {
   const activeCats = cats.filter((c) => c.count > 0);
   const header = `${groupLabel}\n`;
-  const shareUrl = `${SITE_URL}/hisse-teknik-analizi`;
   const tags = "\n#bist #borsa";
   const lines = activeCats.map((c) => {
     const tickers = toHashtags(c.stocks);
     return `${c.emoji} ${c.label}: ${tickers}`;
   });
   let body = lines.join("\n");
-  const budget = 280 - header.length - tags.length - 1 - T_CO_LEN;
+  const budget = 280 - header.length - tags.length;
   if (body.length > budget) body = body.substring(0, budget).trimEnd();
-  return header + body + "\n" + shareUrl + tags;
+  return header + body + tags;
 }
 
 function openTweet(text: string) {
@@ -284,6 +282,127 @@ function openTweet(text: string) {
     `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
     "_blank",
     "noopener,noreferrer"
+  );
+}
+
+// ── Share Modal ───────────────────────────────────────────────────────────────
+function ShareModal({
+  cat,
+  onClose,
+}: {
+  cat: ScanCategory;
+  onClose: () => void;
+}) {
+  const imageUrl = `/api/scan/share/${cat.key}`;
+  const tweetText = buildCatTweetText(cat);
+  const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      const res = await fetch(imageUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `rdalgo-${cat.key}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { /* ignore */ } finally {
+      setDownloading(false);
+    }
+  }
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(tweetText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* ignore */ }
+  }
+
+  return (
+    <motion.div
+      ref={overlayRef}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+    >
+      <motion.div
+        initial={{ scale: 0.93, opacity: 0, y: 16 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.93, opacity: 0 }}
+        transition={{ type: "spring", damping: 22, stiffness: 260 }}
+        className="bg-[#0a1628] border border-slate-700/60 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl"
+      >
+        {/* Modal başlık */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <TbBrandX size={16} className="text-sky-400" />
+            <span className="text-sm font-bold text-white">X'te Paylaş</span>
+          </div>
+          <button onClick={onClose} className="p-1 text-slate-500 hover:text-white transition-colors">
+            <TbX size={16} />
+          </button>
+        </div>
+
+        {/* Görsel önizleme */}
+        <div className="p-5">
+          <div className="relative w-full rounded-xl overflow-hidden border border-slate-700/50 bg-slate-900">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt={cat.label}
+              className="w-full block"
+              style={{ aspectRatio: "1200/630" }}
+            />
+          </div>
+
+          {/* Tweet metni önizleme */}
+          <div className="mt-4 rounded-xl border border-slate-700/50 bg-slate-900/60 p-3">
+            <p className="text-xs text-slate-600 mb-1.5 uppercase tracking-widest font-semibold">Tweet Metni</p>
+            <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{tweetText}</p>
+          </div>
+
+          {/* Açıklama */}
+          <p className="mt-3 text-xs text-slate-600 text-center">
+            Görseli indirin, tweete ekleyin ve metin ile birlikte paylaşın.
+          </p>
+        </div>
+
+        {/* Butonlar */}
+        <div className="flex gap-2.5 px-5 pb-5">
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            <TbDownload size={15} />
+            {downloading ? "İndiriliyor..." : "Görseli İndir"}
+          </button>
+          <button
+            onClick={handleCopy}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-semibold transition-colors"
+            title="Metni kopyala"
+          >
+            {copied ? <TbCheck size={15} className="text-emerald-400" /> : <span className="text-xs">Kopyala</span>}
+          </button>
+          <button
+            onClick={() => openTweet(tweetText)}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold transition-colors"
+          >
+            <TbBrandX size={15} />
+            Tweet At
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -348,11 +467,13 @@ function ResultPanel({
   cats,
   favorites,
   toggleFavorite,
+  onShare,
 }: {
   group: GroupDef;
   cats: ScanCategory[];
   favorites: Set<string>;
   toggleFavorite: (ticker: string) => void;
+  onShare: (cat: ScanCategory) => void;
 }) {
   const c = colorMap[group.color];
   const totalSignals = cats.reduce((a, cat) => a + cat.count, 0);
@@ -406,6 +527,7 @@ function ResultPanel({
               color={group.color}
               favorites={favorites}
               toggleFavorite={toggleFavorite}
+              onShare={onShare}
             />
           ))
         )}
@@ -420,11 +542,13 @@ function CategoryCard({
   color,
   favorites,
   toggleFavorite,
+  onShare,
 }: {
   cat: ScanCategory;
   color: keyof typeof colorMap;
   favorites: Set<string>;
   toggleFavorite: (ticker: string) => void;
+  onShare: (cat: ScanCategory) => void;
 }) {
   const [open, setOpen] = useState(cat.count > 0);
   const c = colorMap[color];
@@ -467,7 +591,7 @@ function CategoryCard({
         </button>
         {cat.count > 0 && (
           <button
-            onClick={() => openTweet(buildCatTweetText(cat))}
+            onClick={() => onShare(cat)}
             className="shrink-0 pr-4 py-3 text-slate-700 hover:text-sky-400 transition-colors"
             title="X'te paylaş"
           >
@@ -759,6 +883,7 @@ export default function StockScanner() {
   const [isAdmin, setIsAdmin]                   = useState(false);
   const [remoteGroups, setRemoteGroups]           = useState<DbScanGroup[] | null>(null);
   const [selectedGroupId, setSelectedGroupId]   = useState<string | null>(null);
+  const [shareCat, setShareCat]                 = useState<ScanCategory | null>(null);
 
   // ── Dinamik grup türemeleri ───────────────────────────────────────────────
   const activeGroups = (remoteGroups && remoteGroups.length > 0)
@@ -982,6 +1107,12 @@ export default function StockScanner() {
               setShowOnboarding(false);
             }}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {shareCat && (
+          <ShareModal cat={shareCat} onClose={() => setShareCat(null)} />
         )}
       </AnimatePresence>
 
@@ -1405,7 +1536,7 @@ export default function StockScanner() {
                       </div>
                       <div className="space-y-3">
                         {ungroupedCats.map((cat) => (
-                          <CategoryCard key={cat.key} cat={cat} color={activeBullKeys.includes(cat.key) ? "emerald" : "rose"} favorites={favorites} toggleFavorite={toggleFavorite} />
+                          <CategoryCard key={cat.key} cat={cat} color={activeBullKeys.includes(cat.key) ? "emerald" : "rose"} favorites={favorites} toggleFavorite={toggleFavorite} onShare={(c) => setShareCat(c)} />
                         ))}
                       </div>
                     </motion.div>
@@ -1416,6 +1547,7 @@ export default function StockScanner() {
                       cats={selectedEntry.cats}
                       favorites={favorites}
                       toggleFavorite={toggleFavorite}
+                      onShare={(cat) => setShareCat(cat)}
                     />
                   ) : null}
                 </AnimatePresence>
