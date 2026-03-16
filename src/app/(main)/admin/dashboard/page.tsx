@@ -33,8 +33,13 @@ export default function AdminDashboard() {
   const [deletingStream, setDeletingStream] = useState<number | null>(null);
   const [tab, setTab] = useState<"posts" | "indicators" | "messages" | "whatsapp" | "scannerUsers" | "liveStreams" | "customIndicators">("posts");
   type CustomIndicator = { code: string; name: string; description: string; keys: { id: string; label: string }[] };
+  type ScanGroup = { id: string; label: string; color: string; emoji: string; is_bull: boolean; keys: { id: string; label: string }[] };
   const [customIndicators, setCustomIndicators] = useState<CustomIndicator[]>([]);
+  const [scanGroups, setScanGroups] = useState<ScanGroup[]>([]);
   const [ciForm, setCiForm] = useState({ code: "", name: "", description: "", script: "" });
+  const [ciGroupMode, setCiGroupMode] = useState<"none" | "existing" | "new">("none");
+  const [ciGroupId, setCiGroupId] = useState("");
+  const [ciNewGroup, setCiNewGroup] = useState({ id: "", label: "", color: "emerald", emoji: "📊", is_bull: true });
   const [ciSaving, setCiSaving] = useState(false);
   const [ciDeleting, setCiDeleting] = useState<string | null>(null);
   const [ciRunning, setCiRunning] = useState<string | null>(null);
@@ -55,7 +60,7 @@ export default function AdminDashboard() {
 
   async function fetchAll() {
     setLoading(true);
-    const [postsRes, indRes, msgRes, waRes, scRes, lsRes, ciRes] = await Promise.all([
+    const [postsRes, indRes, msgRes, waRes, scRes, lsRes, ciRes, sgRes] = await Promise.all([
       fetch("/api/admin/posts"),
       fetch("/api/admin/indicators"),
       fetch("/api/admin/messages"),
@@ -63,6 +68,7 @@ export default function AdminDashboard() {
       fetch("/api/admin/scanner-users"),
       fetch("/api/admin/live-stream"),
       fetch("/api/admin/custom-indicators"),
+      fetch("/api/admin/scan-groups"),
     ]);
     if (postsRes.ok) setPosts(await postsRes.json());
     if (indRes.ok) setIndicators(await indRes.json());
@@ -71,6 +77,7 @@ export default function AdminDashboard() {
     if (scRes.ok) setScannerUsers(await scRes.json());
     if (lsRes.ok) setLiveStreams(await lsRes.json());
     if (ciRes.ok) { const d = await ciRes.json(); setCustomIndicators(d.indicators ?? []); }
+    if (sgRes.ok) setScanGroups(await sgRes.json());
     setLoading(false);
   }
 
@@ -82,13 +89,43 @@ export default function AdminDashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: ciForm.code, name: ciForm.name, description: ciForm.description, script: ciForm.script }),
     });
-    if (res.ok) {
-      setCiForm({ code: "", name: "", description: "", script: "" });
-      await fetchAll();
-    } else {
+    if (!res.ok) {
       const d = await res.json();
       setCiError(d.detail ?? d.error ?? "Kayıt başarısız.");
+      setCiSaving(false);
+      return;
     }
+
+    // Group assignment
+    const newKey = { id: ciForm.code, label: ciForm.name };
+    if (ciGroupMode === "existing" && ciGroupId) {
+      const group = scanGroups.find(g => g.id === ciGroupId);
+      const updatedKeys = [...(group?.keys ?? []).filter(k => k.id !== ciForm.code), newKey];
+      await fetch(`/api/admin/scan-groups?id=${encodeURIComponent(ciGroupId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keys: updatedKeys }),
+      });
+    } else if (ciGroupMode === "new" && ciNewGroup.id && ciNewGroup.label) {
+      await fetch("/api/admin/scan-groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: ciNewGroup.id,
+          label: ciNewGroup.label,
+          color: ciNewGroup.color,
+          emoji: ciNewGroup.emoji,
+          is_bull: ciNewGroup.is_bull,
+          keys: [newKey],
+        }),
+      });
+    }
+
+    setCiForm({ code: "", name: "", description: "", script: "" });
+    setCiGroupMode("none");
+    setCiGroupId("");
+    setCiNewGroup({ id: "", label: "", color: "emerald", emoji: "📊", is_bull: true });
+    await fetchAll();
     setCiSaving(false);
   }
 
@@ -927,6 +964,90 @@ export default function AdminDashboard() {
                   onChange={(e) => setCiForm(f => ({ ...f, script: e.target.value }))}
                   className="w-full bg-[#050a0e] border border-slate-700 rounded-lg px-3 py-2 text-sm text-emerald-300 placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors font-mono resize-y"
                 />
+
+                {/* Kategori seçimi */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-400">Tarama Kategorisi</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {(["none", "existing", "new"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setCiGroupMode(mode)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                          ciGroupMode === mode
+                            ? "bg-amber-600/30 border-amber-600 text-amber-300"
+                            : "bg-transparent border-slate-700 text-slate-500 hover:border-slate-600"
+                        }`}
+                      >
+                        {mode === "none" ? "Kategorisiz" : mode === "existing" ? "Mevcut Kategoriye Ekle" : "Yeni Kategori Oluştur"}
+                      </button>
+                    ))}
+                  </div>
+
+                  {ciGroupMode === "existing" && (
+                    <select
+                      value={ciGroupId}
+                      onChange={(e) => setCiGroupId(e.target.value)}
+                      className="w-full bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-600 transition-colors"
+                    >
+                      <option value="">-- Kategori seçin --</option>
+                      {scanGroups.map(g => (
+                        <option key={g.id} value={g.id}>{g.emoji} {g.label}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {ciGroupMode === "new" && (
+                    <div className="bg-[#0a1628] border border-slate-700 rounded-xl p-3 space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          type="text" placeholder="Kategori ID (örn: stoch_rsi)"
+                          value={ciNewGroup.id}
+                          onChange={(e) => setCiNewGroup(f => ({ ...f, id: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") }))}
+                          className="bg-[#050a0e] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors font-mono"
+                        />
+                        <input
+                          type="text" placeholder="Kategori Adı (örn: StochRSI Sinyalleri)"
+                          value={ciNewGroup.label}
+                          onChange={(e) => setCiNewGroup(f => ({ ...f, label: e.target.value }))}
+                          className="bg-[#050a0e] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <input
+                          type="text" placeholder="Emoji (örn: 📊)"
+                          value={ciNewGroup.emoji}
+                          onChange={(e) => setCiNewGroup(f => ({ ...f, emoji: e.target.value }))}
+                          className="w-24 bg-[#050a0e] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors"
+                        />
+                        <div className="flex gap-1.5">
+                          {["emerald", "sky", "violet", "amber", "rose"].map(c => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setCiNewGroup(f => ({ ...f, color: c }))}
+                              title={c}
+                              className={`w-6 h-6 rounded-full border-2 transition-all ${
+                                ciNewGroup.color === c ? "border-white scale-110" : "border-transparent opacity-60 hover:opacity-100"
+                              } bg-${c}-500`}
+                            />
+                          ))}
+                        </div>
+                        <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={ciNewGroup.is_bull}
+                            onChange={(e) => setCiNewGroup(f => ({ ...f, is_bull: e.target.checked }))}
+                            className="rounded border-slate-600"
+                          />
+                          Bullish kategori
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {ciError && (
                   <p className="flex items-center gap-2 text-xs text-red-400"><TbAlertCircle size={14} />{ciError}</p>
                 )}
