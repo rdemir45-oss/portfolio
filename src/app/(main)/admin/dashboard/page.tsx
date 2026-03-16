@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff, TbKey, TbCopy, TbWifi, TbWifiOff } from "react-icons/tb";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff, TbKey, TbCopy, TbWifi, TbWifiOff, TbCode, TbPlayerPlay, TbCircleCheck, TbAlertCircle } from "react-icons/tb";
 import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser, DbLiveStream } from "@/lib/supabase";
 
 const catColors: Record<string, string> = {
@@ -31,7 +31,15 @@ export default function AdminDashboard() {
   const [streamForm, setStreamForm] = useState({ title: "", stream_at: "", description: "" });
   const [streamSaving, setStreamSaving] = useState(false);
   const [deletingStream, setDeletingStream] = useState<number | null>(null);
-  const [tab, setTab] = useState<"posts" | "indicators" | "messages" | "whatsapp" | "scannerUsers" | "liveStreams">("posts");
+  const [tab, setTab] = useState<"posts" | "indicators" | "messages" | "whatsapp" | "scannerUsers" | "liveStreams" | "customIndicators">("posts");
+  type CustomIndicator = { code: string; name: string; description: string; keys: { id: string; label: string }[] };
+  const [customIndicators, setCustomIndicators] = useState<CustomIndicator[]>([]);
+  const [ciForm, setCiForm] = useState({ code: "", name: "", description: "", script: "" });
+  const [ciSaving, setCiSaving] = useState(false);
+  const [ciDeleting, setCiDeleting] = useState<string | null>(null);
+  const [ciRunning, setCiRunning] = useState<string | null>(null);
+  const [ciRunResult, setCiRunResult] = useState<Record<string, number>>({});
+  const [ciError, setCiError] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [deletingScannerUser, setDeletingScannerUser] = useState<string | null>(null);
@@ -47,13 +55,14 @@ export default function AdminDashboard() {
 
   async function fetchAll() {
     setLoading(true);
-    const [postsRes, indRes, msgRes, waRes, scRes, lsRes] = await Promise.all([
+    const [postsRes, indRes, msgRes, waRes, scRes, lsRes, ciRes] = await Promise.all([
       fetch("/api/admin/posts"),
       fetch("/api/admin/indicators"),
       fetch("/api/admin/messages"),
       fetch("/api/admin/whatsapp"),
       fetch("/api/admin/scanner-users"),
       fetch("/api/admin/live-stream"),
+      fetch("/api/admin/custom-indicators"),
     ]);
     if (postsRes.ok) setPosts(await postsRes.json());
     if (indRes.ok) setIndicators(await indRes.json());
@@ -61,7 +70,45 @@ export default function AdminDashboard() {
     if (waRes.ok) setWhatsappRequests(await waRes.json());
     if (scRes.ok) setScannerUsers(await scRes.json());
     if (lsRes.ok) setLiveStreams(await lsRes.json());
+    if (ciRes.ok) { const d = await ciRes.json(); setCustomIndicators(d.indicators ?? []); }
     setLoading(false);
+  }
+
+  async function handleCiRegister() {
+    if (!ciForm.code || !ciForm.name || !ciForm.script) return;
+    setCiSaving(true); setCiError("");
+    const res = await fetch("/api/admin/custom-indicators", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: ciForm.code, name: ciForm.name, description: ciForm.description, script: ciForm.script }),
+    });
+    if (res.ok) {
+      setCiForm({ code: "", name: "", description: "", script: "" });
+      await fetchAll();
+    } else {
+      const d = await res.json();
+      setCiError(d.detail ?? d.error ?? "Kayıt başarısız.");
+    }
+    setCiSaving(false);
+  }
+
+  async function handleCiDelete(code: string) {
+    if (!confirm(`"${code}" indikatörünü silmek istediğinize emin misiniz?`)) return;
+    setCiDeleting(code);
+    await fetch(`/api/admin/custom-indicators?code=${encodeURIComponent(code)}`, { method: "DELETE" });
+    await fetchAll();
+    setCiDeleting(null);
+  }
+
+  async function handleCiRun(code: string) {
+    setCiRunning(code);
+    const res = await fetch(`/api/admin/custom-indicators?code=${encodeURIComponent(code)}`, { method: "PATCH" });
+    if (res.ok) {
+      const d = await res.json();
+      const total = Object.values(d.keys ?? {}).reduce((s: number, arr: unknown) => s + (arr as unknown[]).length, 0);
+      setCiRunResult(prev => ({ ...prev, [code]: total as number }));
+    }
+    setCiRunning(null);
   }
 
   async function handleScannerUserStatus(id: string, status: "approved" | "rejected" | "pending") {
@@ -361,6 +408,12 @@ export default function AdminDashboard() {
               ? "bg-violet-950/40 border-violet-800 text-violet-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
             Yayınlar ({liveStreams.length})
+          </button>
+          <button onClick={() => setTab("customIndicators")}
+            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "customIndicators"
+              ? "bg-amber-950/40 border-amber-800 text-amber-400"
+              : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
+            <span className="flex items-center gap-1.5"><TbCode size={14} />Özel Taramalar ({customIndicators.length})</span>
           </button>
         </div>
 
@@ -829,6 +882,119 @@ export default function AdminDashboard() {
                         >
                           <TbTrash size={15} />
                         </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+          {/* Custom Indicators Tab */}
+          {tab === "customIndicators" && (
+            <>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-white">Özel Tarama İndikatörleri</h2>
+                <span className="text-sm text-slate-500">{customIndicators.length} indikatör</span>
+              </div>
+
+              {/* Yeni indikatör formu */}
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-5 space-y-3">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Yeni İndikatör Ekle</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input
+                    type="text" placeholder="Kod (örn: my_rsi_cross)"
+                    value={ciForm.code}
+                    onChange={(e) => setCiForm(f => ({ ...f, code: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") }))}
+                    className="bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors font-mono"
+                  />
+                  <input
+                    type="text" placeholder="Görünen Ad (örn: RSI Kesişim)"
+                    value={ciForm.name}
+                    onChange={(e) => setCiForm(f => ({ ...f, name: e.target.value }))}
+                    className="bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors"
+                  />
+                  <input
+                    type="text" placeholder="Açıklama (opsiyonel)"
+                    value={ciForm.description}
+                    onChange={(e) => setCiForm(f => ({ ...f, description: e.target.value }))}
+                    className="bg-[#0a1628] border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors"
+                  />
+                </div>
+                <textarea
+                  rows={10}
+                  placeholder="Python script kodu buraya yapıştırın..."
+                  value={ciForm.script}
+                  onChange={(e) => setCiForm(f => ({ ...f, script: e.target.value }))}
+                  className="w-full bg-[#050a0e] border border-slate-700 rounded-lg px-3 py-2 text-sm text-emerald-300 placeholder-slate-600 focus:outline-none focus:border-amber-600 transition-colors font-mono resize-y"
+                />
+                {ciError && (
+                  <p className="flex items-center gap-2 text-xs text-red-400"><TbAlertCircle size={14} />{ciError}</p>
+                )}
+                <button
+                  onClick={handleCiRegister}
+                  disabled={ciSaving || !ciForm.code || !ciForm.name || !ciForm.script}
+                  className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+                >
+                  <TbPlus size={16} />
+                  {ciSaving ? "Kaydediliyor..." : "İndikatör Ekle"}
+                </button>
+              </div>
+
+              {/* Liste */}
+              {loading ? (
+                <p className="text-slate-500 text-sm py-8 text-center">Yükleniyor...</p>
+              ) : customIndicators.length === 0 ? (
+                <div className="py-12 text-center">
+                  <TbCode size={32} className="text-slate-700 mx-auto mb-3" />
+                  <p className="text-slate-500 text-sm">Henüz özel indikatör yok.</p>
+                  <p className="text-slate-600 text-xs mt-1">Yukarıdaki formu kullanarak ekleyebilirsiniz.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {customIndicators.map((ci) => (
+                    <div key={ci.code} className="p-4 bg-slate-900/50 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-950/40 border border-amber-900/60 rounded-xl shrink-0">
+                          <TbCode size={18} className="text-amber-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white">{ci.name}</p>
+                          <p className="text-xs text-slate-500 font-mono">{ci.code}</p>
+                          {ci.description && <p className="text-xs text-slate-600 mt-0.5 truncate">{ci.description}</p>}
+                          {ci.keys?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {ci.keys.map(k => (
+                                <span key={k.id} className="text-sky-400 bg-sky-950/40 border border-sky-800/60 rounded-full px-2 py-0.5 text-xs">
+                                  {k.label}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {ciRunResult[ci.code] !== undefined && (
+                            <p className="flex items-center gap-1 text-xs text-emerald-400 mt-1.5">
+                              <TbCircleCheck size={13} />{ciRunResult[ci.code]} hisse eşleşti
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => handleCiRun(ci.code)}
+                            disabled={ciRunning === ci.code}
+                            title="Şimdi Tara"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-400 border border-emerald-900/60 bg-emerald-950/30 hover:bg-emerald-950/60 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            <TbPlayerPlay size={13} />
+                            {ciRunning === ci.code ? "Tarıyor..." : "Tara"}
+                          </button>
+                          <button
+                            onClick={() => handleCiDelete(ci.code)}
+                            disabled={ciDeleting === ci.code}
+                            title="Sil"
+                            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            <TbTrash size={15} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
