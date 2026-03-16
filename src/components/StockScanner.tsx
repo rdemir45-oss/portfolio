@@ -243,12 +243,16 @@ function timeAgoLabel(minutesAgo: number | null): string {
 }
 
 // ── Tweet yardımcıları ────────────────────────────────────────────────────────
-function buildCatTweetText(cat: ScanCategory): string {
-  const tickers = (cat.stocks ?? [])
-    .map((r) => (typeof r === "string" ? r : r.ticker))
+function toHashtags(stocks: ScanCategory["stocks"]): string {
+  return (stocks ?? [])
+    .map((r) => `#${typeof r === "string" ? r : r.ticker}`)
     .join(" ");
+}
+
+function buildCatTweetText(cat: ScanCategory): string {
+  const tickers = toHashtags(cat.stocks);
   const header = `${cat.emoji} ${cat.label} (${cat.count} hisse)\n`;
-  const tags = "\n#hisse #bist #borsa";
+  const tags = "\n#bist #borsa";
   const maxLen = 280 - header.length - tags.length;
   const body = tickers.length > maxLen ? tickers.substring(0, maxLen).trimEnd() : tickers;
   return header + body + tags;
@@ -257,9 +261,9 @@ function buildCatTweetText(cat: ScanCategory): string {
 function buildGroupTweetText(groupLabel: string, cats: ScanCategory[]): string {
   const activeCats = cats.filter((c) => c.count > 0);
   const header = `${groupLabel}\n`;
-  const tags = "\n#hisse #bist #borsa";
+  const tags = "\n#bist #borsa";
   const lines = activeCats.map((c) => {
-    const tickers = (c.stocks ?? []).map((r) => (typeof r === "string" ? r : r.ticker)).join(" ");
+    const tickers = toHashtags(c.stocks);
     return `${c.emoji} ${c.label}: ${tickers}`;
   });
   let body = lines.join("\n");
