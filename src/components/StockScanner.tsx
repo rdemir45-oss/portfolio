@@ -286,6 +286,89 @@ function openTweet(text: string) {
 }
 
 // ── Share Modal ───────────────────────────────────────────────────────────────
+const SHARE_BEAR_KEYS = new Set([
+  "death_cross", "obo_break", "ikili_tepe_break", "rsi_desc_break",
+  "triangle_break_down", "rsi_ob", "harmonic_short",
+]);
+
+function buildCardSvg(cat: ScanCategory): string {
+  const isBull   = !SHARE_BEAR_KEYS.has(cat.key);
+  const accent   = isBull ? "#34d399" : "#f87171";
+  const accentBg = isBull ? "#052e16" : "#4c0519";
+  const accentBorder = isBull ? "#166534" : "#9f1239";
+  const date = new Date().toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+
+  const tickers = (cat.stocks ?? [])
+    .slice(0, 30)
+    .map((r) => `#${typeof r === "string" ? r : r.ticker}`);
+
+  const PER_ROW = 5;
+  const rows: string[] = [];
+  for (let i = 0; i < tickers.length; i += PER_ROW) {
+    rows.push(tickers.slice(i, i + PER_ROW).join("   "));
+  }
+
+  const tickerEls = rows
+    .map((row, i) =>
+      `<text x="64" y="${298 + i * 50}" font-family="'Courier New',Courier,monospace" font-size="28" font-weight="700" fill="${accent}">${row}</text>`
+    )
+    .join("\n");
+
+  const extra = cat.count > 30 ? `<text x="64" y="${298 + rows.length * 50}" font-family="Arial,sans-serif" font-size="20" fill="#64748b">+${cat.count - 30} hisse daha</text>` : "";
+
+  // Encode label safely for SVG
+  const safeLabel = cat.label.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  return `<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#050a0e"/>
+      <stop offset="65%" stop-color="#0a1628"/>
+      <stop offset="100%" stop-color="#050a0e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Brand -->
+  <rect x="48" y="36" width="44" height="44" rx="12" fill="${accent}"/>
+  <text x="70" y="67" font-family="Arial Black,sans-serif" font-size="26" font-weight="900" fill="#050a0e" text-anchor="middle">R</text>
+  <text x="104" y="67" font-family="Arial Black,sans-serif" font-size="24" font-weight="900" fill="${accent}">RdAlgo</text>
+  <text x="1152" y="67" font-family="Arial,sans-serif" font-size="18" fill="#475569" text-anchor="end">BIST · ${date}</text>
+  <!-- Category box -->
+  <rect x="48" y="108" width="1104" height="112" rx="18" fill="${accentBg}" stroke="${accentBorder}" stroke-width="1"/>
+  <text x="80" y="186" font-family="Arial Black,sans-serif" font-size="44" font-weight="900" fill="white">${safeLabel}</text>
+  <text x="80" y="212" font-family="Arial,sans-serif" font-size="22" font-weight="600" fill="${accent}">${cat.count} hisse sinyal verdi</text>
+  <!-- Divider -->
+  <line x1="48" y1="250" x2="1152" y2="250" stroke="#1e293b" stroke-width="1"/>
+  <!-- Tickers -->
+  ${tickerEls}
+  ${extra}
+  <!-- Footer -->
+  <line x1="48" y1="591" x2="1152" y2="591" stroke="#1e293b" stroke-width="1"/>
+  <text x="48" y="616" font-family="Arial,sans-serif" font-size="16" fill="#334155">recepdemirborsa.com</text>
+  <text x="1152" y="616" font-family="Arial,sans-serif" font-size="16" fill="#475569" text-anchor="end">#bist #borsa #hisse</text>
+</svg>`;
+}
+
+async function svgToPngBlob(svg: string): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const canvas = document.createElement("canvas");
+    canvas.width  = 1200;
+    canvas.height = 630;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { resolve(null); return; }
+    const blob = new Blob([svg], { type: "image/svg+xml" });
+    const url  = URL.createObjectURL(blob);
+    const img  = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((b) => resolve(b), "image/png");
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
 function ShareModal({
   cat,
   onClose,
@@ -293,20 +376,26 @@ function ShareModal({
   cat: ScanCategory;
   onClose: () => void;
 }) {
-  const imageUrl = `/api/scan/share/${cat.key}`;
+  const isBull   = !SHARE_BEAR_KEYS.has(cat.key);
+  const accent   = isBull ? "emerald" : "rose";
   const tweetText = buildCatTweetText(cat);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied]         = useState(false);
   const [downloading, setDownloading] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  const tickers = (cat.stocks ?? [])
+    .slice(0, 30)
+    .map((r) => (typeof r === "string" ? r : r.ticker));
 
   async function handleDownload() {
     setDownloading(true);
     try {
-      const res = await fetch(imageUrl);
-      const blob = await res.blob();
+      const svg  = buildCardSvg(cat);
+      const blob = await svgToPngBlob(svg);
+      if (!blob) return;
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
+      const a   = document.createElement("a");
+      a.href     = url;
       a.download = `rdalgo-${cat.key}.png`;
       document.body.appendChild(a);
       a.click();
@@ -324,6 +413,11 @@ function ShareModal({
       setTimeout(() => setCopied(false), 2000);
     } catch { /* ignore */ }
   }
+
+  const colorCls = {
+    emerald: { border: "border-emerald-800/50", bg: "bg-emerald-950/20", hdr: "bg-emerald-950/30", text: "text-emerald-400", badge: "bg-emerald-900/60 text-emerald-300", ticker: "bg-emerald-950/40 border-emerald-700/40 text-emerald-300" },
+    rose:    { border: "border-rose-800/50",    bg: "bg-rose-950/20",    hdr: "bg-rose-950/30",    text: "text-rose-400",    badge: "bg-rose-900/60 text-rose-300",    ticker: "bg-rose-950/40 border-rose-700/40 text-rose-300" },
+  }[accent];
 
   return (
     <motion.div
@@ -352,26 +446,48 @@ function ShareModal({
           </button>
         </div>
 
-        {/* Görsel önizleme */}
+        {/* Kart önizleme — tamamen client-side */}
         <div className="p-5">
-          <div className="relative w-full rounded-xl overflow-hidden border border-slate-700/50 bg-slate-900">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imageUrl}
-              alt={cat.label}
-              className="w-full block"
-              style={{ aspectRatio: "1200/630" }}
-            />
+          <div className={`rounded-xl border overflow-hidden ${colorCls.border} ${colorCls.bg}`} style={{ aspectRatio: "1200/630" }}>
+            {/* Kart header */}
+            <div className={`flex items-center justify-between px-4 py-3 border-b ${colorCls.border} ${colorCls.hdr}`}>
+              <div className="flex items-center gap-2">
+                <div className={`w-6 h-6 rounded-md flex items-center justify-center font-black text-sm ${colorCls.text} border ${colorCls.border}`}>R</div>
+                <span className={`text-xs font-black tracking-widest ${colorCls.text}`}>RdAlgo · BIST</span>
+              </div>
+              <span className={`text-xs font-black px-2 py-0.5 rounded-full ${colorCls.badge}`}>{cat.count} sinyal</span>
+            </div>
+            {/* Kategori başlığı */}
+            <div className="px-4 pt-3 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{cat.emoji}</span>
+                <span className={`text-sm font-black ${colorCls.text}`}>{cat.label}</span>
+              </div>
+            </div>
+            {/* Ticker listesi */}
+            <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+              {tickers.slice(0, 18).map((t) => (
+                <span key={t} className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded border ${colorCls.ticker}`}>
+                  #{t}
+                </span>
+              ))}
+              {cat.count > 18 && (
+                <span className="text-[11px] text-slate-600 self-center">+{cat.count - 18} hisse</span>
+              )}
+            </div>
+            {/* Footer */}
+            <div className="px-4 py-2 border-t border-slate-800/40 flex justify-between">
+              <span className="text-[10px] text-slate-600">recepdemirborsa.com</span>
+              <span className="text-[10px] text-slate-700">#bist #borsa</span>
+            </div>
           </div>
 
-          {/* Tweet metni önizleme */}
+          {/* Tweet metni */}
           <div className="mt-4 rounded-xl border border-slate-700/50 bg-slate-900/60 p-3">
             <p className="text-xs text-slate-600 mb-1.5 uppercase tracking-widest font-semibold">Tweet Metni</p>
             <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{tweetText}</p>
           </div>
-
-          {/* Açıklama */}
-          <p className="mt-3 text-xs text-slate-600 text-center">
+          <p className="mt-2 text-xs text-slate-600 text-center">
             Görseli indirin, tweete ekleyin ve metin ile birlikte paylaşın.
           </p>
         </div>
@@ -384,7 +500,7 @@ function ShareModal({
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-sm font-semibold transition-colors disabled:opacity-50"
           >
             <TbDownload size={15} />
-            {downloading ? "İndiriliyor..." : "Görseli İndir"}
+            {downloading ? "İndiriliyor..." : "PNG İndir"}
           </button>
           <button
             onClick={handleCopy}
