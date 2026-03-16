@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { injectTriangleSplit } from "@/lib/scan-transform";
+import { supabase } from "@/lib/supabase";
 
 const SCAN_API_URL          = process.env.SCAN_API_URL ?? "";
 const SCAN_API_KEY          = process.env.SCAN_API_KEY ?? "";
@@ -21,6 +22,26 @@ function isValidViewerToken(token: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** Supabase'deki tüm custom_indicators kayıtlarını scan API'ye yeniden kaydeder. */
+async function resyncIndicatorsToScanApi(): Promise<void> {
+  if (!SCAN_API_URL || !SCAN_API_KEY) return;
+  try {
+    const { data: storedCIs } = await supabase
+      .from("custom_indicators")
+      .select("code, name, description, script");
+    if (!storedCIs || storedCIs.length === 0) return;
+    await Promise.all(
+      storedCIs.map((ci) =>
+        fetch(`${SCAN_API_URL}/api/indicators/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-API-Key": SCAN_API_KEY },
+          body: JSON.stringify({ code: ci.code, name: ci.name, description: ci.description, script: ci.script }),
+        }).catch(() => {})
+      )
+    );
+  } catch { /* ignore — best-effort */ }
 }
 
 export async function GET(req: NextRequest) {
@@ -58,8 +79,21 @@ export async function GET(req: NextRequest) {
     // Özel indikatör kategorilerini mevcut listeyle birleştir
     if (indRes.ok) {
       const indData = await indRes.json();
-      const indCats: { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[] =
+      let indCats: { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[] =
         indData.categories ?? [];
+
+      // Scan API'de hiç indikatör yoksa Supabase'den yeniden kaydet (arka planda)
+      // ve bu istekte sonuçları dahil et
+      if (indCats.length === 0) {
+        await resyncIndicatorsToScanApi();
+        // Yeniden yüklendikten sonra tekrar sorgula
+        const indRes2 = await fetch(`${SCAN_API_URL}/api/indicators/latest`, { headers, next: { revalidate: 0 } });
+        if (indRes2.ok) {
+          const indData2 = await indRes2.json();
+          indCats = indData2.categories ?? [];
+        }
+      }
+
       if (indCats.length > 0) {
         const existingKeys = new Set((data.categories ?? []).map((c: { key: string }) => c.key));
         for (const cat of indCats) {

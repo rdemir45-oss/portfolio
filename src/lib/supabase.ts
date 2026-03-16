@@ -97,6 +97,15 @@ export interface DbScanGroup {
   created_at?: string;
 }
 
+export interface DbCustomIndicator {
+  code: string;
+  name: string;
+  description: string;
+  script: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // ── Kullanıcıya özel tarama sistemi ─────────────────────────────────────────
 
 export type RuleIndicator =
