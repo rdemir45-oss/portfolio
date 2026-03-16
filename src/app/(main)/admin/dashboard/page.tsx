@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff, TbKey, TbCopy, TbWifi, TbWifiOff, TbCode, TbPlayerPlay, TbCircleCheck, TbAlertCircle } from "react-icons/tb";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff, TbKey, TbCopy, TbWifi, TbWifiOff, TbCode, TbPlayerPlay, TbCircleCheck, TbAlertCircle, TbChevronDown, TbChevronUp, TbClipboardCopy } from "react-icons/tb";
 import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser, DbLiveStream } from "@/lib/supabase";
 
 const catColors: Record<string, string> = {
@@ -20,6 +20,71 @@ const catIcons: Record<string, React.ReactNode> = {
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" });
 }
+
+const CI_TEMPLATE = `import sys, json
+import pandas as pd
+from lib.indicators import ema, sma, rsi, series_to_points
+
+# ─── 1. Meta bilgiler ───────────────────────────────────────────────────
+INFO = {
+    "name": "Örnek EMA Kesişim",
+    "code": "example_ema_cross",
+    "description": "Kapanış fiyatının EMA(21) üzerinde olup olmadığını kontrol eder.",
+    "parameters": {
+        "period": {"type": "int", "default": 21, "description": "EMA periyodu"},
+    },
+}
+
+# ─── 2. Varsayılan parametreler ─────────────────────────────────────────
+def default_params() -> dict:
+    return {k: v.get("default") for k, v in INFO.get("parameters", {}).items()}
+
+# ─── 3. Ana tarama mantığı ──────────────────────────────────────────────
+def main():
+    data   = json.load(sys.stdin)
+    params = data.get("params") or {}
+    period = int(params.get("period", default_params().get("period", 21)))
+
+    results = []
+    for sym in data.get("symbols", []):
+        bars = data.get("bars", {}).get(sym, [])
+        if not bars or len(bars) < period + 1:
+            continue
+
+        df = pd.DataFrame(bars)
+        df["datetime"] = pd.to_datetime(df["datetime"])
+        df = df.sort_values("datetime").reset_index(drop=True)
+
+        df["ema"] = ema(df["close"], period)
+        last, prev = df.iloc[-1], df.iloc[-2]
+
+        # ── Koşul: kapanış EMA üzerinde ──────────────────────────────
+        passed = float(last["close"]) > float(last["ema"])
+
+        # Birden fazla sinyal için "key" alanı ekleyin:
+        # results.append({..., "key": "signal_a"})
+
+        results.append({
+            "symbol":     sym,
+            "passed":     passed,
+            "value":      float(last["close"]) - float(last["ema"]),
+            "prev_value": float(prev["close"]) - float(prev["ema"]),
+            "lines": [
+                series_to_points(df["datetime"], df["close"]),
+                series_to_points(df["datetime"], df["ema"]),
+            ],
+        })
+
+    json.dump({"results": results}, sys.stdout)
+
+# ─── 4. CLI desteği ─────────────────────────────────────────────────────
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--defaults":
+        json.dump(default_params(), sys.stdout); import sys; sys.exit(0)
+    if len(sys.argv) > 1 and sys.argv[1] == "--info":
+        json.dump(INFO, sys.stdout); import sys; sys.exit(0)
+    main()
+`;
 
 export default function AdminDashboard() {
   const [posts, setPosts] = useState<DbPost[]>([]);
@@ -45,6 +110,8 @@ export default function AdminDashboard() {
   const [ciRunning, setCiRunning] = useState<string | null>(null);
   const [ciRunResult, setCiRunResult] = useState<Record<string, number>>({});
   const [ciError, setCiError] = useState("");
+  const [ciShowTemplate, setCiShowTemplate] = useState(false);
+  const [ciTemplateCopied, setCiTemplateCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [deletingScannerUser, setDeletingScannerUser] = useState<string | null>(null);
@@ -936,7 +1003,53 @@ export default function AdminDashboard() {
 
               {/* Yeni indikatör formu */}
               <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-5 space-y-3">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Yeni İndikatör Ekle</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Yeni İndikatör Ekle</p>
+                  <button
+                    type="button"
+                    onClick={() => setCiShowTemplate(v => !v)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-slate-400 hover:text-sky-400 border border-slate-700 hover:border-sky-800 rounded-lg transition-colors"
+                  >
+                    <TbCode size={13} />
+                    {ciShowTemplate ? "Şablonu Gizle" : "Şablon Göster"}
+                    {ciShowTemplate ? <TbChevronUp size={12} /> : <TbChevronDown size={12} />}
+                  </button>
+                </div>
+
+                {/* Template viewer */}
+                {ciShowTemplate && (
+                  <div className="relative rounded-xl overflow-hidden border border-sky-900/60">
+                    <div className="flex items-center justify-between px-4 py-2 bg-sky-950/40 border-b border-sky-900/40">
+                      <span className="text-xs font-semibold text-sky-400 flex items-center gap-1.5">
+                        <TbCode size={13} /> indicator_template.py
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(CI_TEMPLATE);
+                            setCiTemplateCopied(true);
+                            setTimeout(() => setCiTemplateCopied(false), 2000);
+                          }}
+                          className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-sky-400 hover:text-sky-300 border border-sky-800/60 hover:border-sky-600 rounded-lg transition-colors"
+                        >
+                          {ciTemplateCopied ? <TbCheck size={13} /> : <TbClipboardCopy size={13} />}
+                          {ciTemplateCopied ? "Kopyalandı!" : "Kopyala"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setCiForm(f => ({ ...f, script: CI_TEMPLATE })); setCiShowTemplate(false); }}
+                          className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-amber-400 hover:text-amber-300 border border-amber-800/60 hover:border-amber-600 rounded-lg transition-colors"
+                        >
+                          <TbPlus size={13} /> Forma Yükle
+                        </button>
+                      </div>
+                    </div>
+                    <pre className="text-xs text-emerald-300 bg-[#050a0e] p-4 overflow-x-auto max-h-80 overflow-y-auto leading-relaxed whitespace-pre font-mono">
+                      {CI_TEMPLATE}
+                    </pre>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <input
                     type="text" placeholder="Kod (örn: my_rsi_cross)"
