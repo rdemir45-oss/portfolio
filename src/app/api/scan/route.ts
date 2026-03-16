@@ -38,19 +38,38 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(`${SCAN_API_URL}/api/scan/public`, {
-      headers: { "X-API-Key": SCAN_API_KEY },
-      next: { revalidate: 0 },
-    });
+    const headers = { "X-API-Key": SCAN_API_KEY };
 
-    if (!res.ok) {
+    // Standart tarama + özel indikatör sonuçlarını paralel çek
+    const [scanRes, indRes] = await Promise.all([
+      fetch(`${SCAN_API_URL}/api/scan/public`, { headers, next: { revalidate: 0 } }),
+      fetch(`${SCAN_API_URL}/api/indicators/latest`, { headers, next: { revalidate: 0 } }),
+    ]);
+
+    if (!scanRes.ok) {
       return NextResponse.json(
         { error: "Tarama servisi yanıt vermedi." },
-        { status: res.status }
+        { status: scanRes.status }
       );
     }
 
-    const data = await res.json();
+    const data = await scanRes.json();
+
+    // Özel indikatör kategorilerini mevcut listeyle birleştir
+    if (indRes.ok) {
+      const indData = await indRes.json();
+      const indCats: { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[] =
+        indData.categories ?? [];
+      if (indCats.length > 0) {
+        const existingKeys = new Set((data.categories ?? []).map((c: { key: string }) => c.key));
+        for (const cat of indCats) {
+          if (!existingKeys.has(cat.key)) {
+            data.categories = [...(data.categories ?? []), cat];
+          }
+        }
+      }
+    }
+
     return NextResponse.json(injectTriangleSplit(data));
   } catch {
     return NextResponse.json(
