@@ -344,8 +344,7 @@ function buildCardSvg(cat: ScanCategory): string {
   ${extra}
   <!-- Footer -->
   <line x1="48" y1="591" x2="1152" y2="591" stroke="#1e293b" stroke-width="1"/>
-  <text x="48" y="616" font-family="Arial,sans-serif" font-size="16" fill="#334155">recepdemirborsa.com</text>
-  <text x="1152" y="616" font-family="Arial,sans-serif" font-size="16" fill="#475569" text-anchor="end">#bist #borsa #hisse</text>
+  <text x="600" y="616" font-family="Arial,sans-serif" font-size="16" fill="#475569" text-anchor="middle">#bist #borsa #hisse</text>
 </svg>`;
 }
 
@@ -477,8 +476,7 @@ function ShareModal({
             </div>
             {/* Footer */}
             <div className="px-4 py-2 border-t border-slate-800/40 flex justify-between">
-              <span className="text-[10px] text-slate-600">recepdemirborsa.com</span>
-              <span className="text-[10px] text-slate-700">#bist #borsa</span>
+              <span className="text-[10px] text-slate-600">#bist #borsa #hisse</span>
             </div>
           </div>
 
