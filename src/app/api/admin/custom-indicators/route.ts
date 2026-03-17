@@ -161,8 +161,16 @@ export async function PATCH(req: NextRequest) {
 
       // Scan API'nin döndürdüğü tickers listesini bul (çeşitli format desteği)
       let tickers: string[] = [];
-      if (Array.isArray(data.tickers))   tickers = data.tickers;
+      // Format 1 (birincil): { keys: { "signal_key": ["TICKER1", "TICKER2"] } }
+      if (data.keys && typeof data.keys === "object" && !Array.isArray(data.keys)) {
+        const allTickers = Object.values(data.keys as Record<string, string[]>).flat();
+        tickers = Array.from(new Set(allTickers));
+      }
+      // Format 2: { tickers: ["TICKER1", ...] }
+      else if (Array.isArray(data.tickers)) tickers = data.tickers;
+      // Format 3: { passed: ["TICKER1", ...] }
       else if (Array.isArray(data.passed)) tickers = data.passed;
+      // Format 4: { results: [{ symbol, passed }, ...] }
       else if (Array.isArray(data.results)) {
         tickers = data.results
           .filter((r: { passed?: boolean }) => r.passed)

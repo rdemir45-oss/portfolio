@@ -120,11 +120,8 @@ export async function GET(req: NextRequest) {
       const existingIdx = mergedIndCats.findIndex((c) => c.key === stored.key);
       if (existingIdx === -1) {
         mergedIndCats.push(stored);
-      } else if (
-        // Supabase'deki sonuç daha fazla hisse içeriyorsa veya Scan API 0 döndürdüyse override et
-        (stored.stocks as unknown[]).length > 0 &&
-        mergedIndCats[existingIdx].count === 0
-      ) {
+      } else if (stored.count > 0) {
+        // Supabase = manuel "Tara" sonucu — Scan API /latest'ten her zaman öncelikli
         mergedIndCats[existingIdx] = stored;
       }
     }
