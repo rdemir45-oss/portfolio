@@ -110,22 +110,37 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Supabase'deki kaydedilmiş sonuçları arka plan yedek olarak ekle
-    // (Scan API hâlâ boşsa veya bazı key'ler eksikse)
+    // Supabase'deki kaydedilmiş sonuçları çek — bunlar primary source
+    // (Scan API /latest endpoint'i manual scan sonuçlarını yansıtmıyor)
     const storedCats = await getStoredIndicatorCats();
-    if (storedCats.length > 0) {
-      const scanApiKeys = new Set(indCats.map((c) => c.key));
-      for (const cat of storedCats) {
-        if (!scanApiKeys.has(cat.key)) indCats.push(cat);
+
+    // indCats ile storedCats'i birleştir: Supabase'de gerçek sonuç varsa o öncelikli
+    const mergedIndCats = [...indCats];
+    for (const stored of storedCats) {
+      const existingIdx = mergedIndCats.findIndex((c) => c.key === stored.key);
+      if (existingIdx === -1) {
+        mergedIndCats.push(stored);
+      } else if (
+        // Supabase'deki sonuç daha fazla hisse içeriyorsa veya Scan API 0 döndürdüyse override et
+        (stored.stocks as unknown[]).length > 0 &&
+        mergedIndCats[existingIdx].count === 0
+      ) {
+        mergedIndCats[existingIdx] = stored;
       }
     }
 
     // Standart tarama içinde olmayan custom indikatör kategorilerini ekle
-    if (indCats.length > 0) {
+    if (mergedIndCats.length > 0) {
       const existingKeys = new Set((data.categories ?? []).map((c: { key: string }) => c.key));
-      for (const cat of indCats) {
+      for (const cat of mergedIndCats) {
         if (!existingKeys.has(cat.key)) {
           data.categories = [...(data.categories ?? []), cat];
+        } else {
+          // Var olan key için Supabase verisi daha iyiyse güncelle
+          const idx = (data.categories ?? []).findIndex((c: { key: string }) => c.key === cat.key);
+          if (idx !== -1 && (data.categories[idx] as { count: number }).count === 0 && cat.count > 0) {
+            data.categories[idx] = cat;
+          }
         }
       }
     }
