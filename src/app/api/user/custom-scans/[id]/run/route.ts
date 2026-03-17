@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import crypto from "crypto";
 import type { ScanRule, ScanRuleGroup } from "@/lib/supabase";
 
@@ -85,7 +85,7 @@ export async function POST(
   const { id } = await params;
 
   // Taramayı çek + sahiplik kontrolü
-  const { data: scan } = await supabase
+  const { data: scan } = await supabaseAdmin
     .from("custom_scans")
     .select("id, scan_type, rules, python_code, is_active")
     .eq("id", id)
@@ -135,7 +135,7 @@ export async function POST(
   }
 
   // Sonucu kaydet
-  await supabase.from("custom_scan_results").insert({
+  await supabaseAdmin.from("custom_scan_results").insert({
     scan_id: scan.id,
     user_id: user.id,
     tickers,

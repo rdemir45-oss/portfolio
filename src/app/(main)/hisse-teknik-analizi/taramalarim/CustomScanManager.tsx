@@ -574,27 +574,39 @@ function ScanCard({
 
 // ── Ana bileşen ───────────────────────────────────────────────────────────────
 export default function CustomScanManager() {
-  const router                    = useRouter();
-  const [scans,    setScans]      = useState<DbCustomScan[]>([]);
-  const [loading,  setLoading]    = useState(true);
-  const [modal,    setModal]      = useState<{ open: boolean; scan: DbCustomScan | null }>({ open: false, scan: null });
-  const [planInfo, setPlanInfo]   = useState<{ plan: string; limit: number } | null>(null);
+  const router                      = useRouter();
+  const [scans,      setScans]      = useState<DbCustomScan[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [modal,      setModal]      = useState<{ open: boolean; scan: DbCustomScan | null }>({ open: false, scan: null });
+  const [planInfo,   setPlanInfo]   = useState<{ plan: string; limit: number } | null>(null);
 
   const PLAN_LIMITS: Record<string, number> = { starter: 1, pro: 5, elite: 20 };
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [scansRes, profileRes] = await Promise.all([
-      fetch("/api/user/custom-scans"),
-      fetch("/api/user/profile"),
-    ]);
-    if (scansRes.status === 401) { router.push("/hisse-teknik-analizi/login"); return; }
-    const profileJson = profileRes.ok ? await profileRes.json() : {};
-    const scansData = await scansRes.json();
-    setScans(Array.isArray(scansData) ? scansData : []);
-    const plan = profileJson.plan ?? "starter";
-    setPlanInfo({ plan, limit: PLAN_LIMITS[plan] ?? 1 });
-    setLoading(false);
+    setFetchError(null);
+    try {
+      const [scansRes, profileRes] = await Promise.all([
+        fetch("/api/user/custom-scans"),
+        fetch("/api/user/profile"),
+      ]);
+      if (scansRes.status === 401) { router.push("/hisse-teknik-analizi/login"); return; }
+      const scansData   = await scansRes.json();
+      const profileJson = profileRes.ok ? await profileRes.json() : {};
+      if (!scansRes.ok) {
+        setFetchError(scansData.error ?? "Taramalar yüklenirken hata oluştu. Sayfayı yenileyin.");
+        setLoading(false);
+        return;
+      }
+      setScans(Array.isArray(scansData) ? scansData : []);
+      const plan = profileJson.plan ?? "starter";
+      setPlanInfo({ plan, limit: PLAN_LIMITS[plan] ?? 1 });
+    } catch {
+      setFetchError("Bağlantı hatası. Sayfayı yenileyin.");
+    } finally {
+      setLoading(false);
+    }
   }, [router]);
 
   useEffect(() => { load(); }, [load]);
@@ -628,6 +640,15 @@ export default function CustomScanManager() {
       {loading ? (
         <div className="flex items-center justify-center py-20 text-slate-600">
           <TbLoader2 size={24} className="animate-spin" />
+        </div>
+      ) : fetchError ? (
+        <div className="rounded-xl border border-red-800/50 bg-red-950/20 p-6 text-center">
+          <TbAlertCircle size={28} className="mx-auto text-red-500 mb-3" />
+          <p className="text-red-400 text-sm font-medium mb-1">Veriler yüklenemedi</p>
+          <p className="text-red-600 text-xs mb-4">{fetchError}</p>
+          <button onClick={load} className="text-sm text-red-400 hover:text-red-300 transition-colors">
+            Tekrar dene →
+          </button>
         </div>
       ) : scans.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">

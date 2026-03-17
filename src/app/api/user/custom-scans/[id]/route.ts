@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import crypto from "crypto";
 import type { ScanRuleGroup } from "@/lib/supabase";
 import { validateScanCode } from "@/lib/scan-code-validator";
@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
 
   // Sahiplik kontrolü
-  const { data: existing } = await supabase
+  const { data: existing } = await supabaseAdmin
     .from("custom_scans")
     .select("id")
     .eq("id", id)
@@ -107,7 +107,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("custom_scans")
     .update(updates)
     .eq("id", id)
@@ -126,7 +126,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
   const { id } = await params;
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("custom_scans")
     .delete()
     .eq("id", id)

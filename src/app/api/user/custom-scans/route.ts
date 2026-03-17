@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import crypto from "crypto";
 import type { ScanRuleGroup } from "@/lib/supabase";
 import { validateScanCode } from "@/lib/scan-code-validator";
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
   const user = getUser(req);
   if (!user) return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("custom_scans")
     .select("id, name, description, scan_type, rules, python_code, is_active, created_at, updated_at")
     .eq("user_id", user.id)
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
 
   // Plan limiti kontrolü
-  const { data: userRow } = await supabase
+  const { data: userRow } = await supabaseAdmin
     .from("scanner_users")
     .select("plan")
     .eq("id", user.id)
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   const plan  = userRow?.plan ?? "starter";
   const limit = PLAN_LIMITS[plan] ?? 1;
 
-  const { count } = await supabase
+  const { count } = await supabaseAdmin
     .from("custom_scans")
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id);
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
     const validation = validateScanCode(pythonCode);
     if (!validation.valid) return NextResponse.json({ error: validation.error }, { status: 422 });
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("custom_scans")
       .insert({
         user_id: user.id, name, description,
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
   // Kural modu
   if (!validateRules(b.rules)) return NextResponse.json({ error: "Geçersiz kural yapısı." }, { status: 422 });
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("custom_scans")
     .insert({ user_id: user.id, name, description, scan_type: "rules", rules: b.rules })
     .select("id, name, description, scan_type, rules, python_code, is_active, created_at, updated_at")

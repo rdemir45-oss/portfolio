@@ -5,6 +5,15 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholde
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Server-taraflı API route'larında kullanılır — RLS'yi atlar.
+// Railway'e SUPABASE_SERVICE_ROLE_KEY env değişkeni eklenmeli.
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+export const supabaseAdmin = supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+  : supabase; // Anahtar yoksa anon client'a düşer (geliştirme ortamı)
+
 export type PostCategory = "Teknik Analiz" | "Eğitim" | "Duyuru";
 
 export interface DbPost {
