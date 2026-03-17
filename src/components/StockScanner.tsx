@@ -1174,11 +1174,24 @@ export default function StockScanner() {
   }, [load, loadProfile, loadGroups]);
 
   // Kategorileri grupla — admin'de tanımlı sıraya göre sırala
+  // API henüz sonuç döndürmemiş key'ler için placeholder kategori oluşturulur
   const groupedData = activeGroups.map((group) => ({
     group,
-    cats: (data?.categories ?? [])
-      .filter((c) => group.keys.includes(c.key))
-      .sort((a, b) => group.keys.indexOf(a.key) - group.keys.indexOf(b.key)),
+    cats: group.keys.map((keyId) => {
+      const found = (data?.categories ?? []).find((c) => c.key === keyId);
+      if (found) return found;
+      // API'den henüz sonuç gelmemiş — placeholder
+      const keyDef = (remoteGroups ?? [])
+        .flatMap((g) => g.keys ?? [])
+        .find((k) => k.id === keyId);
+      return {
+        key: keyId,
+        label: keyDef?.label ?? keyId,
+        emoji: "📊",
+        count: 0,
+        stocks: [],
+      } as ScanCategory;
+    }),
   }));
   // Grubun hiç key'i yoksa gizle (boş/tanımsız grup); key tanımlıysa sinyal olmasa da göster
   const visibleGroupData = groupedData.filter(({ group }) => group.keys.length > 0);
