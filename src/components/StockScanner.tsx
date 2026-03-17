@@ -741,7 +741,10 @@ function CategoryCard({
               ) : (
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {(cat.stocks ?? []).map((row) => {
-                    const ticker = typeof row === "string" ? row : row.ticker;
+                    // ticker her zaman string olmalı — bozuk/nested objeden koru
+                    const rawTicker = typeof row === "string" ? row : row.ticker;
+                    const ticker = typeof rawTicker === "string" ? rawTicker : null;
+                    if (!ticker) return null; // obje ticker → atla
                     const change = typeof row === "object" ? row.changePct : undefined;
                     return (
                       <React.Fragment key={ticker}>

@@ -45,6 +45,24 @@ async function resyncIndicatorsToScanApi(): Promise<void> {
 }
 
 /** Supabase'den son tarama sonuçlarını çeker (Scan API yedek kaynağı). */
+/** Stok objesini güvenli { ticker: string } formatına dönüştürür. */
+function normalizeStock(item: unknown): { ticker: string } | null {
+  if (typeof item === "string" && item.length > 0) return { ticker: item };
+  if (item && typeof item === "object") {
+    const obj = item as Record<string, unknown>;
+    // Zaten normalize edilmiş: { ticker: "THYAO" }
+    if (typeof obj.ticker === "string") return { ticker: obj.ticker };
+    // Bozuk kayıt: { ticker: { ticker: "THYAO", rsi: ... } }
+    if (obj.ticker && typeof obj.ticker === "object") {
+      const inner = obj.ticker as Record<string, unknown>;
+      if (typeof inner.ticker === "string") return { ticker: inner.ticker };
+      if (typeof inner.symbol === "string") return { ticker: inner.symbol };
+    }
+    if (typeof obj.symbol === "string") return { ticker: obj.symbol };
+  }
+  return null;
+}
+
 async function getStoredIndicatorCats(): Promise<
   { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[]
 > {
@@ -54,9 +72,15 @@ async function getStoredIndicatorCats(): Promise<
       .select("last_scan_categories")
       .not("last_scanned_at", "is", null);
     if (!data) return [];
-    return data.flatMap(
+    const cats = data.flatMap(
       (row) => (Array.isArray(row.last_scan_categories) ? row.last_scan_categories : [])
-    );
+    ) as { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[];
+    // Bozuk stocks verilerini normalize et (obje içinde obje ticker durumu)
+    return cats.map((cat) => ({
+      ...cat,
+      stocks: (cat.stocks ?? []).map(normalizeStock).filter(Boolean),
+      count: (cat.stocks ?? []).map(normalizeStock).filter(Boolean).length,
+    }));
   } catch { return []; }
 }
 
