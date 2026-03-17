@@ -148,13 +148,15 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   trending_down:  <HiTrendingDown size={16} />,
 };
 
+const VALID_COLORS = new Set<string>(["emerald", "sky", "violet", "amber", "rose"]);
+
 function dbGroupToGroupDef(g: DbScanGroup): GroupDef {
   return {
     id: g.id,
     label: g.label,
-    desc: g.description,
+    desc: g.description ?? "",
     icon: ICON_MAP[g.icon] ?? <TbChartLine size={16} />,
-    color: g.color as GroupDef["color"],
+    color: (VALID_COLORS.has(g.color) ? g.color : "emerald") as GroupDef["color"],
     keys: (g.keys ?? []).map((k) => k.id),
   };
 }
@@ -541,7 +543,7 @@ function SidebarGroupItem({
   isActive: boolean;
   onSelect: () => void;
 }) {
-  const c = colorMap[group.color];
+  const c = colorMap[group.color] ?? colorMap["emerald"];
   const totalSignals = cats.reduce((a, cat) => a + cat.count, 0);
   const activeCats = cats.filter((cat) => cat.count > 0).length;
   const progress = cats.length > 0 ? Math.round((activeCats / cats.length) * 100) : 0;
@@ -598,7 +600,7 @@ function ResultPanel({
   toggleFavorite: (ticker: string) => void;
   onShare: (cat: ScanCategory) => void;
 }) {
-  const c = colorMap[group.color];
+  const c = colorMap[group.color] ?? colorMap["emerald"];
   const totalSignals = cats.reduce((a, cat) => a + cat.count, 0);
 
   return (
@@ -674,7 +676,7 @@ function CategoryCard({
   onShare: (cat: ScanCategory) => void;
 }) {
   const [open, setOpen] = useState(cat.count > 0);
-  const c = colorMap[color];
+  const c = colorMap[color] ?? colorMap["emerald"];
 
   return (
     <div className={`rounded-xl border overflow-hidden transition-colors ${
