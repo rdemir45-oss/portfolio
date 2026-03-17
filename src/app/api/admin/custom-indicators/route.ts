@@ -147,6 +147,48 @@ export async function PATCH(req: NextRequest) {
     headers: { "X-API-Key": SCAN_API_KEY },
   });
   const data = await res.json();
+
+  // ── Sonuçları Supabase'e kaydet (Railway restart'a karşı kalıcı yedek) ──
+  // Scan API yanıt formatlarını normalize et
+  if (res.ok) {
+    try {
+      // İndikatörün adını çek (kategori label'ı için)
+      const { data: ci } = await supabaseAdmin
+        .from("custom_indicators")
+        .select("name")
+        .eq("code", code)
+        .single();
+
+      // Scan API'nin döndürdüğü tickers listesini bul (çeşitli format desteği)
+      let tickers: string[] = [];
+      if (Array.isArray(data.tickers))   tickers = data.tickers;
+      else if (Array.isArray(data.passed)) tickers = data.passed;
+      else if (Array.isArray(data.results)) {
+        tickers = data.results
+          .filter((r: { passed?: boolean }) => r.passed)
+          .map((r: { symbol?: string; ticker?: string }) => r.symbol ?? r.ticker ?? "")
+          .filter(Boolean);
+      }
+
+      const stocks = tickers.map((t: string) => ({ ticker: t }));
+      const categories = [{
+        key:    code,
+        label:  ci?.name ?? code,
+        emoji:  "📊",
+        count:  stocks.length,
+        stocks,
+      }];
+
+      await supabaseAdmin
+        .from("custom_indicators")
+        .update({
+          last_scan_categories: categories,
+          last_scanned_at: new Date().toISOString(),
+        })
+        .eq("code", code);
+    } catch { /* best-effort — ana yanıtı etkileme */ }
+  }
+
   return NextResponse.json(data, { status: res.status });
 }
 

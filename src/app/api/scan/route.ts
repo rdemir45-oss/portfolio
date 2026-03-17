@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { injectTriangleSplit } from "@/lib/scan-transform";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 
 const SCAN_API_URL          = process.env.SCAN_API_URL ?? "";
 const SCAN_API_KEY          = process.env.SCAN_API_KEY ?? "";
@@ -28,7 +28,7 @@ function isValidViewerToken(token: string): boolean {
 async function resyncIndicatorsToScanApi(): Promise<void> {
   if (!SCAN_API_URL || !SCAN_API_KEY) return;
   try {
-    const { data: storedCIs } = await supabase
+    const { data: storedCIs } = await supabaseAdmin
       .from("custom_indicators")
       .select("code, name, description, script");
     if (!storedCIs || storedCIs.length === 0) return;
@@ -42,6 +42,22 @@ async function resyncIndicatorsToScanApi(): Promise<void> {
       )
     );
   } catch { /* ignore — best-effort */ }
+}
+
+/** Supabase'den son tarama sonuçlarını çeker (Scan API yedek kaynağı). */
+async function getStoredIndicatorCats(): Promise<
+  { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[]
+> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("custom_indicators")
+      .select("last_scan_categories")
+      .not("last_scanned_at", "is", null);
+    if (!data) return [];
+    return data.flatMap(
+      (row) => (Array.isArray(row.last_scan_categories) ? row.last_scan_categories : [])
+    );
+  } catch { return []; }
 }
 
 export async function GET(req: NextRequest) {
@@ -63,8 +79,8 @@ export async function GET(req: NextRequest) {
 
     // Standart tarama + özel indikatör sonuçlarını paralel çek
     const [scanRes, indRes] = await Promise.all([
-      fetch(`${SCAN_API_URL}/api/scan/public`, { headers, next: { revalidate: 0 } }),
-      fetch(`${SCAN_API_URL}/api/indicators/latest`, { headers, next: { revalidate: 0 } }),
+      fetch(`${SCAN_API_URL}/api/scan/public`, { headers, cache: "no-store" }),
+      fetch(`${SCAN_API_URL}/api/indicators/latest`, { headers, cache: "no-store" }),
     ]);
 
     if (!scanRes.ok) {
@@ -77,29 +93,39 @@ export async function GET(req: NextRequest) {
     const data = await scanRes.json();
 
     // Özel indikatör kategorilerini mevcut listeyle birleştir
+    let indCats: { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[] = [];
+
     if (indRes.ok) {
       const indData = await indRes.json();
-      let indCats: { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[] =
-        indData.categories ?? [];
+      indCats = indData.categories ?? [];
+    }
 
-      // Scan API'de hiç indikatör yoksa Supabase'den yeniden kaydet (arka planda)
-      // ve bu istekte sonuçları dahil et
-      if (indCats.length === 0) {
-        await resyncIndicatorsToScanApi();
-        // Yeniden yüklendikten sonra tekrar sorgula
-        const indRes2 = await fetch(`${SCAN_API_URL}/api/indicators/latest`, { headers, next: { revalidate: 0 } });
-        if (indRes2.ok) {
-          const indData2 = await indRes2.json();
-          indCats = indData2.categories ?? [];
-        }
+    // Scan API boş döndüyse: indikatörleri yeniden kaydet (memory reset sonrası)
+    if (indCats.length === 0) {
+      await resyncIndicatorsToScanApi();
+      const indRes2 = await fetch(`${SCAN_API_URL}/api/indicators/latest`, { headers, cache: "no-store" });
+      if (indRes2.ok) {
+        const indData2 = await indRes2.json();
+        indCats = indData2.categories ?? [];
       }
+    }
 
-      if (indCats.length > 0) {
-        const existingKeys = new Set((data.categories ?? []).map((c: { key: string }) => c.key));
-        for (const cat of indCats) {
-          if (!existingKeys.has(cat.key)) {
-            data.categories = [...(data.categories ?? []), cat];
-          }
+    // Supabase'deki kaydedilmiş sonuçları arka plan yedek olarak ekle
+    // (Scan API hâlâ boşsa veya bazı key'ler eksikse)
+    const storedCats = await getStoredIndicatorCats();
+    if (storedCats.length > 0) {
+      const scanApiKeys = new Set(indCats.map((c) => c.key));
+      for (const cat of storedCats) {
+        if (!scanApiKeys.has(cat.key)) indCats.push(cat);
+      }
+    }
+
+    // Standart tarama içinde olmayan custom indikatör kategorilerini ekle
+    if (indCats.length > 0) {
+      const existingKeys = new Set((data.categories ?? []).map((c: { key: string }) => c.key));
+      for (const cat of indCats) {
+        if (!existingKeys.has(cat.key)) {
+          data.categories = [...(data.categories ?? []), cat];
         }
       }
     }
