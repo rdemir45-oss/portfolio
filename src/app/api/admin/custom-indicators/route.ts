@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 
 const SCAN_API_URL = process.env.SCAN_API_URL ?? "";
 const SCAN_API_KEY = process.env.SCAN_API_KEY ?? "";
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
   if (code) {
     // Tek indikatör — Supabase'den çek (script dahil)
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("custom_indicators")
       .select("code, name, description, script")
       .eq("code", code)
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Liste — Supabase'den çek
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("custom_indicators")
     .select("code, name, description")
     .order("created_at", { ascending: true });
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 1. Supabase'e kaydet (kaynak of truth)
-  const { error } = await supabase.from("custom_indicators").upsert(
+  const { error } = await supabaseAdmin.from("custom_indicators").upsert(
     { code, name, description, script, updated_at: new Date().toISOString() },
     { onConflict: "code" }
   );
@@ -105,7 +105,7 @@ export async function DELETE(req: NextRequest) {
   if (!code) return NextResponse.json({ error: "code parametresi gerekli." }, { status: 400 });
 
   // 1. Supabase'den sil
-  const { error } = await supabase.from("custom_indicators").delete().eq("code", code);
+  const { error } = await supabaseAdmin.from("custom_indicators").delete().eq("code", code);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // 2. Scan API'den sil (best-effort)
@@ -134,7 +134,7 @@ export async function PATCH(req: NextRequest) {
 
   if (!checkRes || !checkRes.ok) {
     // Scan API'de yok — Supabase'den yükle ve kaydet
-    const { data: ci } = await supabase
+    const { data: ci } = await supabaseAdmin
       .from("custom_indicators")
       .select("code, name, description, script")
       .eq("code", code)
@@ -163,13 +163,13 @@ export async function PUT(req: NextRequest) {
   // 1. Supabase güncelle
   if (newCode !== oldCode) {
     // Kod değiştiyse: eski kaydı sil, yeni kayıt oluştur
-    await supabase.from("custom_indicators").delete().eq("code", oldCode);
-    const { error } = await supabase.from("custom_indicators").insert(
+    await supabaseAdmin.from("custom_indicators").delete().eq("code", oldCode);
+    const { error } = await supabaseAdmin.from("custom_indicators").insert(
       { code: newCode, name, description, script }
     );
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   } else {
-    const { error } = await supabase.from("custom_indicators").update(
+    const { error } = await supabaseAdmin.from("custom_indicators").update(
       { name, description, script, updated_at: new Date().toISOString() }
     ).eq("code", oldCode);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

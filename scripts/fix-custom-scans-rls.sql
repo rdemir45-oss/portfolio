@@ -1,14 +1,20 @@
--- ── Fix: custom_scans RLS politikaları düzeltmesi ──────────────────────────
+-- ── Fix: custom_scans + custom_indicators RLS politikaları düzeltmesi ───────
 -- Sorun: Eski politikalar Supabase JWT auth kullanıyordu, ama uygulama kendi
 --         HMAC-SHA256 token sistemiyle çalışıyor (Supabase Auth DEĞİL).
 --         Bu yüzden anon key ile yapılan tüm işlemler RLS tarafından bloke ediliyordu.
--- Çözüm: Kullanıcı sahipliği API katmanında (HMAC token doğrulaması) kontrol edildiği
---         için yalnızca service_role politikası yeterlidir.
+-- Çözüm: Kullanıcı/admin sahipliği API katmanında kontrol edildiği için
+--         yalnızca service_role politikası yeterlidir.
 --         Supabase Dashboard > SQL Editor'de bu scripti çalıştırın.
 
 -- Eski, kırık politikaları kaldır
 DROP POLICY IF EXISTS "custom_scans_owner"        ON custom_scans;
 DROP POLICY IF EXISTS "custom_scan_results_owner" ON custom_scan_results;
+
+-- custom_indicators: service_role politikasını zorla ekle
+ALTER TABLE custom_indicators ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "custom_indicators_service" ON custom_indicators;
+CREATE POLICY "custom_indicators_service" ON custom_indicators
+  TO service_role USING (true) WITH CHECK (true);
 
 -- Service role politikalarının var olduğundan emin ol (zaten varsa hata vermez)
 DO $$
