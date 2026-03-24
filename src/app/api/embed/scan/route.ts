@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { injectTriangleSplit } from "@/lib/scan-transform";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,23 +22,18 @@ const ALLOWED_HOSTS = new Set([
 function isAllowedOrigin(req: NextRequest): boolean {
   const origin  = req.headers.get("origin")  ?? "";
   const referer = req.headers.get("referer") ?? "";
-  const reqHost = (req.headers.get("host") ?? "").split(":")[0]; // port'u at
+  const reqHost = (req.headers.get("host") ?? "").split(":")[0];
 
-  // Origin boşsa → same-origin fetch (tarayıcı embed sayfasından)
-  // Referer header'ından host doğrulaması yap; eksikse reddet
   if (!origin) {
     if (!referer) return false;
     try {
       const refHost = new URL(referer).hostname;
-      // Referer, isteğin yapıldığı sunucunun kendisiyse geç
       return refHost === reqHost || ALLOWED_HOSTS.has(refHost);
     } catch { return false; }
   }
 
-  // Cross-origin: izin verilenler listesinde olmalı
   if (ALLOWED_ORIGINS.has(origin)) return true;
 
-  // Ek güvence: Referer da kontrol et
   try {
     const refHost = new URL(referer).hostname;
     return ALLOWED_HOSTS.has(refHost);
@@ -55,6 +51,42 @@ function corsHeaders(req: NextRequest) {
   };
 }
 
+/** Supabase'deki custom_indicators son tarama sonuçlarını çeker */
+function normalizeStock(item: unknown): { ticker: string } | null {
+  if (typeof item === "string" && item.length > 0) return { ticker: item };
+  if (item && typeof item === "object") {
+    const obj = item as Record<string, unknown>;
+    if (typeof obj.ticker === "string") return { ticker: obj.ticker };
+    if (obj.ticker && typeof obj.ticker === "object") {
+      const inner = obj.ticker as Record<string, unknown>;
+      if (typeof inner.ticker === "string") return { ticker: inner.ticker };
+      if (typeof inner.symbol === "string") return { ticker: inner.symbol };
+    }
+    if (typeof obj.symbol === "string") return { ticker: obj.symbol };
+  }
+  return null;
+}
+
+async function getStoredIndicatorCats(): Promise<
+  { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[]
+> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("custom_indicators")
+      .select("last_scan_categories")
+      .not("last_scanned_at", "is", null);
+    if (!data) return [];
+    const cats = data.flatMap(
+      (row) => (Array.isArray(row.last_scan_categories) ? row.last_scan_categories : [])
+    ) as { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[];
+    return cats.map((cat) => ({
+      ...cat,
+      stocks: (cat.stocks ?? []).map(normalizeStock).filter(Boolean),
+      count: (cat.stocks ?? []).map(normalizeStock).filter(Boolean).length,
+    }));
+  } catch { return []; }
+}
+
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(req) });
 }
@@ -67,7 +99,6 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Embed endpoint rate limit: dakikada 20 istek
   const ip = getClientIp(req);
   const rl = await rateLimit(`embed:${ip}`, { limit: 20, windowSec: 60 });
   if (!rl.success) {
@@ -85,19 +116,60 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(`${SCAN_API_URL}/api/scan/public`, {
-      headers: { "X-API-Key": SCAN_API_KEY },
-      next: { revalidate: 0 },
-    });
+    const headers = { "X-API-Key": SCAN_API_KEY };
 
-    if (!res.ok) {
+    // Standart tarama + özel indikatör sonuçlarını paralel çek
+    const [scanRes, indRes] = await Promise.all([
+      fetch(`${SCAN_API_URL}/api/scan/public`, { headers, cache: "no-store" }),
+      fetch(`${SCAN_API_URL}/api/indicators/latest`, { headers, cache: "no-store" }),
+    ]);
+
+    if (!scanRes.ok) {
       return NextResponse.json(
         { error: "Tarama servisi yanıt vermedi." },
-        { status: res.status, headers: corsHeaders(req) }
+        { status: scanRes.status, headers: corsHeaders(req) }
       );
     }
 
-    return NextResponse.json(injectTriangleSplit(await res.json()), { headers: corsHeaders(req) });
+    const data = await scanRes.json();
+
+    // Özel indikatör kategorilerini al
+    let indCats: { key: string; label: string; emoji: string; count: number; stocks: unknown[] }[] = [];
+    if (indRes.ok) {
+      const indData = await indRes.json();
+      indCats = indData.categories ?? [];
+    }
+
+    // Supabase'deki kaydedilmiş en son tarama sonuçlarını çek
+    const storedCats = await getStoredIndicatorCats();
+
+    // Supabase verisi öncelikli olarak indCats ile birleştir
+    const mergedIndCats = [...indCats];
+    for (const stored of storedCats) {
+      const existingIdx = mergedIndCats.findIndex((c) => c.key === stored.key);
+      if (existingIdx === -1) {
+        mergedIndCats.push(stored);
+      } else if (stored.count > 0) {
+        mergedIndCats[existingIdx] = stored;
+      }
+    }
+
+    // Birleştirilmiş özel indikatör kategorilerini standart tarama sonucuna ekle
+    if (mergedIndCats.length > 0) {
+      const existingKeys = new Set((data.categories ?? []).map((c: { key: string }) => c.key));
+      for (const cat of mergedIndCats) {
+        if (!existingKeys.has(cat.key)) {
+          data.categories = [...(data.categories ?? []), cat];
+        } else {
+          const idx = (data.categories ?? []).findIndex((c: { key: string }) => c.key === cat.key);
+          if (idx !== -1 && (data.categories[idx] as { count: number }).count === 0 && cat.count > 0) {
+            data.categories[idx] = cat;
+          }
+        }
+      }
+    }
+
+    return NextResponse.json(injectTriangleSplit(data), { headers: corsHeaders(req) });
   } catch {
     return NextResponse.json(
       { error: "Tarama servisine bağlanılamadı." },
