@@ -7,7 +7,6 @@ import {
   TbUser, TbSearch,
 } from "react-icons/tb";
 import type { DbScannerUser, ScanRule, ScanRuleGroup, RuleIndicator, RuleCondition } from "@/lib/supabase";
-import { validateScanCode } from "@/lib/scan-code-validator";
 
 // ── Seçenek listeleri (CustomScanManager ile aynı) ─────────────────────────────
 const INDICATOR_OPTIONS: { value: RuleIndicator; label: string }[] = [
@@ -165,9 +164,8 @@ export default function UserScansTab({ scannerUsers }: { scannerUsers: DbScanner
     setError(""); setCodeError("");
     if (!form.user_id) { setError("Kullanıcı seçiniz."); return; }
     if (!form.name.trim()) { setError("Tarama adı gerekli."); return; }
-    if (form.scan_type === "python") {
-      const v = validateScanCode(form.python_code);
-      if (!v.valid) { setCodeError(v.error ?? "Kod geçersiz."); return; }
+    if (form.scan_type === "python" && !form.python_code.trim()) {
+      setCodeError("Python kodu boş olamaz."); return;
     }
 
     setSaving(true);

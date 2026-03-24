@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
-import { validateScanCode } from "@/lib/scan-code-validator";
 import type { ScanRule, ScanRuleGroup } from "@/lib/supabase";
 import crypto from "crypto";
 
@@ -104,11 +103,9 @@ export async function POST(
   let requestBody: Record<string, unknown>;
 
   if (scan.scan_type === "python" && scan.python_code) {
-    const validation = validateScanCode(scan.python_code as string);
-    if (!validation.valid) {
-      return NextResponse.json({ error: `Tarama kodu geçersiz: ${validation.error}` }, { status: 422 });
-    }
-    requestBody = { mode: "python", python_code: scan.python_code };
+    // Admin tarafından yazılan tam Python script (import/sys/pandas desteklenir)
+    // validateScanCode uygulanmaz — admin güvenilir taraftır
+    requestBody = { mode: "custom_indicator", python_code: scan.python_code };
   } else {
     const query = rulesToQueryString(scan.rules as ScanRuleGroup);
     requestBody = { query, rules: scan.rules };
