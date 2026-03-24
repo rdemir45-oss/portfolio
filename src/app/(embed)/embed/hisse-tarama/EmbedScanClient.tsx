@@ -87,7 +87,7 @@ const GROUPS: GroupDef[] = [
   },
   {
     id: "rsi", label: "RSI Analizleri", emoji: "📊", color: "sky",
-    keys: ["rsi_os","rsi_ob","rsi_desc_break"],
+    keys: ["rsi_os","rsi_ob"],
   },
   {
     id: "macd", label: "MACD Analizleri", emoji: "〰️", color: "violet",
@@ -102,8 +102,12 @@ const GROUPS: GroupDef[] = [
     keys: ["vol_spike","bb_squeeze"],
   },
   {
+    id: "stochrsi", label: "Stokastik RSI", emoji: "📊", color: "sky",
+    keys: ["stoch_rsi_os","stoch_rsi_crossup"],
+  },
+  {
     id: "bearish", label: "Bearish Formasyonlar", emoji: "📉", color: "rose",
-    keys: ["death_cross","obo_break","ikili_tepe_break","triangle_break_down"],
+    keys: ["death_cross","obo_break","ikili_tepe_break","rsi_desc_break","triangle_break_down"],
   },
 ];
 
@@ -111,6 +115,7 @@ const BULL_KEYS = new Set([
   "rsi_os","vol_spike","macd_cross","bb_squeeze","strong_up","golden_cross","tobo_break",
   "channel_break","triangle_break_up","trend_break","ikili_dip_break","fibo_setup",
   "rsi_asc_break","rsi_tobo","hbreak","price_desc_break","harmonic_long","rsi_pos_div",
+  "stoch_rsi_os","stoch_rsi_crossup",
 ]);
 
 const REVERSAL_KEYS = new Set(["ikili_dip_break","harmonic_long"]);
