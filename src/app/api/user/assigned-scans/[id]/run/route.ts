@@ -120,7 +120,21 @@ export async function POST(
     });
     if (res.ok) {
       const data = await res.json();
-      tickers = Array.isArray(data.tickers) ? data.tickers : [];
+      // Format 1: { tickers: ["TICKER1", ...] }
+      if (Array.isArray(data.tickers)) {
+        tickers = data.tickers;
+      }
+      // Format 2: { results: [{ symbol, passed }, ...] } — custom_indicator modu
+      else if (Array.isArray(data.results)) {
+        tickers = data.results
+          .filter((r: { passed?: boolean }) => r.passed)
+          .map((r: { symbol?: string; ticker?: string }) => r.symbol ?? r.ticker ?? "")
+          .filter(Boolean);
+      }
+      // Format 3: { passed: ["TICKER1", ...] }
+      else if (Array.isArray(data.passed)) {
+        tickers = data.passed;
+      }
     }
   } catch {
     // Motor yanıt vermezse boş döner
