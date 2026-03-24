@@ -26,6 +26,16 @@ interface ScanData {
   lastRun: number | null;
   minutesAgo: number | null;
   categories: ScanCategory[];
+  groups?: DbGroupDef[];
+}
+
+interface DbGroupDef {
+  id: string;
+  label: string;
+  emoji: string;
+  color: string;
+  keys: { id: string; label: string }[];
+  is_bull: boolean;
 }
 
 // ── Renk haritası (Tailwind) ──────────────────────────────────────────────────
@@ -252,7 +262,28 @@ export default function EmbedScanClient() {
 
   // ── Hesaplamalar ──
   const allCats = data?.categories ?? [];
-  const groupedData = GROUPS.map((group) => ({
+
+  // DB'den gelen gruplar varsa onları kullan, yoksa statik GROUPS fallback
+  const VALID_COLORS = new Set(["emerald", "sky", "violet", "amber", "rose"]);
+  const activeGroups: GroupDef[] = (data?.groups && data.groups.length > 0)
+    ? data.groups.map((g) => ({
+        id: g.id,
+        label: g.label,
+        emoji: g.emoji,
+        color: (VALID_COLORS.has(g.color) ? g.color : "emerald") as GroupDef["color"],
+        keys: g.keys.map((k) => k.id),
+      }))
+    : GROUPS;
+
+  const activeBullKeys: Set<string> = (data?.groups && data.groups.length > 0)
+    ? new Set(data.groups.filter((g) => g.is_bull).flatMap((g) => g.keys.map((k) => k.id)))
+    : BULL_KEYS;
+
+  const activeReversalKeys: Set<string> = (data?.groups && data.groups.length > 0)
+    ? new Set() // DB'den reversal hesabı yapılmıyor, sıfır tutuyoruz
+    : REVERSAL_KEYS;
+
+  const groupedData = activeGroups.map((group) => ({
     group,
     cats: allCats
       .filter((c) => group.keys.includes(c.key))
@@ -260,10 +291,10 @@ export default function EmbedScanClient() {
   }));
 
   const totalSignals    = allCats.reduce((a, c) => a + c.count, 0);
-  const reversalSignals = allCats.filter((c) => REVERSAL_KEYS.has(c.key)).reduce((a, c) => a + c.count, 0);
-  const bullRaw         = allCats.filter((c) => BULL_KEYS.has(c.key)).reduce((a, c) => a + c.count, 0);
+  const reversalSignals = allCats.filter((c) => activeReversalKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
+  const bullRaw         = allCats.filter((c) => activeBullKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
   const bullSignals     = bullRaw - reversalSignals;
-  const bearSignals     = allCats.filter((c) => !BULL_KEYS.has(c.key) || c.key === "harmonic_short").reduce((a, c) => a + c.count, 0);
+  const bearSignals     = allCats.filter((c) => !activeBullKeys.has(c.key) || c.key === "harmonic_short").reduce((a, c) => a + c.count, 0);
 
   // Ortak sinyaller
   const tickerMap = new Map<string, { count: number; isBull: boolean }>();
@@ -271,7 +302,7 @@ export default function EmbedScanClient() {
     for (const row of cat.stocks ?? []) {
       const ticker = typeof row === "string" ? row : row.ticker;
       const ex = tickerMap.get(ticker);
-      if (ex) { ex.count++; } else { tickerMap.set(ticker, { count: 1, isBull: BULL_KEYS.has(cat.key) }); }
+      if (ex) { ex.count++; } else { tickerMap.set(ticker, { count: 1, isBull: activeBullKeys.has(cat.key) }); }
     }
   }
   const overlapping = [...tickerMap.entries()].filter(([, v]) => v.count >= 2).sort((a, b) => b[1].count - a[1].count);

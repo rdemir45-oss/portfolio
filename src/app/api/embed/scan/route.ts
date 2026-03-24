@@ -51,6 +51,19 @@ function corsHeaders(req: NextRequest) {
   };
 }
 
+/** Supabase'deki scan_groups tablosundan aktif grupları çeker */
+async function getScanGroups(): Promise<
+  { id: string; label: string; emoji: string; icon: string; color: string; keys: { id: string; label: string }[]; display_order: number; is_bull: boolean }[]
+> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("scan_groups")
+      .select("id, label, emoji, icon, color, keys, display_order, is_bull")
+      .order("display_order", { ascending: true });
+    return data ?? [];
+  } catch { return []; }
+}
+
 /** Supabase'deki custom_indicators son tarama sonuçlarını çeker */
 function normalizeStock(item: unknown): { ticker: string } | null {
   if (typeof item === "string" && item.length > 0) return { ticker: item };
@@ -118,10 +131,11 @@ export async function GET(req: NextRequest) {
   try {
     const headers = { "X-API-Key": SCAN_API_KEY };
 
-    // Standart tarama + özel indikatör sonuçlarını paralel çek
-    const [scanRes, indRes] = await Promise.all([
+    // Standart tarama + özel indikatör sonuçlarını + grupları paralel çek
+    const [scanRes, indRes, groups] = await Promise.all([
       fetch(`${SCAN_API_URL}/api/scan/public`, { headers, cache: "no-store" }),
       fetch(`${SCAN_API_URL}/api/indicators/latest`, { headers, cache: "no-store" }),
+      getScanGroups(),
     ]);
 
     if (!scanRes.ok) {
@@ -169,7 +183,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(injectTriangleSplit(data), { headers: corsHeaders(req) });
+    const result = injectTriangleSplit(data);
+    return NextResponse.json({ ...result, groups }, { headers: corsHeaders(req) });
   } catch {
     return NextResponse.json(
       { error: "Tarama servisine bağlanılamadı." },
