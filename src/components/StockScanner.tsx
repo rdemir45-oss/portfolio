@@ -1317,6 +1317,13 @@ export default function StockScanner() {
                   <TbSearch className="w-4 h-4" />
                   <span className="hidden sm:inline">Taramalarım</span>
                 </a>
+                <a
+                  href="/hisse-teknik-analizi/ozel-taramalarim"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-violet-800/60 text-violet-400 bg-violet-950/20 hover:border-violet-500 hover:bg-violet-950/40 transition-colors text-sm"
+                >
+                  <TbSearch className="w-4 h-4" />
+                  <span className="hidden sm:inline">Özel Taramalarım</span>
+                </a>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-800 transition-colors text-sm"

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff, TbKey, TbCopy, TbWifi, TbWifiOff, TbCode, TbPlayerPlay, TbCircleCheck, TbAlertCircle, TbChevronDown, TbChevronUp, TbClipboardCopy } from "react-icons/tb";
 import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser, DbLiveStream } from "@/lib/supabase";
+import UserScansTab from "./UserScansTab";
 
 const catColors: Record<string, string> = {
   "Teknik Analiz": "text-emerald-400 bg-emerald-950/40 border-emerald-800/60",
@@ -96,7 +97,7 @@ export default function AdminDashboard() {
   const [streamForm, setStreamForm] = useState({ title: "", stream_at: "", description: "" });
   const [streamSaving, setStreamSaving] = useState(false);
   const [deletingStream, setDeletingStream] = useState<number | null>(null);
-  const [tab, setTab] = useState<"posts" | "indicators" | "messages" | "whatsapp" | "scannerUsers" | "liveStreams" | "customIndicators">("posts");
+  const [tab, setTab] = useState<"posts" | "indicators" | "messages" | "whatsapp" | "scannerUsers" | "liveStreams" | "customIndicators" | "userScans">("posts");
   type CustomIndicator = { code: string; name: string; description: string; keys: { id: string; label: string }[] };
   type ScanGroup = { id: string; label: string; color: string; emoji: string; is_bull: boolean; keys: { id: string; label: string }[] };
   const [customIndicators, setCustomIndicators] = useState<CustomIndicator[]>([]);
@@ -599,6 +600,12 @@ export default function AdminDashboard() {
               ? "bg-amber-950/40 border-amber-800 text-amber-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
             <span className="flex items-center gap-1.5"><TbCode size={14} />Özel Taramalar ({customIndicators.length})</span>
+          </button>
+          <button onClick={() => setTab("userScans")}
+            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "userScans"
+              ? "bg-violet-950/40 border-violet-800 text-violet-400"
+              : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
+            <span className="flex items-center gap-1.5"><TbUser size={14} />Üye Taramaları</span>
           </button>
         </div>
 
@@ -1533,6 +1540,11 @@ export default function AdminDashboard() {
                 </div>
               )}
             </>
+          )}
+
+          {/* User Scans Tab */}
+          {tab === "userScans" && (
+            <UserScansTab scannerUsers={scannerUsers} />
           )}
         </div>
       </div>

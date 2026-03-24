@@ -64,6 +64,35 @@ export const indicatorUpdateSchema = indicatorWriteSchema.partial().extend({
   id: z.number().int(),
 });
 
+// ── Admin: kullanıcıya özel tarama yaz/güncelle ──────────────────────────────
+const scanRuleSchema = z.object({
+  indicator: z.enum(["RSI", "EMA", "SMA", "MACD", "VOLUME", "PRICE_CHANGE", "BOLLINGER", "STOCH"]),
+  condition: z.enum(["lt", "gt", "lte", "gte", "cross_above", "cross_below", "price_above", "price_below", "squeeze", "spike"]),
+  period:     z.number().int().min(1).max(200).optional(),
+  period2:    z.number().int().min(1).max(200).optional(),
+  value:      z.number().optional(),
+  multiplier: z.number().optional(),
+});
+
+const scanRuleGroupSchema = z.object({
+  operator: z.enum(["AND", "OR"]),
+  rules:    z.array(scanRuleSchema).min(1).max(10),
+});
+
+export const adminScanWriteSchema = z.object({
+  user_id:     z.string().uuid(),
+  name:        z.string().trim().min(1).max(80),
+  description: z.string().trim().max(300).optional(),
+  scan_type:   z.enum(["rules", "python"]),
+  rules:       scanRuleGroupSchema.optional(),
+  python_code: z.string().max(5000).optional(),
+  is_active:   z.boolean().optional().default(true),
+});
+
+export const adminScanUpdateSchema = adminScanWriteSchema.partial().omit({ user_id: true });
+
 export type ContactInput = z.infer<typeof contactSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type AdminScanWriteInput = z.infer<typeof adminScanWriteSchema>;
+export type AdminScanUpdateInput = z.infer<typeof adminScanUpdateSchema>;

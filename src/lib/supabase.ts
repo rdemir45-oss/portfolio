@@ -161,3 +161,30 @@ export interface DbCustomScanResult {
   tickers: string[];
   ran_at: string;
 }
+
+// ── Admin tarafından kullanıcılara atanan taramalar ──────────────────────────
+
+export interface DbAdminAssignedScan {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string | null;
+  scan_type: "rules" | "python";
+  rules?: ScanRuleGroup | null;
+  python_code?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  // join alanları (GET /api/user/assigned-scans'dan gelir)
+  last_result?: DbAdminAssignedScanResult | null;
+  // admin listesinde kullanıcı adı göstermek için
+  username?: string;
+}
+
+export interface DbAdminAssignedScanResult {
+  id: string;
+  scan_id: string;
+  user_id: string;
+  tickers: string[];
+  ran_at: string;
+}

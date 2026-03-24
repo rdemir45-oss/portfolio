@@ -60,35 +60,38 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Hisse Teknik Analizi koruma ───────────────────────────────────────
-  if (
-    pathname === "/hisse-teknik-analizi/login" ||
-    pathname === "/hisse-teknik-analizi/register"
-  ) {
-    return NextResponse.next();
-  }
-
-  if (pathname.startsWith("/hisse-teknik-analizi")) {
-    const token = request.cookies.get("viewer_token")?.value;
-    const secret = process.env.SCAN_SESSION_SECRET;
-    const valid = secret && token ? await verifyHmacToken(token, secret, false) : false;
-    if (!valid) {
-      return NextResponse.redirect(
-        new URL("/hisse-teknik-analizi/login", request.url)
-      );
+  // LOCAL DEV: üye girişi devre dışı
+  if (process.env.NODE_ENV !== "development") {
+    if (
+      pathname === "/hisse-teknik-analizi/login" ||
+      pathname === "/hisse-teknik-analizi/register"
+    ) {
+      return NextResponse.next();
     }
 
-    // Abonelik süresi kontrolü: token payload'ındaki sub_exp alanını kontrol et
-    try {
-      const dot = token!.lastIndexOf(".");
-      const payloadB64 = token!.slice(0, dot).replace(/-/g, "+").replace(/_/g, "/");
-      const decoded = JSON.parse(atob(payloadB64));
-      if (typeof decoded.sub_exp === "number" && Math.floor(Date.now() / 1000) >= decoded.sub_exp) {
-        const loginUrl = new URL("/hisse-teknik-analizi/login", request.url);
-        loginUrl.searchParams.set("expired", "1");
-        return NextResponse.redirect(loginUrl);
+    if (pathname.startsWith("/hisse-teknik-analizi")) {
+      const token = request.cookies.get("viewer_token")?.value;
+      const secret = process.env.SCAN_SESSION_SECRET;
+      const valid = secret && token ? await verifyHmacToken(token, secret, false) : false;
+      if (!valid) {
+        return NextResponse.redirect(
+          new URL("/hisse-teknik-analizi/login", request.url)
+        );
       }
-    } catch {
-      // sub_exp alanı yok veya parse hatası → abonelik kontrolü atlanır
+
+      // Abonelik süresi kontrolü: token payload'ındaki sub_exp alanını kontrol et
+      try {
+        const dot = token!.lastIndexOf(".");
+        const payloadB64 = token!.slice(0, dot).replace(/-/g, "+").replace(/_/g, "/");
+        const decoded = JSON.parse(atob(payloadB64));
+        if (typeof decoded.sub_exp === "number" && Math.floor(Date.now() / 1000) >= decoded.sub_exp) {
+          const loginUrl = new URL("/hisse-teknik-analizi/login", request.url);
+          loginUrl.searchParams.set("expired", "1");
+          return NextResponse.redirect(loginUrl);
+        }
+      } catch {
+        // sub_exp alanı yok veya parse hatası → abonelik kontrolü atlanır
+      }
     }
   }
 
