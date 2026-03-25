@@ -16,8 +16,8 @@ export default function Home() {
   return (
     <>
       <LiveStreamBanner />
-      <Hero />
       <CustomStrategyFlow />
+      <Hero />
       <SiteFeatures />
       <Indicators />
       {/* <Pricing /> */}

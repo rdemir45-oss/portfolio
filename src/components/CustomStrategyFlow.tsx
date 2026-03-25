@@ -194,11 +194,11 @@ export default function CustomStrategyFlow() {
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight mb-5">
             Kendi Stratejini{" "}
             <span className="bg-gradient-to-r from-emerald-400 via-emerald-300 to-green-300 bg-clip-text text-transparent">
-              Bize Söyle
+              Tasarla
             </span>
             <br />
             <span className="text-3xl sm:text-4xl lg:text-5xl text-slate-300 font-bold">
-              Biz Sana Tarasın
+              Biz Kodlayalım — Sonuçlar Sana Gelsin
             </span>
           </h2>
 
