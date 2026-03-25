@@ -517,55 +517,55 @@ export default function AdminDashboard() {
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-black text-white">Admin Paneli</h1>
             <p className="text-slate-400 text-sm mt-1">İçerikleri buradan yönet.</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <Link
               href="/admin/scan-groups"
-              className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-emerald-400 transition-colors"
+              className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-400 hover:text-emerald-400 transition-colors px-3 py-2 border border-slate-800 rounded-xl"
             >
               <TbChartCandle size={15} />
-              Tarama Grupları
+              <span>Gruplar</span>
             </Link>
             <Link
               href="/"
-              className="text-sm text-slate-400 hover:text-white transition-colors"
+              className="text-xs sm:text-sm text-slate-400 hover:text-white transition-colors px-3 py-2 border border-slate-800 rounded-xl"
               target="_blank"
             >
-              Siteyi Gör ↗
+              Site ↗
             </Link>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-800 text-sm transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-800 text-xs sm:text-sm transition-colors"
             >
-              <TbLogout size={16} />
+              <TbLogout size={15} />
               Çıkış
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        {/* Tabs — mobilde yatay scroll */}
+        <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <button onClick={() => setTab("posts")}
-            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "posts"
+            className={`shrink-0 px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${tab === "posts"
               ? "bg-emerald-950/40 border-emerald-800 text-emerald-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
             Yazılar ({posts.length})
           </button>
           <button onClick={() => setTab("indicators")}
-            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "indicators"
+            className={`shrink-0 px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${tab === "indicators"
               ? "bg-emerald-950/40 border-emerald-800 text-emerald-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
-            İndikatörler ({indicators.length})
+            İndikatör ({indicators.length})
           </button>
           <button onClick={() => setTab("messages")}
-            className={`relative px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "messages"
+            className={`relative shrink-0 px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${tab === "messages"
               ? "bg-emerald-950/40 border-emerald-800 text-emerald-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
-            Mesajlar ({messages.length})
+            Mesaj ({messages.length})
             {messages.filter(m => !m.read).length > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
                 {messages.filter(m => !m.read).length}
@@ -573,13 +573,13 @@ export default function AdminDashboard() {
             )}
           </button>
           <button onClick={() => setTab("whatsapp")}
-            className={`relative px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "whatsapp"
+            className={`relative shrink-0 px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${tab === "whatsapp"
               ? "bg-green-950/40 border-green-800 text-green-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
             WhatsApp ({whatsappRequests.length})
           </button>
           <button onClick={() => setTab("scannerUsers")}
-            className={`relative px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "scannerUsers"
+            className={`relative shrink-0 px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${tab === "scannerUsers"
               ? "bg-sky-950/40 border-sky-800 text-sky-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
             Üyeler ({scannerUsers.length})
@@ -590,22 +590,22 @@ export default function AdminDashboard() {
             )}
           </button>
           <button onClick={() => setTab("liveStreams")}
-            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "liveStreams"
+            className={`shrink-0 px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${tab === "liveStreams"
               ? "bg-violet-950/40 border-violet-800 text-violet-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
-            Yayınlar ({liveStreams.length})
+            Yayın ({liveStreams.length})
           </button>
           <button onClick={() => setTab("customIndicators")}
-            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "customIndicators"
+            className={`shrink-0 px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${tab === "customIndicators"
               ? "bg-amber-950/40 border-amber-800 text-amber-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
-            <span className="flex items-center gap-1.5"><TbCode size={14} />Özel Taramalar ({customIndicators.length})</span>
+            <span className="flex items-center gap-1"><TbCode size={13} />Tarama ({customIndicators.length})</span>
           </button>
           <button onClick={() => setTab("userScans")}
-            className={`px-5 py-2 rounded-xl text-sm font-semibold border transition-all ${tab === "userScans"
+            className={`shrink-0 px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${tab === "userScans"
               ? "bg-violet-950/40 border-violet-800 text-violet-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
-            <span className="flex items-center gap-1.5"><TbUser size={14} />Üye Taramaları</span>
+            <span className="flex items-center gap-1"><TbUser size={13} />Üye Tarama</span>
           </button>
         </div>
 
