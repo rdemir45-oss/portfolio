@@ -3,7 +3,7 @@ import "../globals.css";
 // Embed sayfaları için bağımsız root layout — ana layout'taki Navbar/Footer uygulanmaz.
 export default function EmbedLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr">
+    <html lang="tr" style={{ overflow: "hidden" }}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

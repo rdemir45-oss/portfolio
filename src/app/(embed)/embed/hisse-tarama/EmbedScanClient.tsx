@@ -285,7 +285,7 @@ export default function EmbedScanClient() {
   const selectedEntry = groupedData.find((x) => x.group.id === effectiveId) ?? groupedData[0] ?? null;
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-[#050a0e] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div ref={containerRef} className="bg-[#050a0e] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* ── Başlık ── */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
