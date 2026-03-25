@@ -88,11 +88,15 @@ export function verifyViewerToken(
   // 3. Abonelik süresi (sub_exp) — zorunlu alan; yoksa veya geçmişse reddet
   const now = Math.floor(Date.now() / 1000);
   if (typeof decoded.sub_exp !== "number") {
-    // Eski format token'lar (sub_exp yok) artık kabul edilmiyor
-    return { ok: false, status: 403, error: "Abonelik süresi doğrulanamadı. Lütfen tekrar giriş yapın." };
+    // Eski format token (sub_exp hiç yok) — yeniden giriş yap
+    return { ok: false, status: 401, error: "Oturumunuz geçersiz. Lütfen tekrar giriş yapın." };
+  }
+  if (decoded.sub_exp === 0) {
+    // sub_exp = 0: kullanıcının aboneliği yok — admin atamasını bekliyor
+    return { ok: false, status: 403, error: "Aktif aboneliğiniz bulunmuyor. Yönetici ile iletişime geçin." };
   }
   if (now >= decoded.sub_exp) {
-    return { ok: false, status: 403, error: "Aboneliğinizin süresi dolmuştur." };
+    return { ok: false, status: 403, error: "Aboneliğinizin süresi dolmuştur. Yenileme için yönetici ile iletişime geçin." };
   }
 
   return {

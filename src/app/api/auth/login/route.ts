@@ -19,10 +19,10 @@ function createViewerToken(
   id: string,
   username: string,
   secret: string,
-  sub_exp: number | null
+  sub_exp: number  // 0 = abonelik yok / süresi dolmuş; > 0 = geçerli bitiş zamanı
 ): string {
   const payload = Buffer.from(
-    JSON.stringify(sub_exp !== null ? { id, username, sub_exp } : { id, username })
+    JSON.stringify({ id, username, sub_exp })
   ).toString("base64url");
   const sig = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
   return `${payload}.${sig}`;
@@ -95,16 +95,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Abonelik süresi kontrolü
-  if (resolvedUser.subscription_expires_at) {
-    const expiresAt = new Date(resolvedUser.subscription_expires_at).getTime();
-    if (Date.now() >= expiresAt) {
-      return NextResponse.json(
-        { error: "Abonelik süreniz dolmuştur. Yenileme için yönetici ile iletişime geçin." },
-        { status: 403 }
-      );
-    }
-  }
+  // Abonelik süresi kontrolünü LOGIN'de yapmıyoruz.
+  // Kullanıcı her zaman giriş yapabilmeli; abonelik kontrolü scanner sayfalarında (API route'larında) yapılır.
+  // Bu sayede süresi dolmuş kullanıcılar sisteme girebilir, admin ile iletişim kurabilir.
 
   const secret = process.env.SCAN_SESSION_SECRET;
   if (!secret) {
@@ -114,15 +107,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // sub_exp: abonelik bitiş zamanı (Unix saniye)
+  // null ise 0 kullanıyoruz → token HMAC açısından geçerli ama scanner API'leri "süresi dolmuş" döndürür.
+  // Bu sayede null-aboneli kullanıcılar giriş yapabilir; scanner sayfasına girince düzgün hata görür.
   const sub_exp = resolvedUser.subscription_expires_at
     ? Math.floor(new Date(resolvedUser.subscription_expires_at).getTime() / 1000)
-    : null;
+    : 0;
 
   const token = createViewerToken(resolvedUser.id, resolvedUser.username, secret, sub_exp);
 
-  // maxAge: abonelik bitiş süresi varsa ona göre, yoksa 30 gün
-  const maxAge = sub_exp
-    ? Math.max(sub_exp - Math.floor(Date.now() / 1000), 60)
+  // maxAge: abonelik varsa bitiş süresine kadar, yoksa 30 gün (profil / admin erişimi için)
+  const nowSec = Math.floor(Date.now() / 1000);
+  const maxAge = sub_exp > nowSec
+    ? sub_exp - nowSec
     : 60 * 60 * 24 * 30;
 
   const res = NextResponse.json({ ok: true });
