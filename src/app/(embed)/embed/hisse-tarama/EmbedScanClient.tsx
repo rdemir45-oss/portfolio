@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 
 // ── Tipler ────────────────────────────────────────────────────────────────────
 interface StockRow {
@@ -241,7 +241,20 @@ export default function EmbedScanClient() {
   const [data, setData]         = useState<ScanData | null>(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);  const containerRef = useRef<HTMLDivElement>(null);
+
+  // İçerik yüksekliğini parent iframe'e bildir (Orion sitesi iframe'i otomatik boyutlandırır)
+  useEffect(() => {
+    const sendHeight = () => {
+      const h = containerRef.current?.scrollHeight ?? document.body.scrollHeight;
+      window.parent.postMessage({ type: "embed-resize", height: h }, "*");
+    };
+    // İlk yükleme + içerik değişikliği
+    sendHeight();
+    const ro = new ResizeObserver(sendHeight);
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [data, loading, error]);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -311,7 +324,7 @@ export default function EmbedScanClient() {
   const selectedEntry = groupedData.find((x) => x.group.id === effectiveId) ?? groupedData[0] ?? null;
 
   return (
-    <div className="min-h-screen bg-[#050a0e] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div ref={containerRef} className="min-h-screen bg-[#050a0e] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* ── Başlık ── */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">

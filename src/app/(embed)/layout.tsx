@@ -18,6 +18,8 @@ export default function EmbedLayout({ children }: { children: React.ReactNode })
         fontSize: "14px",
         lineHeight: "1.5",
         WebkitFontSmoothing: "antialiased",
+        // Scrollün iframe içinde değil parent sayfada olması için taşan içeriği göster
+        overflow: "hidden",
       }}>
         {children}
       </body>
