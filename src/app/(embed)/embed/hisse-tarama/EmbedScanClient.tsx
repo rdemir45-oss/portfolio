@@ -361,46 +361,76 @@ export default function EmbedScanClient() {
       {!loading && !error && data && (
         <div>
 
-          {/* Yatay Tab Çubuğu */}
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4" style={{ scrollbarWidth: "none" }}>
+          {/* Kategori Grid */}
+          <div className="grid grid-cols-2 gap-2 mb-5">
             {groupedData.map(({ group, cats }) => {
               const total = cats.reduce((a, x) => a + x.count, 0);
+              const active = cats.filter((x) => x.count > 0).length;
+              const pct = cats.length > 0 ? Math.round((active / cats.length) * 100) : 0;
               const c = colorMap[group.color];
               const isActive = effectiveId === group.id;
               return (
                 <button
                   key={group.id}
                   onClick={() => setSelectedId(group.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border whitespace-nowrap transition-all duration-150 text-xs font-semibold shrink-0 ${
+                  className={`flex items-center gap-3 px-3 py-3 rounded-xl border text-left transition-all duration-150 ${
                     isActive
-                      ? c.sidebarActive
-                      : "border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 bg-slate-900/30"
+                      ? `${c.sidebarActive} ${c.bg}`
+                      : "border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-800/40"
                   }`}
                 >
-                  <span>{group.emoji}</span>
-                  <span>{group.label}</span>
-                  {total > 0 && (
-                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                      isActive ? c.badge : "bg-slate-800/60 text-slate-500"
-                    }`}>{total}</span>
-                  )}
+                  <span className={`shrink-0 text-xl p-2 rounded-xl border ${isActive ? c.icon : "text-slate-500 border-slate-700/50 bg-slate-800/40"}`}>
+                    {group.emoji}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className={`text-xs font-bold truncate ${isActive ? c.label : "text-slate-300"}`}>
+                        {group.label}
+                      </span>
+                      <span className={`shrink-0 text-xs font-black px-1.5 py-0.5 rounded-full ${
+                        total > 0 ? c.badge : "bg-slate-800/60 text-slate-600"
+                      }`}>{total}</span>
+                    </div>
+                    <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-500 ${c.progress}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className={`text-[10px] mt-0.5 ${isActive ? "text-slate-400" : "text-slate-600"}`}>
+                      {active > 0 ? `${active}/${cats.length} aktif` : "Sinyal yok"}
+                    </p>
+                  </div>
                 </button>
               );
             })}
             {overlapping.length > 0 && (
               <button
                 onClick={() => setSelectedId("__overlapping__")}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border whitespace-nowrap transition-all text-xs font-semibold shrink-0 ${
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl border text-left transition-all duration-150 ${
                   effectiveId === "__overlapping__"
-                    ? "bg-amber-950/50 border-amber-700/60 text-amber-300"
-                    : "border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 bg-slate-900/30"
+                    ? "bg-amber-950/40 border-amber-700/60"
+                    : "border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-800/40"
                 }`}
               >
-                <span>⭐</span>
-                <span>Ortak</span>
-                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                  effectiveId === "__overlapping__" ? "bg-amber-800/60 text-amber-300" : "bg-slate-800/60 text-slate-500"
-                }`}>{overlapping.length}</span>
+                <span className={`shrink-0 text-xl p-2 rounded-xl border ${
+                  effectiveId === "__overlapping__"
+                    ? "text-amber-400 bg-amber-950/50 border-amber-800/50"
+                    : "text-slate-500 border-slate-700/50 bg-slate-800/40"
+                }`}>⭐</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className={`text-xs font-bold ${effectiveId === "__overlapping__" ? "text-amber-300" : "text-slate-300"}`}>
+                      Ortak Sinyaller
+                    </span>
+                    <span className={`text-xs font-black px-1.5 py-0.5 rounded-full ${
+                      effectiveId === "__overlapping__" ? "bg-amber-800/60 text-amber-300" : "bg-slate-800/60 text-slate-400"
+                    }`}>{overlapping.length}</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-slate-800 overflow-hidden">
+                    <div className="h-full rounded-full bg-amber-500 w-full" />
+                  </div>
+                  <p className={`text-[10px] mt-0.5 ${effectiveId === "__overlapping__" ? "text-slate-400" : "text-slate-600"}`}>
+                    2+ kategoride
+                  </p>
+                </div>
               </button>
             )}
           </div>
