@@ -2,34 +2,71 @@
  * Kullanıcının yazdığı Python tarama kodunu güvenlik açısından doğrular.
  * AST parse kullanmıyoruz (Node.js ortamı), bunun yerine whitelist/blacklist
  * yaklaşımıyla tehlikeli kalıpları reddediyoruz.
+ *
+ * Güvenlik katmanları:
+ * 1. Unicode normalizasyonu (NFKC) — görünmez/homoglyph karakter bypass engeli
+ * 2. Inline yorum stripping — yorumlar sonraki kontrolleri etkilemesin diye temizlenir
+ * 3. Blacklist pattern kontrolü (tehlikeli fonksiyonlar, modüller, döngüler)
+ * 4. Whitelist fonksiyon kontrolü — yalnızca izin verilenler
+ * 5. signal = ... zorunluluğu
  */
 
 // ── Yasaklı kalıplar ──────────────────────────────────────────────────────────
 const FORBIDDEN: { pattern: RegExp; reason: string }[] = [
-  { pattern: /\bimport\b/,              reason: "import kullanılamaz" },
-  { pattern: /__import__/,              reason: "__import__ kullanılamaz" },
-  { pattern: /\bexec\b/,               reason: "exec kullanılamaz" },
-  { pattern: /\beval\b/,               reason: "eval kullanılamaz" },
-  { pattern: /\bopen\s*\(/,            reason: "open() kullanılamaz" },
-  { pattern: /\b__[a-zA-Z_]+__/,       reason: "__ ile başlayan özel metodlar kullanılamaz" },
-  { pattern: /\bos\s*\.\s*/,           reason: "os modülü kullanılamaz" },
-  { pattern: /\bsys\s*\.\s*/,          reason: "sys modülü kullanılamaz" },
-  { pattern: /\bsubprocess\b/,         reason: "subprocess kullanılamaz" },
-  { pattern: /\bsocket\b/,             reason: "socket kullanılamaz" },
-  { pattern: /\brequests\b/,           reason: "requests kullanılamaz" },
-  { pattern: /\burllib\b/,             reason: "urllib kullanılamaz" },
-  { pattern: /\bhttp\b/,               reason: "http kullanılamaz" },
-  { pattern: /\bbuiltins\b/,           reason: "builtins kullanılamaz" },
-  { pattern: /\bglobals\s*\(/,         reason: "globals() kullanılamaz" },
-  { pattern: /\blocals\s*\(/,          reason: "locals() kullanılamaz" },
-  { pattern: /\bvars\s*\(/,            reason: "vars() kullanılamaz" },
-  { pattern: /\bgetattr\s*\(/,         reason: "getattr() kullanılamaz" },
-  { pattern: /\bsetattr\s*\(/,         reason: "setattr() kullanılamaz" },
-  { pattern: /\bcompile\s*\(/,         reason: "compile() kullanılamaz" },
-  { pattern: /\bprint\s*\(/,           reason: "print() kullanılamaz" },
-  { pattern: /\binput\s*\(/,           reason: "input() kullanılamaz" },
-  { pattern: /\bwhile\s+True\b/,       reason: "Sonsuz döngü kullanılamaz" },
-  { pattern: /\bfor\s+\w+\s+in\b/,     reason: "for döngüsü kullanılamaz" },
+  // Modül erişimi
+  { pattern: /\bimport\b/i,                reason: "import kullanılamaz" },
+  { pattern: /__import__/,                 reason: "__import__ kullanılamaz" },
+  // Kod çalıştırma
+  { pattern: /\bexec\s*\(/,               reason: "exec() kullanılamaz" },
+  { pattern: /\beval\s*\(/,               reason: "eval() kullanılamaz" },
+  { pattern: /\bcompile\s*\(/,            reason: "compile() kullanılamaz" },
+  // Dosya/ağ erişimi
+  { pattern: /\bopen\s*\(/,               reason: "open() kullanılamaz" },
+  { pattern: /\bsocket\b/,               reason: "socket kullanılamaz" },
+  { pattern: /\brequests\b/,             reason: "requests kullanılamaz" },
+  { pattern: /\burllib\b/,               reason: "urllib kullanılamaz" },
+  { pattern: /\bhttp\b/,                 reason: "http kullanılamaz" },
+  // Tehlikeli built-in'ler
+  { pattern: /\bbuiltins\b/,             reason: "builtins kullanılamaz" },
+  { pattern: /\bglobals\s*\(/,           reason: "globals() kullanılamaz" },
+  { pattern: /\blocals\s*\(/,            reason: "locals() kullanılamaz" },
+  { pattern: /\bvars\s*\(/,              reason: "vars() kullanılamaz" },
+  { pattern: /\bgetattr\s*\(/,           reason: "getattr() kullanılamaz" },
+  { pattern: /\bsetattr\s*\(/,           reason: "setattr() kullanılamaz" },
+  { pattern: /\bdelattr\s*\(/,           reason: "delattr() kullanılamaz" },
+  { pattern: /\bhasattr\s*\(/,           reason: "hasattr() kullanılamaz" },
+  { pattern: /\bprint\s*\(/,             reason: "print() kullanılamaz" },
+  { pattern: /\binput\s*\(/,             reason: "input() kullanılamaz" },
+  { pattern: /\b__[a-zA-Z0-9_]+__/,      reason: "Dunder (__xx__) ifadeler kullanılamaz" },
+  // Sistem modülleri
+  { pattern: /\bos\b/,                   reason: "os modülü kullanılamaz" },
+  { pattern: /\bsys\b/,                  reason: "sys modülü kullanılamaz" },
+  { pattern: /\bsubprocess\b/,           reason: "subprocess kullanılamaz" },
+  { pattern: /\bshutil\b/,               reason: "shutil kullanılamaz" },
+  { pattern: /\bpathlib\b/,              reason: "pathlib kullanılamaz" },
+  { pattern: /\bctypes\b/,               reason: "ctypes kullanılamaz" },
+  { pattern: /\bpickle\b/,               reason: "pickle kullanılamaz" },
+  // Döngü/kontrol akışı
+  { pattern: /\bwhile\b/,                reason: "while döngüsü kullanılamaz" },
+  { pattern: /\bfor\s+\w+\s+in\b/,       reason: "for döngüsü kullanılamaz" },
+  // String concat ile bypass: "ex" + "ec", "im"+"port" vb.
+  { pattern: /["']\s*\+\s*["']/,         reason: "String birleştirme ile fonksiyon kaçışı kullanılamaz" },
+  // Hex/octal/unicode escape ile gizleme
+  { pattern: /\\x[0-9a-fA-F]{2}/,        reason: "Hex escape karakteri kullanılamaz" },
+  { pattern: /\\u[0-9a-fA-F]{4}/,        reason: "Unicode escape kullanılamaz" },
+  { pattern: /\\[0-7]{1,3}/,             reason: "Octal escape kullanılamaz" },
+  // lambda ile exec çağrısı
+  { pattern: /\blambda\b/,               reason: "lambda kullanılamaz" },
+  // yield ile jeneratör
+  { pattern: /\byield\b/,               reason: "yield kullanılamaz" },
+  // class tanımı
+  { pattern: /\bclass\b/,               reason: "class tanımı kullanılamaz" },
+  // def tanımı
+  { pattern: /\bdef\s+[a-zA-Z_]/,        reason: "Fonksiyon tanımı kullanılamaz" },
+  // raise ile exception
+  { pattern: /\braise\b/,               reason: "raise kullanılamaz" },
+  // assert
+  { pattern: /\bassert\b/,              reason: "assert kullanılamaz" },
 ];
 
 // Sadece bu fonksiyonlara izin var
@@ -51,31 +88,45 @@ export function validateScanCode(code: string): ValidationResult {
     return { valid: false, error: "Kod boş olamaz." };
   }
 
-  const trimmed = code.trim();
+  // 1. Unicode normalizasyonu — homoglyph/invisible char bypass önlenir
+  //    Örnek: "ᵢmport" → "import" (NFKC normalizasyonu)
+  const normalized = code.normalize("NFKC").trim();
 
-  if (trimmed.length > 3000) {
+  if (normalized.length > 3000) {
     return { valid: false, error: "Kod maksimum 3000 karakter olabilir." };
   }
 
-  const lines = trimmed.split("\n").filter((l) => l.trim() && !l.trim().startsWith("#"));
-  if (lines.length > 50) {
+  // 2. Satır bazında yorum stripping (inline yorumlar dahil)
+  //    "x = rsi(14)  # import os" gibi yorumlar temizlenir
+  const strippedLines = normalized
+    .split("\n")
+    .map((line) => {
+      // String içindeki #'ı korumak zor olduğundan tüm inline yorumları kaldır
+      const hashIdx = line.indexOf("#");
+      return hashIdx >= 0 ? line.slice(0, hashIdx) : line;
+    })
+    .filter((l) => l.trim());
+
+  if (strippedLines.length > 50) {
     return { valid: false, error: "Kod maksimum 50 aktif satır (yorum hariç) olabilir." };
   }
 
-  // Yasaklı kalıpları kontrol et
+  const codeToCheck = strippedLines.join("\n");
+
+  // 3. Blacklist kontrolü (normalize + yorum soyulmuş kod üzerinde)
   for (const { pattern, reason } of FORBIDDEN) {
-    if (pattern.test(trimmed)) {
+    if (pattern.test(codeToCheck)) {
       return { valid: false, error: `Güvenlik kısıtlaması: ${reason}.` };
     }
   }
 
-  // signal = ... ataması zorunlu
-  if (!/\bsignal\s*=/.test(trimmed)) {
+  // 4. signal = ... ataması zorunlu
+  if (!/\bsignal\s*=/.test(codeToCheck)) {
     return { valid: false, error: 'Kod "signal = ..." şeklinde bir sonuç ataması içermelidir.' };
   }
 
-  // Fonksiyon çağrılarını kontrol et (sadece izin verilenlere izin ver)
-  const funcCalls = trimmed.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g);
+  // 5. Fonksiyon whitelist kontrolü (sadece izin verilenler)
+  const funcCalls = codeToCheck.matchAll(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g);
   for (const match of funcCalls) {
     const fnName = match[1];
     if (!ALLOWED_FUNCTIONS.has(fnName)) {

@@ -1,26 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import crypto from "crypto";
 import type { ScanRule, ScanRuleGroup } from "@/lib/supabase";
+import { verifyViewerToken } from "@/lib/viewer-auth";
 
 export const dynamic = "force-dynamic";
 
 const SCAN_API_URL = process.env.SCAN_API_URL ?? "";
 const SCAN_API_KEY = process.env.SCAN_API_KEY ?? "";
 
-function getUserFromToken(token: string, secret: string) {
-  const dot = token.lastIndexOf(".");
-  if (dot === -1) return null;
-  try {
-    const payload  = token.slice(0, dot);
-    const sig      = token.slice(dot + 1);
-    const expected = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
-    if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) return null;
-    const decoded  = JSON.parse(Buffer.from(payload, "base64url").toString("utf-8"));
-    if (!decoded.id || !decoded.username) return null;
-    return { id: decoded.id as string, username: decoded.username as string };
-  } catch { return null; }
-}
 
 // Kural grubunu Python motorunun anlayacağı formata çevir
 function rulesToQueryString(ruleGroup: ScanRuleGroup): string {
@@ -75,12 +62,12 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const token  = req.cookies.get("viewer_token")?.value;
-  const secret = process.env.SCAN_SESSION_SECRET;
-  if (!token || !secret) return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
-
-  const user = getUserFromToken(token, secret);
-  if (!user) return NextResponse.json({ error: "Geçersiz token." }, { status: 401 });
+  const auth = verifyViewerToken(
+    req.cookies.get("viewer_token")?.value,
+    process.env.SCAN_SESSION_SECRET
+  );
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const user = auth.user;
 
   const { id } = await params;
 

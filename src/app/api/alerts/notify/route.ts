@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,14 @@ export async function POST(req: NextRequest) {
   const apiKey = req.headers.get("X-API-Key") ?? "";
   if (!SCAN_API_KEY || apiKey !== SCAN_API_KEY) {
     return NextResponse.json({ error: "Yetkisiz." }, { status: 403 });
+  }
+
+  // Rate limit: Scan API'den saniyede 2'den fazla çağrı gelmemeli
+  // SCAN_API_KEY sızsa bile toplu spam önlenir
+  const ip = getClientIp(req);
+  const rl = await rateLimit(`alerts-notify:${ip}`, { limit: 10, windowSec: 60 });
+  if (!rl.success) {
+    return NextResponse.json({ error: "Çok fazla bildirim isteği." }, { status: 429 });
   }
 
   let body: { categories?: CategoryResult[] };

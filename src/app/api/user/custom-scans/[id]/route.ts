@@ -1,30 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import crypto from "crypto";
 import type { ScanRuleGroup } from "@/lib/supabase";
 import { validateScanCode } from "@/lib/scan-code-validator";
+import { verifyViewerToken } from "@/lib/viewer-auth";
 
 export const dynamic = "force-dynamic";
 
-function getUserFromToken(token: string, secret: string) {
-  const dot = token.lastIndexOf(".");
-  if (dot === -1) return null;
-  try {
-    const payload  = token.slice(0, dot);
-    const sig      = token.slice(dot + 1);
-    const expected = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
-    if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) return null;
-    const decoded  = JSON.parse(Buffer.from(payload, "base64url").toString("utf-8"));
-    if (!decoded.id || !decoded.username) return null;
-    return { id: decoded.id as string, username: decoded.username as string };
-  } catch { return null; }
-}
-
 function getUser(req: NextRequest) {
-  const token  = req.cookies.get("viewer_token")?.value;
-  const secret = process.env.SCAN_SESSION_SECRET;
-  if (!token || !secret) return null;
-  return getUserFromToken(token, secret);
+  return verifyViewerToken(
+    req.cookies.get("viewer_token")?.value,
+    process.env.SCAN_SESSION_SECRET
+  );
 }
 
 function validateRules(rules: unknown): rules is ScanRuleGroup {
@@ -47,8 +33,9 @@ function validateRules(rules: unknown): rules is ScanRuleGroup {
 
 // PATCH — taramayı güncelle
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = getUser(req);
-  if (!user) return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
+  const auth = getUser(req);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const user = auth.user;
 
   const { id } = await params;
 
@@ -121,8 +108,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 // DELETE — taramayı sil
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = getUser(req);
-  if (!user) return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
+  const auth = getUser(req);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const user = auth.user;
 
   const { id } = await params;
 

@@ -84,13 +84,18 @@ export async function middleware(request: NextRequest) {
         const dot = token!.lastIndexOf(".");
         const payloadB64 = token!.slice(0, dot).replace(/-/g, "+").replace(/_/g, "/");
         const decoded = JSON.parse(atob(payloadB64));
-        if (typeof decoded.sub_exp === "number" && Math.floor(Date.now() / 1000) >= decoded.sub_exp) {
+        // sub_exp yoksa ya da geçmişse → giriş sayfasına yönlendir
+        const now = Math.floor(Date.now() / 1000);
+        if (typeof decoded.sub_exp !== "number" || now >= decoded.sub_exp) {
           const loginUrl = new URL("/hisse-teknik-analizi/login", request.url);
           loginUrl.searchParams.set("expired", "1");
           return NextResponse.redirect(loginUrl);
         }
       } catch {
-        // sub_exp alanı yok veya parse hatası → abonelik kontrolü atlanır
+        // Parse hatası → güvenli taraf: reddet
+        return NextResponse.redirect(
+          new URL("/hisse-teknik-analizi/login", request.url)
+        );
       }
     }
   }

@@ -1,28 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import { injectTriangleSplit } from "@/lib/scan-transform";
 import { supabaseAdmin } from "@/lib/supabase";
+import { verifyViewerToken } from "@/lib/viewer-auth";
 
-const SCAN_API_URL          = process.env.SCAN_API_URL ?? "";
-const SCAN_API_KEY          = process.env.SCAN_API_KEY ?? "";
-const SCAN_SESSION_SECRET   = process.env.SCAN_SESSION_SECRET ?? "";
+const SCAN_API_URL = process.env.SCAN_API_URL ?? "";
+const SCAN_API_KEY = process.env.SCAN_API_KEY ?? "";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-function isValidViewerToken(token: string): boolean {
-  if (!SCAN_SESSION_SECRET) return false;
-  const dot = token.lastIndexOf(".");
-  if (dot === -1) return false;
-  try {
-    const payload  = token.slice(0, dot);
-    const sig      = token.slice(dot + 1);
-    const expected = crypto.createHmac("sha256", SCAN_SESSION_SECRET).update(payload).digest("base64url");
-    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
-  } catch {
-    return false;
-  }
-}
 
 /** Supabase'deki tüm custom_indicators kayıtlarını scan API'ye yeniden kaydeder. */
 async function resyncIndicatorsToScanApi(): Promise<void> {
@@ -85,11 +70,12 @@ async function getStoredIndicatorCats(): Promise<
 }
 
 export async function GET(req: NextRequest) {
-  // Sadece giriş yapmış kullanıcılar tarama sonuçlarına erişebilir
-  const token = req.cookies.get("viewer_token")?.value;
-  if (!token || !isValidViewerToken(token)) {
-    return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
-  }
+  // Sadece geçerli token + aktif abonesi olan kullanıcılar erişebilir
+  const auth = verifyViewerToken(
+    req.cookies.get("viewer_token")?.value,
+    process.env.SCAN_SESSION_SECRET
+  );
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   if (!SCAN_API_URL || !SCAN_API_KEY) {
     return NextResponse.json(
