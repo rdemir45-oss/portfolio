@@ -106,13 +106,29 @@ export async function rateLimit(
 
 /**
  * İstemci IP adresini Next.js istek başlıklarından alır.
+ *
+ * Güvenlik notu:
+ * `x-forwarded-for` başlığının İLK değeri istemci tarafından sahtelenebilir:
+ *   X-Forwarded-For: <sahte-ip>, <proxy-ip>
+ * Bu nedenle Railway / Vercel tarafından enjekte edilen `x-real-ip` önceliklidir.
+ * `x-real-ip` mevcut değilse, forwarded-for zincirinin SON değeri alınır
+ * (bu değer güvenilir proxy tarafından eklenir, istemci kontrol edemez).
  */
 export function getClientIp(req: { headers: { get(name: string): string | null } }): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown"
-  );
+  // 1. x-real-ip: Railway/Vercel/Nginx'in inject ettiği gerçek IP (spoof edilemez)
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp && realIp.trim()) return realIp.trim();
+
+  // 2. x-forwarded-for: zincirin SON değeri alınır (güvenilir proxy'nin eklediği)
+  //    İlk değer istemci kontrolündedir — DİKKAT: [0] değil [-1]
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    const last = ips[ips.length - 1];
+    if (last) return last;
+  }
+
+  return "unknown";
 }
 
 /**

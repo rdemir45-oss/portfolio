@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, sent: 0 });
   }
 
-  const { data: users, error } = await supabase
+  const { data: users, error } = await supabaseAdmin
     .from("scanner_users")
     .select("telegram_chat_id, alert_categories")
     .eq("status", "approved")

@@ -18,9 +18,11 @@ export async function GET(req: NextRequest) {
   if (!rl.success) return NextResponse.json({ error: "Çok fazla istek." }, { status: 429 });
 
   // Kullanıcıya atanmış aktif taramaları çek
+  // ÖNEMLİ: python_code ve rules kasıtlı olarak SELECT dışında tutuluyor.
+  // Formüller yalnızca sunucu tarafında çalıştırılır; istemci sadece sonuçları görür.
   const { data: scans, error } = await supabaseAdmin
     .from("admin_assigned_scans")
-    .select("id, name, description, scan_type, rules, python_code, is_active, created_at, updated_at")
+    .select("id, name, description, scan_type, is_active, created_at, updated_at")
     .eq("user_id", auth.user.id)
     .eq("is_active", true)
     .order("created_at", { ascending: true });

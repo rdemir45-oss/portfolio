@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const revalidate = 0;
 
@@ -48,10 +49,23 @@ function splitTriangle(categories: any[]): any[] {
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ key: string }> }
 ) {
   const { key } = await params;
+
+  // Key format validasyonu — yalnızca [a-z0-9_] 1-40 karakter
+  // Log injection, path traversal ve DoS girişimlerini önler
+  if (!key || !/^[a-z0-9_]{1,40}$/.test(key)) {
+    return new Response("Invalid key", { status: 400 });
+  }
+
+  // Rate limit: IP başına 30 istek/dakika — bensiz SCAN_API_KEY bombardımanını önler
+  const ip = getClientIp(req);
+  const rl = await rateLimit(`scan-share:${ip}`, { limit: 30, windowSec: 60 });
+  if (!rl.success) {
+    return new Response("Too many requests", { status: 429 });
+  }
 
   if (!SCAN_API_URL || !SCAN_API_KEY) {
     return new Response("Not configured", { status: 503 });
