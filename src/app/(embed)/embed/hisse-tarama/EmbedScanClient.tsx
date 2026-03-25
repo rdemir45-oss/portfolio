@@ -38,6 +38,59 @@ interface DbGroupDef {
   is_bull: boolean;
 }
 
+// ── Sidebar grup satırı ───────────────────────────────────────────────────────
+function SidebarGroupItem({
+  group, cats, isActive, onSelect,
+}: {
+  group: GroupDef;
+  cats: ScanCategory[];
+  isActive: boolean;
+  onSelect: () => void;
+}) {
+  const c = colorMap[group.color];
+  const totalSignals = cats.reduce((a, cat) => a + cat.count, 0);
+  const activeCats   = cats.filter((cat) => cat.count > 0).length;
+  const progress     = cats.length > 0 ? Math.round((activeCats / cats.length) * 100) : 0;
+
+  return (
+    <button
+      onClick={onSelect}
+      className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 ${
+        isActive
+          ? c.sidebarActive
+          : "border-transparent hover:bg-slate-800/40 text-slate-400 hover:text-slate-200"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <div className={`shrink-0 flex items-center justify-center w-7 h-7 rounded-lg border text-sm ${c.icon}`}>
+          {group.emoji}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <span className={`text-xs font-semibold truncate ${isActive ? c.label : ""}`}>
+              {group.label}
+            </span>
+            <span className={`shrink-0 text-xs font-black px-1.5 py-0.5 rounded-full ${
+              totalSignals > 0 ? c.badge : "bg-slate-800/60 text-slate-600"
+            }`}>
+              {totalSignals}
+            </span>
+          </div>
+          <div className="mt-1 h-0.5 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${c.progress}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-slate-600 mt-0.5">
+            {activeCats > 0 ? `${activeCats}/${cats.length} aktif` : "Sinyal yok"}
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 // ── Renk haritası ─────────────────────────────────────────────────────────────
 const colorMap = {
   emerald: {
@@ -46,6 +99,7 @@ const colorMap = {
     badge: "bg-emerald-800/60 text-emerald-300",
     ticker: "border-emerald-700/50 text-emerald-400 hover:bg-emerald-900/40 bg-emerald-950/30",
     label: "text-emerald-400", divider: "border-emerald-900/30", progress: "bg-emerald-500",
+    sidebarActive: "bg-emerald-950/50 border border-emerald-700/60 text-emerald-300",
   },
   sky: {
     border: "border-sky-800/50", bg: "bg-sky-950/20", headerBg: "bg-sky-950/30",
@@ -53,6 +107,7 @@ const colorMap = {
     badge: "bg-sky-800/60 text-sky-300",
     ticker: "border-sky-700/50 text-sky-400 hover:bg-sky-900/40 bg-sky-950/30",
     label: "text-sky-400", divider: "border-sky-900/30", progress: "bg-sky-500",
+    sidebarActive: "bg-sky-950/50 border border-sky-700/60 text-sky-300",
   },
   violet: {
     border: "border-violet-800/50", bg: "bg-violet-950/20", headerBg: "bg-violet-950/30",
@@ -60,6 +115,7 @@ const colorMap = {
     badge: "bg-violet-800/60 text-violet-300",
     ticker: "border-violet-700/50 text-violet-400 hover:bg-violet-900/40 bg-violet-950/30",
     label: "text-violet-400", divider: "border-violet-900/30", progress: "bg-violet-500",
+    sidebarActive: "bg-violet-950/50 border border-violet-700/60 text-violet-300",
   },
   amber: {
     border: "border-amber-800/50", bg: "bg-amber-950/20", headerBg: "bg-amber-950/30",
@@ -67,6 +123,7 @@ const colorMap = {
     badge: "bg-amber-800/60 text-amber-300",
     ticker: "border-amber-700/50 text-amber-400 hover:bg-amber-900/40 bg-amber-950/30",
     label: "text-amber-400", divider: "border-amber-900/30", progress: "bg-amber-500",
+    sidebarActive: "bg-amber-950/50 border border-amber-700/60 text-amber-300",
   },
   rose: {
     border: "border-rose-800/50", bg: "bg-rose-950/20", headerBg: "bg-rose-950/30",
@@ -74,6 +131,7 @@ const colorMap = {
     badge: "bg-rose-800/60 text-rose-300",
     ticker: "border-rose-700/50 text-rose-400 hover:bg-rose-900/40 bg-rose-950/30",
     label: "text-rose-400", divider: "border-rose-900/30", progress: "bg-rose-500",
+    sidebarActive: "bg-rose-950/50 border border-rose-700/60 text-rose-300",
   },
 };
 
@@ -173,15 +231,15 @@ function CategoryCard({ cat, color }: { cat: ScanCategory; color: keyof typeof c
   );
 }
 
-// ── Grup bölümü — ana sitedeki ResultPanel görünümü ───────────────────────────
-function GroupSection({ group, cats }: { group: GroupDef; cats: ScanCategory[] }) {
+// ── Sağ panel — seçili grubun kategorileri ───────────────────────────────────
+function ResultPanel({ group, cats }: { group: GroupDef; cats: ScanCategory[] }) {
   const c = colorMap[group.color];
   const total = cats.reduce((a, x) => a + x.count, 0);
   return (
-    <div className="mb-6">
+    <div>
       <div className={`flex items-center justify-between px-4 py-3.5 rounded-2xl border mb-3 ${c.border} ${c.headerBg}`}>
         <div className="flex items-center gap-3">
-          <span className={`p-2 rounded-xl border text-base ${c.icon}`}>{group.emoji}</span>
+          <span className={`flex items-center justify-center w-9 h-9 rounded-xl border text-base ${c.icon}`}>{group.emoji}</span>
           <h2 className={`text-sm font-black ${c.label}`}>{group.label}</h2>
         </div>
         <div className="text-right">
@@ -204,9 +262,10 @@ function GroupSection({ group, cats }: { group: GroupDef; cats: ScanCategory[] }
 
 // ── Ana bileşen ────────────────────────────────────────────────────────────────
 export default function EmbedScanClient() {
-  const [data, setData]       = useState<ScanData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [data, setData]         = useState<ScanData | null>(null);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // İçerik yüksekliğini parent iframe'e bildir → iframe scroll bar olmaz
@@ -249,6 +308,9 @@ export default function EmbedScanClient() {
       }))
     : GROUPS;
 
+  // İlk grubu otomatik seç (sadece bir kez)
+  const effectiveSelected = selectedId ?? (activeGroups[0]?.id ?? null);
+
   const activeBullKeys: Set<string> = (data?.groups && data.groups.length > 0)
     ? new Set(data.groups.filter((g) => g.is_bull).flatMap((g) => g.keys.map((k) => k.id)))
     : BULL_KEYS;
@@ -264,21 +326,14 @@ export default function EmbedScanClient() {
       .sort((a, b) => group.keys.indexOf(a.key) - group.keys.indexOf(b.key)),
   }));
 
+  const selectedGroupData = groupedData.find((g) => g.group.id === effectiveSelected) ?? groupedData[0] ?? null;
+
   const totalSignals    = allCats.reduce((a, c) => a + c.count, 0);
   const reversalSignals = allCats.filter((c) => activeReversalKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
   const bullRaw         = allCats.filter((c) => activeBullKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
   const bullSignals     = bullRaw - reversalSignals;
   const bearSignals     = allCats.filter((c) => !activeBullKeys.has(c.key) || c.key === "harmonic_short").reduce((a, c) => a + c.count, 0);
-
-  const tickerMap = new Map<string, { count: number; isBull: boolean }>();
-  for (const cat of allCats) {
-    for (const row of cat.stocks ?? []) {
-      const ticker = typeof row === "string" ? row : row.ticker;
-      const ex = tickerMap.get(ticker);
-      if (ex) { ex.count++; } else { tickerMap.set(ticker, { count: 1, isBull: activeBullKeys.has(cat.key) }); }
-    }
-  }
-  const overlapping = [...tickerMap.entries()].filter(([, v]) => v.count >= 2).sort((a, b) => b[1].count - a[1].count);
+  const donusSignals    = allCats.filter((c) => activeReversalKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
 
   return (
     <div ref={containerRef} className="bg-[#050a0e] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -300,9 +355,9 @@ export default function EmbedScanClient() {
         </button>
       </div>
 
-      {/* İstatistik şeridi */}
+      {/* İstatistik şeridi — ana site ile aynı 5 kutu */}
       {data && !loading && (
-        <div className="mb-5 grid grid-cols-4 gap-2">
+        <div className="mb-5 grid grid-cols-5 gap-2">
           <div className="bg-[#0a1628] border border-slate-800 rounded-xl p-2.5 flex flex-col items-center gap-1">
             <p className="text-lg font-black text-white">{totalSignals}</p>
             <p className="text-[9px] text-slate-600 uppercase tracking-wide">Toplam</p>
@@ -315,10 +370,14 @@ export default function EmbedScanClient() {
             <p className="text-lg font-black text-rose-400">{bearSignals}</p>
             <p className="text-[9px] text-rose-700 uppercase tracking-wide">Bearish</p>
           </div>
+          <div className="bg-violet-950/20 border border-violet-900/40 rounded-xl p-2.5 flex flex-col items-center gap-1">
+            <p className="text-lg font-black text-violet-400">{donusSignals}</p>
+            <p className="text-[9px] text-violet-700 uppercase tracking-wide">Dönüş</p>
+          </div>
           <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-center gap-1.5">
             <div className="flex justify-between text-[9px]">
-              <span className="text-emerald-500 font-semibold">B {totalSignals > 0 ? Math.round((bullRaw / totalSignals) * 100) : 0}%</span>
-              <span className="text-rose-500 font-semibold">S {totalSignals > 0 ? Math.round((bearSignals / totalSignals) * 100) : 0}%</span>
+              <span className="text-emerald-500 font-semibold">BULL {totalSignals > 0 ? Math.round((bullRaw / totalSignals) * 100) : 0}%</span>
+              <span className="text-rose-500 font-semibold">BEAR {totalSignals > 0 ? Math.round((bearSignals / totalSignals) * 100) : 0}%</span>
             </div>
             <div className="h-1.5 rounded-full bg-rose-950/60 overflow-hidden">
               <div
@@ -340,60 +399,47 @@ export default function EmbedScanClient() {
 
       {/* Skeleton */}
       {loading && !data && (
-        <div className="space-y-3">
-          {[...Array(4)].map((_, i) => (
-            <div key={i}>
-              <div className="h-14 rounded-2xl bg-slate-800/40 animate-pulse mb-2" />
-              {[...Array(3)].map((_, j) => <div key={j} className="h-10 rounded-xl bg-slate-800/30 animate-pulse mb-1.5" />)}
-            </div>
-          ))}
+        <div className="flex gap-3">
+          <div className="w-44 shrink-0 space-y-1.5">
+            {[...Array(5)].map((_, i) => <div key={i} className="h-14 rounded-xl bg-slate-800/40 animate-pulse" />)}
+          </div>
+          <div className="flex-1 space-y-2">
+            <div className="h-14 rounded-2xl bg-slate-800/40 animate-pulse mb-3" />
+            {[...Array(4)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-slate-800/30 animate-pulse" />)}
+          </div>
         </div>
       )}
 
-      {/* Tüm gruplar dikey — ana sitedeki sağ panel gibi */}
+      {/* Sol sidebar + sağ panel — ana site görünümü */}
       {!loading && !error && data && (
-        <>
-          {overlapping.length > 0 && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between px-4 py-3.5 rounded-2xl border border-amber-700/50 bg-amber-950/20 mb-3">
-                <div className="flex items-center gap-3">
-                  <span className="p-2 rounded-xl border border-amber-800/50 bg-amber-950/50 text-amber-400 text-base">⭐</span>
-                  <div>
-                    <h2 className="text-sm font-black text-amber-300">Ortak Sinyaller</h2>
-                    <p className="text-[10px] text-slate-500 mt-0.5">2+ kategoride sinyal veren hisseler</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-black text-amber-400">{overlapping.length}</p>
-                  <p className="text-[9px] text-slate-600 uppercase tracking-widest">hisse</p>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                {overlapping.map(([ticker, info]) => (
-                  <div key={ticker} className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-amber-800/30 bg-amber-950/10">
-                    <div className="flex items-center gap-2.5">
-                      <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-black ${
-                        info.count >= 4 ? "bg-emerald-400 text-black" : info.count >= 3 ? "bg-amber-400 text-black" : "bg-amber-800/60 text-amber-200"
-                      }`}>{info.count}</span>
-                      <a
-                        href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${ticker}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="text-sm font-mono font-black text-amber-300 hover:text-amber-200 hover:underline"
-                      >{ticker}</a>
-                    </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${
-                      info.isBull ? "text-emerald-400 border-emerald-800/50 bg-emerald-950/30" : "text-rose-400 border-rose-800/50 bg-rose-950/30"
-                    }`}>{info.isBull ? "↑ Bull" : "↓ Bear"}</span>
-                  </div>
-                ))}
-              </div>
+        <div className="flex gap-3">
+          {/* Sol sidebar — KATEGORİLER */}
+          <div className="w-44 shrink-0">
+            <p className="text-[9px] font-bold tracking-widest text-slate-600 uppercase mb-2 px-1">Kategoriler</p>
+            <div className="space-y-1">
+              {groupedData.map(({ group, cats }) => (
+                <SidebarGroupItem
+                  key={group.id}
+                  group={group}
+                  cats={cats}
+                  isActive={group.id === effectiveSelected}
+                  onSelect={() => setSelectedId(group.id)}
+                />
+              ))}
             </div>
-          )}
+          </div>
 
-          {groupedData.map(({ group, cats }) => (
-            <GroupSection key={group.id} group={group} cats={cats} />
-          ))}
-        </>
+          {/* Sağ panel — seçili grubun içeriği */}
+          <div className="flex-1 min-w-0">
+            {selectedGroupData ? (
+              <ResultPanel group={selectedGroupData.group} cats={selectedGroupData.cats} />
+            ) : (
+              <div className="rounded-xl border border-slate-800 bg-slate-900/20 p-8 text-center">
+                <p className="text-slate-600 text-sm">Bir kategori seçin.</p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Footer */}
