@@ -84,9 +84,24 @@ export async function middleware(request: NextRequest) {
         const dot = token!.lastIndexOf(".");
         const payloadB64 = token!.slice(0, dot).replace(/-/g, "+").replace(/_/g, "/");
         const decoded = JSON.parse(atob(payloadB64));
-        // sub_exp yoksa ya da geçmişse → giriş sayfasına yönlendir
         const now = Math.floor(Date.now() / 1000);
-        if (typeof decoded.sub_exp !== "number" || now >= decoded.sub_exp) {
+
+        if (typeof decoded.sub_exp !== "number") {
+          // Eski format token — yeniden giriş gerekli
+          return NextResponse.redirect(
+            new URL("/hisse-teknik-analizi/login", request.url)
+          );
+        }
+
+        if (decoded.sub_exp === 0) {
+          // Abonelik hiç atanmamış
+          const loginUrl = new URL("/hisse-teknik-analizi/login", request.url);
+          loginUrl.searchParams.set("no_sub", "1");
+          return NextResponse.redirect(loginUrl);
+        }
+
+        if (now >= decoded.sub_exp) {
+          // Abonelik süresi dolmuş
           const loginUrl = new URL("/hisse-teknik-analizi/login", request.url);
           loginUrl.searchParams.set("expired", "1");
           return NextResponse.redirect(loginUrl);

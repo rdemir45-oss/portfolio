@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { HiLockClosed } from "react-icons/hi";
 import { TbBrandInstagram, TbBrandX, TbPhone, TbCheck } from "react-icons/tb";
@@ -12,6 +12,8 @@ function ExpiredBanner({ onExpired }: { onExpired: (msg: string) => void }) {
   useEffect(() => {
     if (searchParams.get("expired") === "1") {
       onExpired("Abonelik süreniz dolmuştur. Yenileme için yönetici ile iletişime geçin.");
+    } else if (searchParams.get("no_sub") === "1") {
+      onExpired("Hesabınıza henüz abonelik tanımlanmamış. Yönetici ile iletişime geçin.");
     }
   }, [searchParams, onExpired]);
   return null;
@@ -22,7 +24,6 @@ export default function ScannerLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const [callName, setCallName] = useState("");
   const [callPhone, setCallPhone] = useState("");
@@ -42,8 +43,10 @@ export default function ScannerLogin() {
     });
 
     if (res.ok) {
-      router.push("/hisse-teknik-analizi");
-      router.refresh();
+      // window.location.href kullanıyoruz: tam sayfa yüklemesi yapar.
+      // router.push SPA navigasyonu olduğu için middleware yönlendirmesi
+      // aynı componenti remount etmez → loading=true takılı kalır.
+      window.location.href = "/hisse-teknik-analizi";
     } else {
       const data = await res.json().catch(() => ({}));
       setError(data.error ?? "Giriş başarısız.");
