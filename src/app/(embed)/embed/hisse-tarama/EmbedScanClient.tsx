@@ -260,6 +260,52 @@ function ResultPanel({ group, cats }: { group: GroupDef; cats: ScanCategory[] })
   );
 }
 
+// ── Mobil yatay tab satırı (iframe için fixed yerine inflow) ───────────────────
+function MobileTabRow({
+  groups,
+  effectiveId,
+  onSelect,
+}: {
+  groups: { group: GroupDef; cats: ScanCategory[] }[];
+  effectiveId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="sm:hidden mb-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+      <div className="flex gap-1.5 pb-1">
+        {groups.map(({ group, cats }) => {
+          const total = cats.reduce((a, c) => a + c.count, 0);
+          const isActive = effectiveId === group.id;
+          const c = colorMap[group.color];
+          return (
+            <button
+              key={group.id}
+              onClick={() => onSelect(group.id)}
+              className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-2.5 py-2 rounded-xl border text-center transition-all min-w-[56px] ${
+                isActive ? c.sidebarActive : "border-slate-800 text-slate-500 bg-slate-900/20 hover:border-slate-700"
+              }`}
+            >
+              <span className="text-sm leading-none">{group.emoji}</span>
+              <span className="text-[9px] font-semibold truncate max-w-[48px] leading-tight">
+                {group.label.split(" ")[0]}
+              </span>
+              <span
+                className={`text-[8px] font-black px-1 rounded-full leading-tight ${
+                  total > 0
+                    ? isActive ? c.badge : "bg-slate-800 text-slate-500"
+                    : "text-slate-700"
+                }`}
+              >
+                {total}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Ana bileşen ────────────────────────────────────────────────────────────────
 export default function EmbedScanClient() {
   const [data, setData]         = useState<ScanData | null>(null);
@@ -357,27 +403,27 @@ export default function EmbedScanClient() {
 
       {/* İstatistik şeridi — ana site ile aynı 5 kutu */}
       {data && !loading && (
-        <div className="mb-5 grid grid-cols-5 gap-2">
-          <div className="bg-[#0a1628] border border-slate-800 rounded-xl p-2.5 flex flex-col items-center gap-1">
-            <p className="text-lg font-black text-white">{totalSignals}</p>
+        <div className="mb-5 grid grid-cols-5 gap-1.5 sm:gap-2">
+          <div className="bg-[#0a1628] border border-slate-800 rounded-xl p-1.5 sm:p-2.5 flex flex-col items-center gap-1">
+            <p className="text-base sm:text-lg font-black text-white">{totalSignals}</p>
             <p className="text-[9px] text-slate-600 uppercase tracking-wide">Toplam</p>
           </div>
-          <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-xl p-2.5 flex flex-col items-center gap-1">
-            <p className="text-lg font-black text-emerald-400">{bullSignals}</p>
+          <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-xl p-1.5 sm:p-2.5 flex flex-col items-center gap-1">
+            <p className="text-base sm:text-lg font-black text-emerald-400">{bullSignals}</p>
             <p className="text-[9px] text-emerald-700 uppercase tracking-wide">Bullish</p>
           </div>
-          <div className="bg-rose-950/20 border border-rose-900/40 rounded-xl p-2.5 flex flex-col items-center gap-1">
-            <p className="text-lg font-black text-rose-400">{bearSignals}</p>
+          <div className="bg-rose-950/20 border border-rose-900/40 rounded-xl p-1.5 sm:p-2.5 flex flex-col items-center gap-1">
+            <p className="text-base sm:text-lg font-black text-rose-400">{bearSignals}</p>
             <p className="text-[9px] text-rose-700 uppercase tracking-wide">Bearish</p>
           </div>
-          <div className="bg-violet-950/20 border border-violet-900/40 rounded-xl p-2.5 flex flex-col items-center gap-1">
-            <p className="text-lg font-black text-violet-400">{donusSignals}</p>
+          <div className="bg-violet-950/20 border border-violet-900/40 rounded-xl p-1.5 sm:p-2.5 flex flex-col items-center gap-1">
+            <p className="text-base sm:text-lg font-black text-violet-400">{donusSignals}</p>
             <p className="text-[9px] text-violet-700 uppercase tracking-wide">Dönüş</p>
           </div>
-          <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-center gap-1.5">
+          <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-center gap-1.5">
             <div className="flex justify-between text-[9px]">
-              <span className="text-emerald-500 font-semibold">BULL {totalSignals > 0 ? Math.round((bullRaw / totalSignals) * 100) : 0}%</span>
-              <span className="text-rose-500 font-semibold">BEAR {totalSignals > 0 ? Math.round((bearSignals / totalSignals) * 100) : 0}%</span>
+              <span className="text-emerald-500 font-semibold">B {totalSignals > 0 ? Math.round((bullRaw / totalSignals) * 100) : 0}%</span>
+              <span className="text-rose-500 font-semibold">S {totalSignals > 0 ? Math.round((bearSignals / totalSignals) * 100) : 0}%</span>
             </div>
             <div className="h-1.5 rounded-full bg-rose-950/60 overflow-hidden">
               <div
@@ -399,8 +445,8 @@ export default function EmbedScanClient() {
 
       {/* Skeleton */}
       {loading && !data && (
-        <div className="flex gap-3">
-          <div className="w-44 shrink-0 space-y-1.5">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="hidden sm:block w-44 shrink-0 space-y-1.5">
             {[...Array(5)].map((_, i) => <div key={i} className="h-14 rounded-xl bg-slate-800/40 animate-pulse" />)}
           </div>
           <div className="flex-1 space-y-2">
@@ -412,32 +458,41 @@ export default function EmbedScanClient() {
 
       {/* Sol sidebar + sağ panel — ana site görünümü */}
       {!loading && !error && data && (
-        <div className="flex gap-3">
-          {/* Sol sidebar — KATEGORİLER */}
-          <div className="w-44 shrink-0">
-            <p className="text-[9px] font-bold tracking-widest text-slate-600 uppercase mb-2 px-1">Kategoriler</p>
-            <div className="space-y-1">
-              {groupedData.map(({ group, cats }) => (
-                <SidebarGroupItem
-                  key={group.id}
-                  group={group}
-                  cats={cats}
-                  isActive={group.id === effectiveSelected}
-                  onSelect={() => setSelectedId(group.id)}
-                />
-              ))}
-            </div>
-          </div>
+        <div>
+          {/* Mobil tab satırı (< 640px) */}
+          <MobileTabRow
+            groups={groupedData}
+            effectiveId={effectiveSelected}
+            onSelect={(id) => setSelectedId(id)}
+          />
 
-          {/* Sağ panel — seçili grubun içeriği */}
-          <div className="flex-1 min-w-0">
-            {selectedGroupData ? (
-              <ResultPanel group={selectedGroupData.group} cats={selectedGroupData.cats} />
-            ) : (
-              <div className="rounded-xl border border-slate-800 bg-slate-900/20 p-8 text-center">
-                <p className="text-slate-600 text-sm">Bir kategori seçin.</p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Sol sidebar — KATEGORİLER (sadece sm ve üzeri) */}
+            <div className="hidden sm:block w-44 shrink-0">
+              <p className="text-[9px] font-bold tracking-widest text-slate-600 uppercase mb-2 px-1">Kategoriler</p>
+              <div className="space-y-1">
+                {groupedData.map(({ group, cats }) => (
+                  <SidebarGroupItem
+                    key={group.id}
+                    group={group}
+                    cats={cats}
+                    isActive={group.id === effectiveSelected}
+                    onSelect={() => setSelectedId(group.id)}
+                  />
+                ))}
               </div>
-            )}
+            </div>
+
+            {/* Sağ panel — seçili grubun içeriği */}
+            <div className="flex-1 min-w-0">
+              {selectedGroupData ? (
+                <ResultPanel group={selectedGroupData.group} cats={selectedGroupData.cats} />
+              ) : (
+                <div className="rounded-xl border border-slate-800 bg-slate-900/20 p-8 text-center">
+                  <p className="text-slate-600 text-sm">Bir kategori seçin.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
