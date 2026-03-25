@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "../globals.css";
 import Navbar from "@/components/Navbar";
+import PWAInstallBanner from "@/components/PWAInstallBanner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -42,6 +43,7 @@ export default function MainLayout({
       <body className={`${inter.variable} font-sans antialiased`} style={{ background: "#050a0e", color: "#e2e8f0" }}>
         <Navbar />
         {children}
+        <PWAInstallBanner />
         <script
           dangerouslySetInnerHTML={{
             __html: `if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js'); }`,
