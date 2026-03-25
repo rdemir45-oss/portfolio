@@ -612,27 +612,27 @@ function ResultPanel({
       className="h-full"
     >
       {/* Panel başlık */}
-      <div className={`flex items-center justify-between px-5 py-4 rounded-2xl border mb-3 ${c.border} ${c.headerBg}`}>
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-xl border ${c.icon}`}>{group.icon}</div>
-          <div>
-            <h2 className={`text-base font-black ${c.label}`}>{group.label}</h2>
-            <p className="text-xs text-slate-500 mt-0.5">{group.desc}</p>
+      <div className={`flex items-center justify-between px-3 py-3 lg:px-5 lg:py-4 rounded-2xl border mb-3 ${c.border} ${c.headerBg}`}>
+        <div className="flex items-center gap-2.5 lg:gap-3 min-w-0">
+          <div className={`shrink-0 p-2 rounded-xl border ${c.icon}`}>{group.icon}</div>
+          <div className="min-w-0">
+            <h2 className={`text-sm lg:text-base font-black truncate ${c.label}`}>{group.label}</h2>
+            <p className="text-xs text-slate-500 mt-0.5 hidden sm:block">{group.desc}</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 lg:gap-3 shrink-0">
           {totalSignals > 0 && (
             <button
               onClick={() => openTweet(buildGroupTweetText(group.label, cats))}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors border-sky-800/50 text-sky-500 hover:text-sky-300 hover:border-sky-600 bg-sky-950/20`}
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors border-sky-800/50 text-sky-500 hover:text-sky-300 hover:border-sky-600 bg-sky-950/20`}
               title="Tüm grubu X'te paylaş"
             >
               <TbBrandX size={13} />
-              <span className="hidden sm:inline">Paylaş</span>
+              <span className="hidden md:inline">Paylaş</span>
             </button>
           )}
           <div className="text-right">
-            <p className={`text-2xl font-black ${c.label}`}>{totalSignals}</p>
+            <p className={`text-xl lg:text-2xl font-black ${c.label}`}>{totalSignals}</p>
             <p className="text-[10px] text-slate-600 uppercase tracking-widest">sinyal</p>
           </div>
         </div>
@@ -877,7 +877,7 @@ function FavoritesSection({
 
   return (
     <div className="mb-5 rounded-2xl border border-amber-700/50 bg-amber-950/20 overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-3.5 bg-amber-950/30 border-b border-amber-800/30">
+      <div className="flex items-center gap-3 px-3 py-3 lg:px-5 lg:py-3.5 bg-amber-950/30 border-b border-amber-800/30">
         <TbStarFilled size={15} className="text-amber-400" />
         <p className="text-sm font-bold text-amber-300">Favorilerim</p>
         <span className="text-xs text-amber-700">{favorites.size} hisse</span>
@@ -996,12 +996,99 @@ function OnboardingTour({ onDone }: { onDone: () => void }) {
   );
 }
 
+// ── Scroll yönü hook (sadece mobil header gizleme için) ─────────────────────
+function useScrollDirection() {
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      setHidden(y > lastY.current && y > 80);
+      lastY.current = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return hidden;
+}
+
+// ── Mobil Alt Tab Bar ──────────────────────────────────────────────────────────
+function MobileTabBar({
+  groups,
+  overlappingCount,
+  effectiveGroupId,
+  onSelect,
+}: {
+  groups: { group: GroupDef; cats: ScanCategory[] }[];
+  overlappingCount: number;
+  effectiveGroupId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#050a0e]/95 backdrop-blur-xl border-t border-slate-800 safe-area-inset-bottom">
+      <div className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+        {groups.map(({ group, cats }) => {
+          const total = cats.reduce((a, c) => a + c.count, 0);
+          const isActive = effectiveGroupId === group.id;
+          const c = colorMap[group.color];
+          return (
+            <button
+              key={group.id}
+              onClick={() => onSelect(group.id)}
+              className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2.5 min-w-[60px] border-t-2 transition-colors ${
+                isActive ? `border-current ${c.label}` : "border-transparent text-slate-500"
+              }`}
+            >
+              <span className="text-base leading-none">{group.icon}</span>
+              <span className="text-[9px] font-semibold truncate max-w-[52px] leading-tight">
+                {group.label.split(" ")[0]}
+              </span>
+              {total > 0 && (
+                <span
+                  className={`text-[8px] font-black px-1 rounded-full leading-tight ${
+                    isActive ? c.badge : "bg-slate-800 text-slate-500"
+                  }`}
+                >
+                  {total}
+                </span>
+              )}
+            </button>
+          );
+        })}
+        {overlappingCount > 0 && (
+          <button
+            onClick={() => onSelect("__overlapping__")}
+            className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2.5 min-w-[60px] border-t-2 transition-colors ${
+              effectiveGroupId === "__overlapping__"
+                ? "border-amber-400 text-amber-400"
+                : "border-transparent text-slate-500"
+            }`}
+          >
+            <span className="text-base leading-none">⭐</span>
+            <span className="text-[9px] font-semibold leading-tight">Ortak</span>
+            <span
+              className={`text-[8px] font-black px-1 rounded-full leading-tight ${
+                effectiveGroupId === "__overlapping__"
+                  ? "bg-amber-800/60 text-amber-300"
+                  : "bg-slate-800 text-slate-500"
+              }`}
+            >
+              {overlappingCount}
+            </span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Ana bileşen ────────────────────────────────────────────────────────────────
 export default function StockScanner() {
   const [data, setData] = useState<ScanData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const headerHidden = useScrollDirection();
 
   // ── Bildirim ayarları state ──────────────────────────────────────────────
   const [alertPanelOpen, setAlertPanelOpen]   = useState(false);
@@ -1264,25 +1351,31 @@ export default function StockScanner() {
         )}
       </AnimatePresence>
 
-      <section id="hisse-teknik-analizi" className="py-12 px-4 sm:px-6">
+      <section id="hisse-teknik-analizi" className="pt-3 pb-24 px-3 sm:px-4 lg:py-12 lg:px-6">
         <div className="max-w-7xl mx-auto">
 
-          {/* ── Başlık + Toolbar ── */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <div className="flex items-start justify-between flex-wrap gap-4">
+          {/* ── Başlık + Toolbar (mobilde scroll ile gizlenir) ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`mb-4 lg:mb-6 transition-transform duration-300 lg:!translate-y-0 ${
+              headerHidden ? "-translate-y-2 opacity-80" : "translate-y-0 opacity-100"
+            }`}
+          >
+            <div className="flex items-start justify-between flex-wrap gap-3">
               <div>
-                <p className="text-xs font-semibold tracking-[0.2em] text-emerald-500 uppercase mb-1">
+                <p className="text-[10px] font-semibold tracking-[0.2em] text-emerald-500 uppercase mb-0.5">
                   Otomatik Tarama
                 </p>
-                <h1 className="text-2xl md:text-3xl font-black text-white">
+                <h1 className="text-xl lg:text-3xl font-black text-white">
                   Hisse <span className="text-emerald-400">Teknik</span> Analizi
                 </h1>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <button
                   onClick={load}
                   disabled={loading}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-emerald-700 transition-colors text-sm disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-emerald-700 transition-colors text-sm disabled:opacity-40"
                 >
                   <HiRefresh className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
                   <span className="hidden sm:inline">Yenile</span>
@@ -1297,36 +1390,36 @@ export default function StockScanner() {
                   title="Bildirim Ayarları"
                 >
                   {alertEnabled && alertChatId ? <TbBell className="w-4 h-4" /> : <TbBellOff className="w-4 h-4" />}
-                  <span className="hidden sm:inline">Bildirim</span>
+                  <span className="hidden md:inline">Bildirim</span>
                   {!alertChatId && (
                     <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   )}
                 </button>
                 <a
                   href="/hisse-teknik-analizi/profil"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-colors text-sm"
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-colors text-sm"
                   title="Profilim"
                 >
                   <TbUser className="w-4 h-4" />
-                  <span className="hidden sm:inline">Profilim</span>
+                  <span className="hidden md:inline">Profilim</span>
                 </a>
                 <a
                   href="/hisse-teknik-analizi/taramalarim"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-800/60 text-blue-400 bg-blue-950/20 hover:border-blue-500 hover:bg-blue-950/40 transition-colors text-sm"
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-blue-800/60 text-blue-400 bg-blue-950/20 hover:border-blue-500 hover:bg-blue-950/40 transition-colors text-sm"
                 >
                   <TbSearch className="w-4 h-4" />
-                  <span className="hidden sm:inline">Taramalarım</span>
+                  <span className="hidden md:inline">Taramalarım</span>
                 </a>
                 <a
                   href="/hisse-teknik-analizi/ozel-taramalarim"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-violet-800/60 text-violet-400 bg-violet-950/20 hover:border-violet-500 hover:bg-violet-950/40 transition-colors text-sm"
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-violet-800/60 text-violet-400 bg-violet-950/20 hover:border-violet-500 hover:bg-violet-950/40 transition-colors text-sm"
                 >
                   <TbSearch className="w-4 h-4" />
-                  <span className="hidden sm:inline">Özel Taramalarım</span>
+                  <span className="hidden md:inline">Özel Taramalarım</span>
                 </a>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-800 transition-colors text-sm"
+                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-slate-700 text-slate-500 hover:text-rose-400 hover:border-rose-800 transition-colors text-sm"
                 >
                   <HiLogout className="w-4 h-4" />
                   <span className="hidden sm:inline">Çıkış</span>
@@ -1522,7 +1615,7 @@ export default function StockScanner() {
 
           {/* ── Favoriler ── */}
           {!loading && !error && data && favorites.size > 0 && (
-            <div className="mb-5">
+            <div className="mb-4">
               <FavoritesSection favorites={favorites} scanCategories={data.categories} toggleFavorite={toggleFavorite} />
             </div>
           )}
@@ -1530,7 +1623,7 @@ export default function StockScanner() {
           {/* ── Skeleton ── */}
           {loading && !data && (
             <div className="flex gap-4">
-              <div className="w-56 shrink-0 space-y-2">
+              <div className="hidden lg:block w-56 shrink-0 space-y-2">
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="h-14 rounded-xl bg-slate-800/40 animate-pulse" />
                 ))}
@@ -1554,14 +1647,14 @@ export default function StockScanner() {
 
           {/* ── Ana İki Sütunlu Layout ── */}
           {!loading && !error && data && (
-            <div className="flex gap-4 items-start">
+            <div className="flex flex-col lg:flex-row gap-4 items-start">
 
-              {/* Sol Sidebar — Grup Listesi */}
+              {/* Sol Sidebar — Grup Listesi (sadece desktop) */}
               <motion.div
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.05 }}
-                className="w-52 shrink-0 space-y-1 sticky top-20"
+                className="hidden lg:block w-52 shrink-0 space-y-1 sticky top-20"
               >
                 <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest px-3 mb-2">Kategoriler</p>
                 {visibleGroupData.map(({ group, cats }) => (
@@ -1631,7 +1724,7 @@ export default function StockScanner() {
               </motion.div>
 
               {/* Sağ Panel — Seçili Grubun İçeriği */}
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 pb-2 lg:pb-0">
                 <AnimatePresence mode="wait">
                   {effectiveGroupId === "__overlapping__" ? (
                     <motion.div key="overlapping" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18 }}>
@@ -1724,6 +1817,16 @@ export default function StockScanner() {
           </p>
         </div>
       </section>
+
+      {/* ── Mobil Alt Tab Bar ── */}
+      {!loading && !error && data && (
+        <MobileTabBar
+          groups={visibleGroupData}
+          overlappingCount={overlappingTickers.length}
+          effectiveGroupId={effectiveGroupId}
+          onSelect={(id) => setSelectedGroupId(id)}
+        />
+      )}
     </>
   );
 }
