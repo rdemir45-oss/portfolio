@@ -138,45 +138,6 @@ function timeAgoLabel(m: number | null): string {
   return rem > 0 ? `${h} sa ${rem} dk` : `${h} sa`;
 }
 
-// ── Sidebar item ──────────────────────────────────────────────────────────────
-function SidebarItem({
-  group, cats, isActive, onSelect,
-}: {
-  group: GroupDef; cats: ScanCategory[]; isActive: boolean; onSelect: () => void;
-}) {
-  const c = colorMap[group.color];
-  const total = cats.reduce((a, x) => a + x.count, 0);
-  const active = cats.filter((x) => x.count > 0).length;
-  const pct = cats.length > 0 ? Math.round((active / cats.length) * 100) : 0;
-
-  return (
-    <button
-      onClick={onSelect}
-      className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 ${
-        isActive ? c.sidebarActive : "border-transparent hover:bg-slate-800/40 text-slate-400 hover:text-slate-200"
-      }`}
-    >
-      <div className="flex items-center gap-2.5">
-        <span className={`shrink-0 text-base leading-none p-1 rounded-lg border ${c.icon}`}>{group.emoji}</span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-1">
-            <span className={`text-xs font-semibold truncate ${isActive ? c.label : ""}`}>{group.label}</span>
-            <span className={`shrink-0 text-xs font-black px-1.5 py-0.5 rounded-full ${
-              total > 0 ? c.badge : "bg-slate-800/60 text-slate-600"
-            }`}>{total}</span>
-          </div>
-          <div className="mt-1 h-0.5 rounded-full bg-slate-800 overflow-hidden">
-            <div className={`h-full rounded-full transition-all duration-500 ${c.progress}`} style={{ width: `${pct}%` }} />
-          </div>
-          <p className="text-[10px] text-slate-600 mt-0.5">
-            {active > 0 ? `${active}/${cats.length} aktif` : "Sinyal yok"}
-          </p>
-        </div>
-      </div>
-    </button>
-  );
-}
-
 // ── Kategori kartı ────────────────────────────────────────────────────────────
 function CategoryCard({ cat, color }: { cat: ScanCategory; color: keyof typeof colorMap }) {
   const [open, setOpen] = useState(cat.count > 0);
@@ -390,68 +351,62 @@ export default function EmbedScanClient() {
 
       {/* ── Skeleton ── */}
       {loading && !data && (
-        <div className="flex gap-3">
-          <div className="w-44 shrink-0 space-y-2">
-            {[...Array(6)].map((_, i) => <div key={i} className="h-14 rounded-xl bg-slate-800/40 animate-pulse" />)}
-          </div>
-          <div className="flex-1 space-y-2">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-slate-800/40 animate-pulse" />)}
-          </div>
+        <div className="space-y-2">
+          <div className="h-9 rounded-xl bg-slate-800/40 animate-pulse w-2/3" />
+          {[...Array(5)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-slate-800/40 animate-pulse" />)}
         </div>
       )}
 
       {/* ── Ana Layout ── */}
       {!loading && !error && data && (
-        <div className="flex gap-3 items-start">
+        <div>
 
-          {/* Sol Sidebar */}
-          <div className="w-44 shrink-0 space-y-1 sticky top-3">
-            <p className="text-[9px] font-semibold text-slate-600 uppercase tracking-widest px-2 mb-1">Kategoriler</p>
-
-            {groupedData.map(({ group, cats }) => (
-              <SidebarItem
-                key={group.id}
-                group={group}
-                cats={cats}
-                isActive={effectiveId === group.id}
-                onSelect={() => setSelectedId(group.id)}
-              />
-            ))}
-
-            {/* Ortak Sinyaller */}
+          {/* Yatay Tab Çubuğu */}
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-4" style={{ scrollbarWidth: "none" }}>
+            {groupedData.map(({ group, cats }) => {
+              const total = cats.reduce((a, x) => a + x.count, 0);
+              const c = colorMap[group.color];
+              const isActive = effectiveId === group.id;
+              return (
+                <button
+                  key={group.id}
+                  onClick={() => setSelectedId(group.id)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border whitespace-nowrap transition-all duration-150 text-xs font-semibold shrink-0 ${
+                    isActive
+                      ? c.sidebarActive
+                      : "border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 bg-slate-900/30"
+                  }`}
+                >
+                  <span>{group.emoji}</span>
+                  <span>{group.label}</span>
+                  {total > 0 && (
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                      isActive ? c.badge : "bg-slate-800/60 text-slate-500"
+                    }`}>{total}</span>
+                  )}
+                </button>
+              );
+            })}
             {overlapping.length > 0 && (
               <button
                 onClick={() => setSelectedId("__overlapping__")}
-                className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all duration-150 ${
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border whitespace-nowrap transition-all text-xs font-semibold shrink-0 ${
                   effectiveId === "__overlapping__"
-                    ? "bg-amber-950/50 border border-amber-700/60 text-amber-300"
-                    : "border-transparent hover:bg-slate-800/40 text-slate-400 hover:text-slate-200"
+                    ? "bg-amber-950/50 border-amber-700/60 text-amber-300"
+                    : "border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 bg-slate-900/30"
                 }`}
               >
-                <div className="flex items-center gap-2.5">
-                  <span className={`shrink-0 text-sm p-1 rounded-lg border ${
-                    effectiveId === "__overlapping__"
-                      ? "text-amber-400 bg-amber-950/50 border-amber-900/50"
-                      : "text-slate-500 border-slate-700/50 bg-slate-800/40"
-                  }`}>⭐</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className={`text-xs font-semibold ${effectiveId === "__overlapping__" ? "text-amber-400" : ""}`}>
-                        Ortak Sinyaller
-                      </span>
-                      <span className={`text-xs font-black px-1.5 py-0.5 rounded-full ${
-                        effectiveId === "__overlapping__" ? "bg-amber-800/60 text-amber-300" : "bg-slate-800/60 text-slate-400"
-                      }`}>{overlapping.length}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-600 mt-0.5">2+ kategoride</p>
-                  </div>
-                </div>
+                <span>⭐</span>
+                <span>Ortak</span>
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                  effectiveId === "__overlapping__" ? "bg-amber-800/60 text-amber-300" : "bg-slate-800/60 text-slate-500"
+                }`}>{overlapping.length}</span>
               </button>
             )}
           </div>
 
-          {/* Sağ Panel */}
-          <div className="flex-1 min-w-0">
+          {/* İçerik */}
+          <div>
             {effectiveId === "__overlapping__" ? (
               <div>
                 <div className="flex items-center justify-between px-4 py-3.5 rounded-2xl border border-amber-700/50 bg-amber-950/20 mb-3">
