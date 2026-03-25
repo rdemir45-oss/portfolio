@@ -70,6 +70,27 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Geçersiz durum." }, { status: 400 });
     }
     updates.status = body.status;
+
+    // "approved" yapılınca: eğer mevcut aboneliği yoksa veya süresi dolmuşsa
+    // otomatik olarak 1 aylık abonelik başlat.
+    if (body.status === "approved" && id) {
+      const { data: existing } = await supabaseAdmin
+        .from("scanner_users")
+        .select("subscription_expires_at")
+        .eq("id", id)
+        .maybeSingle();
+
+      const hasActiveSubscription =
+        existing?.subscription_expires_at &&
+        new Date(existing.subscription_expires_at).getTime() > Date.now();
+
+      if (!hasActiveSubscription) {
+        updates.subscription_plan = "monthly";
+        updates.subscription_expires_at = new Date(
+          Date.now() + SUBSCRIPTION_DURATIONS.monthly
+        ).toISOString();
+      }
+    }
   }
 
   if (body.plan) {
