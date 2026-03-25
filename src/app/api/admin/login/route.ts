@@ -33,8 +33,16 @@ export async function POST(req: NextRequest) {
   const { password } = parsed.data;
   const secret = process.env.ADMIN_SECRET;
 
-  // Timing-safe comparison to prevent secret enumeration via timing attacks
-  if (!secret || !crypto.timingSafeEqual(Buffer.from(password), Buffer.from(secret))) {
+  // Timing-safe comparison — farklı uzunluklarda timingSafeEqual TypeError fırlatır,
+  // bu yüzden uzunluk kontrolü ayrı yapılır.
+  const passBuf = Buffer.from(password);
+  const secretBuf = secret ? Buffer.from(secret) : Buffer.alloc(0);
+  const match =
+    secret !== undefined &&
+    passBuf.length === secretBuf.length &&
+    crypto.timingSafeEqual(passBuf, secretBuf);
+
+  if (!match) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
