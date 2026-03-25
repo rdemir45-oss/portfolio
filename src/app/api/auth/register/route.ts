@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { registerSchema } from "@/lib/schemas";
 import crypto from "crypto";
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   const { username, password } = parsed.data;
 
-  const { data: existing } = await supabase
+  const { data: existing } = await supabaseAdmin
     .from("scanner_users")
     .select("id")
     .eq("username", username)
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
   const { hash, salt } = hashPassword(password);
 
-  const { error } = await supabase.from("scanner_users").insert({
+  const { error } = await supabaseAdmin.from("scanner_users").insert({
     username,
     password_hash: hash,
     salt,

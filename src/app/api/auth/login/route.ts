@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { loginSchema } from "@/lib/schemas";
 import crypto from "crypto";
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
   const { username, password } = parsed.data;
 
-  const { data: user, error: userError } = await supabase
+  const { data: user, error: userError } = await supabaseAdmin
     .from("scanner_users")
     .select("id, username, password_hash, salt, status, subscription_expires_at")
     .eq("username", username)
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
   // subscription_expires_at kolonu henüz yoksa (migrasyon bekleniyor) temel sorguya düş
   let resolvedUser = user;
   if (userError) {
-    const { data: fallbackUser } = await supabase
+    const { data: fallbackUser } = await supabaseAdmin
       .from("scanner_users")
       .select("id, username, password_hash, salt, status")
       .eq("username", username)

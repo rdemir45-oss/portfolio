@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
 import { clearRateLimit } from "@/lib/rate-limit";
 import crypto from "crypto";
@@ -13,14 +13,14 @@ const SUBSCRIPTION_DURATIONS: Record<string, number> = {
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("scanner_users")
     .select("id, username, status, plan, subscription_plan, subscription_expires_at, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
     // subscription kolonları henüz yoksa (migrasyon çalıştırılmamış) fallback
-    const fallback = await supabase
+    const fallback = await supabaseAdmin
       .from("scanner_users")
       .select("id, username, status, plan, created_at")
       .order("created_at", { ascending: false });
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest) {
     const tempPassword = crypto.randomBytes(5).toString("hex"); // 10 karakter hex
     const salt = crypto.randomBytes(16).toString("hex");
     const hash = crypto.pbkdf2Sync(tempPassword, salt, 100_000, 64, "sha512").toString("hex");
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("scanner_users")
       .update({ password_hash: hash, salt })
       .eq("id", id);
@@ -97,7 +97,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("scanner_users")
     .update(updates)
     .eq("id", id);
@@ -111,7 +111,7 @@ export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID gerekli." }, { status: 400 });
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("scanner_users")
     .delete()
     .eq("id", id);

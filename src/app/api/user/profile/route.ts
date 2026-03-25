@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import crypto from "crypto";
 
 // GROUP_KEYS: GROUPS tanımıyla senkron olmalı (StockScanner.tsx)
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
   const user = getUserFromToken(token, secret);
   if (!user) return NextResponse.json({ error: "Geçersiz token." }, { status: 401 });
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("scanner_users")
     .select("telegram_chat_id, alert_categories, alerts_enabled, plan, created_at")
     .eq("id", user.id)
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
   // Tablo yoksa veya hata olursa statik listeye dön
   let validKeySet: Set<string> = STATIC_VALID_KEYS;
   try {
-    const { data: groupRows } = await supabase.from("scan_groups").select("keys");
+    const { data: groupRows } = await supabaseAdmin.from("scan_groups").select("keys");
     if (groupRows && groupRows.length > 0) {
       const dynamicKeys = groupRows.flatMap((g: { keys: { id: string }[] }) =>
         (g.keys ?? []).map((k) => k.id)
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("scanner_users")
     .update({
       telegram_chat_id: telegramChatId || null,
