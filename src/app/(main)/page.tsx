@@ -1,4 +1,5 @@
 import Hero from "@/components/Hero";
+import CustomStrategyFlow from "@/components/CustomStrategyFlow";
 import SiteFeatures from "@/components/SiteFeatures";
 import Indicators from "@/components/Indicators";
 // import Pricing from "@/components/Pricing";
@@ -16,6 +17,7 @@ export default function Home() {
     <>
       <LiveStreamBanner />
       <Hero />
+      <CustomStrategyFlow />
       <SiteFeatures />
       <Indicators />
       {/* <Pricing /> */}
