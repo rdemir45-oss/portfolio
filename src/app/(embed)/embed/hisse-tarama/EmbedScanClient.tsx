@@ -212,7 +212,7 @@ export default function EmbedScanClient() {
 
       {/* İstatistik şeridi */}
       {data && !loading && (
-        <div className="mb-5 grid grid-cols-5 gap-1.5">
+        <div className="mb-5 grid grid-cols-2 sm:grid-cols-5 gap-1.5">
           <div className="bg-[#111115] border border-slate-800 rounded-xl p-2.5 flex flex-col items-center gap-1">
             <p className="text-lg font-black text-white">{totalSignals}</p>
             <p className="text-[9px] text-slate-600 uppercase tracking-wide">Toplam</p>
@@ -229,7 +229,7 @@ export default function EmbedScanClient() {
             <p className="text-lg font-black text-violet-400">{donusSignals}</p>
             <p className="text-[9px] text-violet-700 uppercase tracking-wide">Dönüş</p>
           </div>
-          <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-center gap-1.5">
+          <div className="col-span-2 sm:col-span-1 bg-slate-900/40 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-center gap-1.5">
             <div className="flex justify-between text-[9px]">
               <span className="text-emerald-500 font-semibold">B {totalSignals > 0 ? Math.round((bullRaw / totalSignals) * 100) : 0}%</span>
               <span className="text-rose-500 font-semibold">S {totalSignals > 0 ? Math.round((bearSignals / totalSignals) * 100) : 0}%</span>
@@ -252,21 +252,56 @@ export default function EmbedScanClient() {
 
       {/* Skeleton */}
       {loading && !data && (
-        <div className="flex gap-3">
-          <div className="w-44 shrink-0 space-y-1.5">
-            {[...Array(7)].map((_, i) => <div key={i} className="h-10 rounded-xl bg-slate-800/40 animate-pulse" />)}
+        <div>
+          <div className="flex gap-1.5 overflow-x-auto mb-3 md:hidden" style={{ scrollbarWidth: "none" }}>
+            {[...Array(5)].map((_, i) => <div key={i} className="h-9 w-28 shrink-0 rounded-xl bg-slate-800/40 animate-pulse" />)}
           </div>
-          <div className="flex-1 space-y-2">
-            {[...Array(5)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-slate-800/30 animate-pulse" />)}
+          <div className="hidden md:flex gap-3">
+            <div className="w-44 shrink-0 space-y-1.5">
+              {[...Array(7)].map((_, i) => <div key={i} className="h-10 rounded-xl bg-slate-800/40 animate-pulse" />)}
+            </div>
+            <div className="flex-1 space-y-2">
+              {[...Array(5)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-slate-800/30 animate-pulse" />)}
+            </div>
+          </div>
+          <div className="md:hidden space-y-2">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-14 rounded-xl bg-slate-800/30 animate-pulse" />)}
           </div>
         </div>
       )}
 
       {/* Sol sidebar + sağ panel */}
       {!loading && !error && data && (
-        <div className="flex gap-3">
-          {/* Sol sidebar */}
-          <div className="w-44 shrink-0">
+        <div>
+          {/* Mobil: yatay kaydırılabilir grup sekmeleri */}
+          <div className="md:hidden overflow-x-auto mb-3" style={{ scrollbarWidth: "none" }}>
+            <div className="flex gap-1.5 pb-1 min-w-max">
+              {groupedData.map(({ group, cats }) => {
+                const total = cats.reduce((a, c) => a + c.count, 0);
+                const isActive = group.id === effectiveSelected;
+                const c = colorMap[group.color];
+                return (
+                  <button
+                    key={group.id}
+                    onClick={() => setSelectedId(group.id)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all whitespace-nowrap ${
+                      isActive ? c.sidebarActive : "border-slate-800 text-slate-500 hover:border-slate-700"
+                    }`}
+                  >
+                    <span>{group.emoji}</span>
+                    <span>{group.label}</span>
+                    <span className={`text-[10px] font-black px-1.5 rounded-full ${
+                      total > 0 ? (isActive ? c.badge : "bg-slate-800 text-slate-500") : "text-slate-700"
+                    }`}>{total}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+          {/* Sol sidebar — sadece masaüstü */}
+          <div className="w-44 shrink-0 hidden md:block">
             <p className="text-[9px] font-bold tracking-widest text-slate-600 uppercase mb-2 px-1">Kategoriler</p>
             <div className="space-y-0.5">
               {groupedData.map(({ group, cats }) => (
@@ -310,6 +345,7 @@ export default function EmbedScanClient() {
               );
             })()}
           </div>
+        </div>
         </div>
       )}
 
