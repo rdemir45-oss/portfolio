@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     .insert([{ name, email, message, read: false }]);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Mesaj gönderilemedi. Lütfen tekrar deneyin." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

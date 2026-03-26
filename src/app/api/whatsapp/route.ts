@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { whatsappSchema } from "@/lib/schemas";
 
 export async function POST(req: NextRequest) {
   // 3 talep / saat — spam koruması
@@ -16,25 +17,27 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { name?: string; surname?: string; phone?: string };
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
 
-  const { name, surname, phone } = body;
-
-  if (!name || !surname || !phone) {
-    return NextResponse.json({ error: "Tüm alanlar zorunludur." }, { status: 400 });
+  const parsed = whatsappSchema.safeParse(raw);
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? "Geçersiz veri.";
+    return NextResponse.json({ error: msg }, { status: 422 });
   }
+
+  const { name, surname, phone } = parsed.data;
 
   const { error } = await supabase
     .from("whatsapp_requests")
     .insert([{ name, surname, phone }]);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Talep kaydedilemedi. Lütfen tekrar deneyin." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

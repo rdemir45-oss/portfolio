@@ -15,7 +15,10 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
   const id = req.nextUrl.searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "Geçersiz ID." }, { status: 400 });
+  }
   const { error } = await supabase.from("whatsapp_requests").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Silme işlemi başarısız." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

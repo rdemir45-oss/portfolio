@@ -8,6 +8,17 @@ export const contactSchema = z.object({
   message: z.string().trim().min(10, "Mesaj en az 10 karakter olmalı").max(2000),
 });
 
+export const whatsappSchema = z.object({
+  name: z.string().trim().min(2, "İsim en az 2 karakter olmalı").max(100),
+  surname: z.string().trim().min(2, "Soyisim en az 2 karakter olmalı").max(100),
+  phone: z
+    .string()
+    .trim()
+    .min(7, "Telefon numarası geçersiz")
+    .max(20, "Telefon numarası geçersiz")
+    .regex(/^[0-9\s\+\-\(\)]+$/, "Geçerli bir telefon numarası giriniz"),
+});
+
 export const loginSchema = z.object({
   username: z.string().trim().min(1, "Kullanıcı adı gerekli").max(50),
   password: z.string().min(1, "Şifre gerekli").max(200),

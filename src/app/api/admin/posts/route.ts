@@ -53,7 +53,10 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
   const id = req.nextUrl.searchParams.get("id");
-  const { error } = await supabase.from("posts").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!id || isNaN(Number(id))) {
+    return NextResponse.json({ error: "Geçersiz ID." }, { status: 400 });
+  }
+  const { error } = await supabase.from("posts").delete().eq("id", Number(id));
+  if (error) return NextResponse.json({ error: "Silme işlemi başarısız." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
