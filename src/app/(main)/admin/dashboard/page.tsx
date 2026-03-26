@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff, TbKey, TbCopy, TbWifi, TbWifiOff, TbCode, TbPlayerPlay, TbCircleCheck, TbAlertCircle, TbChevronDown, TbChevronUp, TbClipboardCopy, TbSearch } from "react-icons/tb";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff, TbKey, TbCopy, TbWifi, TbWifiOff, TbCode, TbPlayerPlay, TbCircleCheck, TbAlertCircle, TbChevronDown, TbChevronUp, TbClipboardCopy, TbSearch, TbEye } from "react-icons/tb";
 import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser, DbLiveStream } from "@/lib/supabase";
 import UserScansTab from "./UserScansTab";
 
@@ -132,6 +132,8 @@ export default function AdminDashboard() {
   const [clearingRateLimit, setClearingRateLimit] = useState(false);
   const [rateLimitIp, setRateLimitIp] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
+  type AnalyticsSession = { sid: string; page: string; username?: string; lastSeen: number };
+  const [analytics, setAnalytics] = useState<{ sessions: AnalyticsSession[]; total: number } | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [seedingPosts, setSeedingPosts] = useState(false);
   const router = useRouter();
@@ -431,6 +433,17 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchAll(); }, []);
 
+  async function fetchAnalytics() {
+    const res = await fetch("/api/admin/analytics");
+    if (res.ok) setAnalytics(await res.json());
+  }
+
+  useEffect(() => {
+    fetchAnalytics();
+    const timer = setInterval(fetchAnalytics, 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
   async function handleDelete(id: number, title: string) {
     if (!confirm(`"${title}" silinsin mi?`)) return;
     setDeleting(id);
@@ -547,6 +560,50 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        {/* Canlı ziyaretçi paneli */}
+        {analytics !== null && (
+          <div className="mb-6 bg-[#0a1628] border border-slate-800 rounded-2xl px-5 py-4">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-sm font-semibold text-white">
+                Anlık Ziyaretçi
+              </span>
+              <span className="text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-full px-2.5 py-0.5 font-bold">
+                {analytics.total} kişi
+              </span>
+              <span className="text-xs text-slate-600 ml-auto">son 5 dk</span>
+            </div>
+            {analytics.total === 0 ? (
+              <p className="text-xs text-slate-600">Şu an aktif ziyaretçi yok.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {analytics.sessions.map((s) => {
+                  const pageLabel = s.page === "/" ? "Ana Sayfa"
+                    : s.page.startsWith("/hisse") ? "Hisse Analizi"
+                    : s.page.startsWith("/posts") ? "Blog"
+                    : s.page.startsWith("/indicators") ? "İndikatör"
+                    : s.page.startsWith("/egitim") ? "Eğitim"
+                    : s.page.startsWith("/admin") ? "Admin"
+                    : s.page;
+                  return (
+                    <div key={s.sid} className="flex items-center gap-1.5 bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-1.5">
+                      <TbEye size={12} className={s.username ? "text-emerald-400" : "text-slate-500"} />
+                      <span className="text-xs text-white font-medium">
+                        {s.username ?? "Ziyaretçi"}
+                      </span>
+                      <span className="text-slate-600 text-xs">·</span>
+                      <span className="text-xs text-slate-400">{pageLabel}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tabs — mobilde yatay scroll */}
         <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">

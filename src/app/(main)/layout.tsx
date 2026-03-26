@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "../globals.css";
 import Navbar from "@/components/Navbar";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
+import AnalyticsProvider from "@/components/AnalyticsProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -41,6 +42,7 @@ export default function MainLayout({
   return (
     <html lang="tr" className="scroll-smooth">
       <body className={`${inter.variable} font-sans antialiased`} style={{ background: "#050a0e", color: "#e2e8f0" }}>
+        <AnalyticsProvider />
         <Navbar />
         {children}
         <PWAInstallBanner />
