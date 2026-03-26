@@ -48,6 +48,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── Admin koruma ──────────────────────────────────────────────────────
+  // /admin/login sayfası herkese açık — ama sadece URL'i bilen erişebilir
   if (pathname === "/admin/login") return NextResponse.next();
 
   if (pathname.startsWith("/admin")) {
@@ -55,7 +56,8 @@ export async function middleware(request: NextRequest) {
     const secret = process.env.ADMIN_SECRET;
     const valid = secret && token ? await verifyHmacToken(token, secret, true) : false;
     if (!valid) {
-      return NextResponse.redirect(new URL("/admin/login", request.url));
+      // Redirect yerine 404 — admin panelinin varlığını ele verme
+      return new NextResponse(null, { status: 404 });
     }
   }
 
