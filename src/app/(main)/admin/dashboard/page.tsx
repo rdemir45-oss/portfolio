@@ -134,7 +134,8 @@ export default function AdminDashboard() {
   const [memberSearch, setMemberSearch] = useState("");
   type AnalyticsSession = { sid: string; page: string; username?: string; lastSeen: number };
   type DailyStat = { date: string; visitors: number; pageviews: number };
-  const [analytics, setAnalytics] = useState<{ sessions: AnalyticsSession[]; total: number; daily: DailyStat[]; hourly: number[] } | null>(null);
+  type VisitorLogEntry = { sid: string; username?: string | null; first_page: string; first_seen_at: string; last_seen_at: string; page_count: number };
+  const [analytics, setAnalytics] = useState<{ sessions: AnalyticsSession[]; total: number; daily: DailyStat[]; hourly: number[]; visitorLog: VisitorLogEntry[] } | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [seedingPosts, setSeedingPosts] = useState(false);
   const router = useRouter();
@@ -663,6 +664,65 @@ export default function AdminDashboard() {
                   <div className="text-xs text-slate-500">Bugün</div>
                   <div className="text-lg font-bold text-emerald-400">{analytics.daily.find(d => d.date === today)?.visitors ?? 0} ziyaretçi</div>
                 </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Bugünkü Ziyaretçi Günlüğü */}
+        {analytics?.visitorLog && analytics.visitorLog.length > 0 && (() => {
+          const now = Date.now();
+          const ACTIVE_MS = 5 * 60 * 1000;
+          function fmtTime(iso: string) {
+            return new Date(iso).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" });
+          }
+          function pageLabel(p: string) {
+            return p === "/" ? "Ana Sayfa"
+              : p.startsWith("/hisse") ? "Hisse Analizi"
+              : p.startsWith("/posts") ? "Blog"
+              : p.startsWith("/indicators") ? "İndikatör"
+              : p.startsWith("/egitim") ? "Eğitim"
+              : p.startsWith("/admin") ? "Admin"
+              : p;
+          }
+          return (
+            <div className="mb-6 bg-[#0a1628] border border-slate-800 rounded-2xl px-5 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-white">Bugünkü Ziyaretçiler</span>
+                <span className="text-xs text-slate-500">{analytics.visitorLog.length} kişi</span>
+              </div>
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {analytics.visitorLog.map((v) => {
+                  const isActive = now - new Date(v.last_seen_at).getTime() < ACTIVE_MS;
+                  const duration = Math.round((new Date(v.last_seen_at).getTime() - new Date(v.first_seen_at).getTime()) / 60000);
+                  return (
+                    <div key={v.sid} className="flex items-center gap-3 py-2 border-b border-slate-800/50 last:border-0">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${isActive ? "bg-emerald-500" : "bg-slate-700"}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-medium ${v.username ? "text-emerald-400" : "text-slate-400"}`}>
+                            {v.username ?? "Ziyaretçi"}
+                          </span>
+                          {isActive && (
+                            <span className="text-[10px] text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-full px-1.5 py-0.5">aktif</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-600 mt-0.5">
+                          <span>{pageLabel(v.first_page)}</span>
+                          <span>·</span>
+                          <span>{v.page_count} sayfa</span>
+                          {duration > 0 && <><span>·</span><span>{duration} dk</span></>}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-xs text-slate-500">{fmtTime(v.first_seen_at)}</div>
+                        {v.first_seen_at !== v.last_seen_at && (
+                          <div className="text-xs text-slate-700">↓ {fmtTime(v.last_seen_at)}</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

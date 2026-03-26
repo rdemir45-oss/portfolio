@@ -37,8 +37,20 @@ export async function POST(req: NextRequest) {
 
   const pageChanged = upsertSession(sid, page, username);
 
-  // Supabase site_stats upsert — saatlik granülite
   const now = new Date();
+  const nowIso = now.toISOString();
+
+  // visitor_log — giriş/çıkış takibi (atomic RPC)
+  await supabaseAdmin.rpc("upsert_visitor_log", {
+    p_sid: sid,
+    p_username: username ?? null,
+    p_page: page,
+    p_is_new: isNew,
+    p_page_changed: pageChanged,
+    p_now: nowIso,
+  });
+
+  // site_stats upsert — saatlik granülite
   const dateStr = now.toISOString().slice(0, 10);
   const hour = now.getUTCHours();
   await supabaseAdmin.rpc("increment_site_stats", {

@@ -19,17 +19,25 @@ export async function GET(req: NextRequest) {
   }
   const since = days[0];
 
-  const { data: rows } = await supabaseAdmin
-    .from("site_stats")
-    .select("date, hour, visitors, pageviews")
-    .gte("date", since)
-    .order("date", { ascending: true })
-    .order("hour", { ascending: true });
+  const [statsRes, logRes] = await Promise.all([
+    supabaseAdmin
+      .from("site_stats")
+      .select("date, hour, visitors, pageviews")
+      .gte("date", since)
+      .order("date", { ascending: true })
+      .order("hour", { ascending: true }),
+    supabaseAdmin
+      .from("visitor_log")
+      .select("sid, username, first_page, first_seen_at, last_seen_at, page_count")
+      .gte("first_seen_at", new Date().toISOString().slice(0, 10) + "T00:00:00Z")
+      .order("last_seen_at", { ascending: false })
+      .limit(200),
+  ]);
 
   // Günlük toplam
   const dailyMap: Record<string, { visitors: number; pageviews: number }> = {};
   for (const day of days) dailyMap[day] = { visitors: 0, pageviews: 0 };
-  for (const row of rows ?? []) {
+  for (const row of statsRes.data ?? []) {
     if (dailyMap[row.date]) {
       dailyMap[row.date].visitors += row.visitors;
       dailyMap[row.date].pageviews += row.pageviews;
@@ -40,9 +48,15 @@ export async function GET(req: NextRequest) {
   // Bugünkü saatlik dağılım (son 24 saat)
   const today = days[days.length - 1];
   const hourly: number[] = Array(24).fill(0);
-  for (const row of rows ?? []) {
+  for (const row of statsRes.data ?? []) {
     if (row.date === today) hourly[row.hour] = row.pageviews;
   }
 
-  return NextResponse.json({ sessions, total: sessions.length, daily, hourly });
+  return NextResponse.json({
+    sessions,
+    total: sessions.length,
+    daily,
+    hourly,
+    visitorLog: logRes.data ?? [],
+  });
 }
