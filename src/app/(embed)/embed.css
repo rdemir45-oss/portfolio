@@ -1,20 +1,31 @@
 @import "tailwindcss";
 
-/* Embed sayfalarında scrollbar tamamen gizli */
-html, body, * {
+/* Tailwind base stillerini ezmek için @layer base kullanıyoruz */
+@layer base {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    height: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+}
+
+/* Fallback — layer dışı da ekle */
+html, body {
+  overflow: hidden !important;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
 }
-html::-webkit-scrollbar,
-body::-webkit-scrollbar,
 *::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
 }

@@ -191,7 +191,7 @@ export default function EmbedScanClient() {
   const donusSignals  = allCats.filter((c) => activeReversalKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
 
   return (
-    <div ref={wrapperRef} className="bg-[#080a0c] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div ref={wrapperRef} className="bg-[#080a0c] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif", overflow: "hidden" }}>
 
       {/* Başlık */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
