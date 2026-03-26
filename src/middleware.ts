@@ -60,7 +60,10 @@ export async function middleware(request: NextRequest) {
     const expectedKey = process.env.ADMIN_LOGIN_KEY ?? "";
     // Anahtar boşsa veya eşleşmiyorsa 404
     if (expectedKey.length === 0 || loginKey !== expectedKey) {
-      return new NextResponse(null, { status: 404 });
+      return new NextResponse("404 Not Found", {
+        status: 404,
+        headers: { "Content-Type": "text/plain" },
+      });
     }
     return NextResponse.next();
   }
@@ -71,7 +74,10 @@ export async function middleware(request: NextRequest) {
     const valid = secret && token ? await verifyHmacToken(token, secret, true) : false;
     if (!valid) {
       // Redirect yerine 404 — admin panelinin varlığını ele verme
-      return new NextResponse(null, { status: 404 });
+      return new NextResponse("404 Not Found", {
+        status: 404,
+        headers: { "Content-Type": "text/plain" },
+      });
     }
   }
 
