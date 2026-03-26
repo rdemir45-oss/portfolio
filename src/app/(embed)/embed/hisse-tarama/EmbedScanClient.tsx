@@ -314,16 +314,32 @@ export default function EmbedScanClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // İçerik yüksekliğini parent iframe'e bildir → iframe scroll bar olmaz
+  // İçerik yüksekliğini parent iframe'e bildir → iframe scrollbar olmaz (Wix.setHeight uyumlu)
   useEffect(() => {
     const sendHeight = () => {
-      const h = containerRef.current?.scrollHeight ?? document.body.scrollHeight;
+      // DOM tam yüklendikten sonra ölç: documentElement > container > body
+      const h =
+        document.documentElement.scrollHeight ||
+        containerRef.current?.scrollHeight ||
+        document.body.scrollHeight;
       window.parent.postMessage({ type: "embed-resize", height: h }, "*");
+      // Wix HTML Component API desteği (window.Wix varsa)
+      if (typeof window !== "undefined" && (window as Window & { Wix?: { setHeight: (h: number) => void } }).Wix) {
+        (window as Window & { Wix?: { setHeight: (h: number) => void } }).Wix!.setHeight(h);
+      }
     };
+    // Hemen gönder + 100ms sonra bir kez daha (fontlar/ikonlar yüklenince)
     sendHeight();
+    const t = setTimeout(sendHeight, 100);
+    // Sayfa tamamen yüklenince tekrar ölç
+    window.addEventListener("load", sendHeight);
     const ro = new ResizeObserver(sendHeight);
     if (containerRef.current) ro.observe(containerRef.current);
-    return () => ro.disconnect();
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("load", sendHeight);
+      ro.disconnect();
+    };
   }, [data, loading, error]);
 
   const load = useCallback(async () => {
@@ -382,19 +398,19 @@ export default function EmbedScanClient() {
   const donusSignals    = allCats.filter((c) => activeReversalKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
 
   return (
-    <div ref={containerRef} className="bg-[#050a0e] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div ref={containerRef} className="bg-[#080a0c] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Başlık */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
         <div>
-          <p className="text-[10px] font-semibold tracking-widest text-emerald-500 uppercase">RdAlgo • BIST Tarama</p>
+          <p className="text-[10px] font-semibold tracking-widest text-[#dc2626] uppercase">RdAlgo • BIST Tarama</p>
           {data?.minutesAgo !== null && data?.minutesAgo !== undefined && (
             <p className="text-[11px] text-slate-600 mt-0.5">Son tarama: {timeAgoLabel(data.minutesAgo)}</p>
           )}
         </div>
         <button
           onClick={load} disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-emerald-700 transition-colors text-xs disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-red-700 transition-colors text-xs disabled:opacity-40"
         >
           <span className={loading ? "animate-spin inline-block" : ""}>⟳</span>
           {loading ? "Yükleniyor" : "Yenile"}
@@ -404,7 +420,7 @@ export default function EmbedScanClient() {
       {/* İstatistik şeridi — ana site ile aynı 5 kutu */}
       {data && !loading && (
         <div className="mb-5 grid grid-cols-5 gap-1.5 sm:gap-2">
-          <div className="bg-[#0a1628] border border-slate-800 rounded-xl p-1.5 sm:p-2.5 flex flex-col items-center gap-1">
+          <div className="bg-[#111115] border border-slate-800 rounded-xl p-1.5 sm:p-2.5 flex flex-col items-center gap-1">
             <p className="text-base sm:text-lg font-black text-white">{totalSignals}</p>
             <p className="text-[9px] text-slate-600 uppercase tracking-wide">Toplam</p>
           </div>
