@@ -77,6 +77,7 @@ export interface DbScannerUser {
   subscription_plan?: SubscriptionPlan | null;
   subscription_expires_at?: string | null;
   created_at: string;
+  last_seen_at?: string | null;
 }
 
 export interface DbLiveStream {

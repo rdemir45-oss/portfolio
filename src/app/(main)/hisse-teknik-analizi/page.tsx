@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import StockScanner from "@/components/StockScanner";
 import Footer from "@/components/Footer";
+import HeartbeatProvider from "@/components/HeartbeatProvider";
 
 export const metadata: Metadata = {
   title: "Hisse Teknik Analizi | TheBigShort",
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 export default function HisseTaramaPage() {
   return (
     <div className="min-h-screen bg-[#050a0e] text-white">
+      <HeartbeatProvider />
       <Navbar />
       <div className="pt-16">
         <StockScanner />

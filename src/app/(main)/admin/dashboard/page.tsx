@@ -584,11 +584,22 @@ export default function AdminDashboard() {
               ? "bg-sky-950/40 border-sky-800 text-sky-400"
               : "bg-transparent border-slate-800 text-slate-500 hover:text-slate-300"}`}>
             Üyeler ({scannerUsers.length})
-            {scannerUsers.filter(u => u.status === "pending").length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
-                {scannerUsers.filter(u => u.status === "pending").length}
-              </span>
-            )}
+            {(() => {
+              const now = Date.now();
+              const activeCount = scannerUsers.filter(u => u.last_seen_at && now - new Date(u.last_seen_at).getTime() < 5 * 60 * 1000).length;
+              const pendingCount = scannerUsers.filter(u => u.status === "pending").length;
+              if (activeCount > 0) return (
+                <span className="absolute -top-1 -right-1 min-w-[1rem] h-4 bg-emerald-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold px-1">
+                  {activeCount}
+                </span>
+              );
+              if (pendingCount > 0) return (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+                  {pendingCount}
+                </span>
+              );
+              return null;
+            })()}
           </button>
           <button onClick={() => setTab("liveStreams")}
             className={`shrink-0 px-3 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold border transition-all ${tab === "liveStreams"
@@ -903,6 +914,30 @@ export default function AdminDashboard() {
                   {scannerUsers.filter(u => u.status === "pending").length} bekleyen onay
                 </span>
               </div>
+              {/* Aktif kullanıcı özeti */}
+              {(() => {
+                const now = Date.now();
+                const active = scannerUsers.filter(u => u.last_seen_at && now - new Date(u.last_seen_at).getTime() < 5 * 60 * 1000);
+                if (active.length === 0) return null;
+                return (
+                  <div className="flex items-center gap-3 mb-4 bg-emerald-950/30 border border-emerald-800/50 rounded-xl px-4 py-3">
+                    <span className="relative flex h-2.5 w-2.5 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-sm text-emerald-400 font-medium">
+                      {active.length} kullanıcı şu an aktif
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 ml-1">
+                      {active.map(u => (
+                        <span key={u.id} className="text-xs text-emerald-300 bg-emerald-900/40 border border-emerald-800/60 rounded-full px-2 py-0.5">
+                          {u.username}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
               {/* Rate limit sıfırlama */}
               <div className="flex items-center gap-2 mb-6 bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3">
                 <TbWifiOff size={15} className="text-amber-400 shrink-0" />
