@@ -35,17 +35,17 @@ export async function POST(req: NextRequest) {
     }
   } catch {}
 
-  upsertSession(sid, page, username);
+  const pageChanged = upsertSession(sid, page, username);
 
   // Supabase site_stats upsert — saatlik granülite
   const now = new Date();
-  const dateStr = now.toISOString().slice(0, 10); // "2026-03-26"
+  const dateStr = now.toISOString().slice(0, 10);
   const hour = now.getUTCHours();
   await supabaseAdmin.rpc("increment_site_stats", {
     p_date: dateStr,
     p_hour: hour,
     p_visitors: isNew ? 1 : 0,
-    p_pageviews: 1,
+    p_pageviews: pageChanged ? 1 : 0,  // sadece sayfa değişince say
   });
 
   const res = NextResponse.json({ ok: true });
