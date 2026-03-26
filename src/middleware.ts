@@ -49,14 +49,17 @@ export async function middleware(request: NextRequest) {
 
   // ── Admin koruma ──────────────────────────────────────────────────────
   if (pathname === "/admin/login") {
-    // Giriş sayfasına sadece doğru gizli anahtar ile erişilebilir.
-    // Giriş yapılmışsa (geçerli token varsa) anahtara gerek yok.
-    const loginKey = request.nextUrl.searchParams.get("k");
-    const expectedKey = process.env.ADMIN_LOGIN_KEY;
+    // Zaten giriş yapılmışsa anahtara gerek yok
     const token = request.cookies.get("admin_token")?.value;
     const secret = process.env.ADMIN_SECRET;
     const alreadyLoggedIn = secret && token ? await verifyHmacToken(token, secret, true) : false;
-    if (!alreadyLoggedIn && (!expectedKey || loginKey !== expectedKey)) {
+    if (alreadyLoggedIn) return NextResponse.next();
+
+    // Giriş yapılmamışsa: doğru gizli anahtar zorunlu
+    const loginKey = request.nextUrl.searchParams.get("k");
+    const expectedKey = process.env.ADMIN_LOGIN_KEY ?? "";
+    // Anahtar boşsa veya eşleşmiyorsa 404
+    if (expectedKey.length === 0 || loginKey !== expectedKey) {
       return new NextResponse(null, { status: 404 });
     }
     return NextResponse.next();
