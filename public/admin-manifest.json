@@ -1,0 +1,20 @@
+{
+  "name": "RdAlgo Admin Panel",
+  "short_name": "RdAlgo Admin",
+  "description": "RdAlgo yönetim paneli — sadece yetkili kullanım",
+  "start_url": "/admin/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050a0e",
+  "theme_color": "#dc2626",
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "/admin-icon",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ]
+}
