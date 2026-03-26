@@ -18,9 +18,7 @@ export default function EmbedLayout({ children }: { children: React.ReactNode })
         fontSize: "14px",
         lineHeight: "1.5",
         WebkitFontSmoothing: "antialiased",
-        // Yatay scroll yok; dikey scroll parent (Wix) tarafında — iframe sadece içerik kadar büyür
-        overflowX: "hidden",
-        overflowY: "visible",
+        overflow: "hidden",
       }}>
         {children}
       </body>

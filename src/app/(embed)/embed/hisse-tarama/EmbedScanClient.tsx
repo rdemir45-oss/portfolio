@@ -59,6 +59,13 @@ export default function EmbedScanClient() {
   // Sayfa sıfırla: grup değişince en başa dön
   useEffect(() => { setPage(0); }, [selectedId]);
 
+  // Veri yüklenince iframe yüksekliğini parent'a bildir (Wix HTML snippet postMessage listener)
+  useEffect(() => {
+    if (loading) return;
+    const h = document.documentElement.scrollHeight || document.body.scrollHeight;
+    window.parent.postMessage({ type: "embed-resize", height: h }, "*");
+  }, [loading, data, error]);
+
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
