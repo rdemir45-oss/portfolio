@@ -47,7 +47,7 @@ export default function Icon({ searchParams }: { searchParams?: { size?: string 
               fontFamily: "sans-serif",
             }}
           >
-            Rd
+            RD
           </span>
           <span
             style={{

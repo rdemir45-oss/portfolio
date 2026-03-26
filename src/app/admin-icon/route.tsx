@@ -47,7 +47,7 @@ export function GET() {
               fontFamily: "sans-serif",
             }}
           >
-            Rd
+            RD
           </span>
           <span
             style={{
