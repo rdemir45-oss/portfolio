@@ -8,10 +8,11 @@ export default function EmbedLayout({ children }: { children: React.ReactNode })
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-        {/* Scrollbar'ı tamamen gizle — içerik kırpılmaz, iframe postMessage ile büyür */}
+        {/* Embed içinde tüm scrollbar'ları tamamen gizle — globals.css override */}
         <style>{`
-          html, body { scrollbar-width: none; -ms-overflow-style: none; margin: 0; padding: 0; }
-          html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+          html, body, * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+          html::-webkit-scrollbar, body::-webkit-scrollbar, *::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+          html, body { margin: 0; padding: 0; overflow: hidden; }
         `}</style>
       </head>
       <body style={{

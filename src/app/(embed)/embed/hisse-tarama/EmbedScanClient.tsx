@@ -126,18 +126,19 @@ export default function EmbedScanClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // İçerik yüksekliğini parent Wix iframe'ine bildir
+  // İçerik yüksekliğini parent Wix iframe'ine bildir (overflow:hidden olduğu için scrollHeight kullan)
   useEffect(() => {
     const sendHeight = () => {
-      const h = wrapperRef.current?.offsetHeight ?? document.body.scrollHeight;
+      const h = wrapperRef.current?.scrollHeight ?? document.body.scrollHeight;
       if (h < 50) return;
       window.parent.postMessage({ type: "embed-resize", height: h + 20 }, "*");
     };
     sendHeight();
     const t = setTimeout(sendHeight, 300);
+    const t2 = setTimeout(sendHeight, 1000);
     const ro = new ResizeObserver(sendHeight);
     if (wrapperRef.current) ro.observe(wrapperRef.current);
-    return () => { clearTimeout(t); ro.disconnect(); };
+    return () => { clearTimeout(t); clearTimeout(t2); ro.disconnect(); };
   }, [data, loading, error]);
 
   const load = useCallback(async () => {
