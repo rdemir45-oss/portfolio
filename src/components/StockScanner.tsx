@@ -1260,10 +1260,11 @@ export default function StockScanner() {
     load();
     loadProfile();
     loadGroups();
-    const id = setInterval(load, 5 * 60 * 1000);
+    const id = setInterval(load, 5 * 60 * 1000);  // sadece scan verisi yenilenir
     if (!localStorage.getItem("hisse_onboarding_v1")) setShowOnboarding(true);
     return () => clearInterval(id);
-  }, [load, loadProfile, loadGroups]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // bağımlılıklar kasıtlı boş — mount'ta bir kez çalışır, load ref stabilidir
 
   // Kategorileri grupla — admin'de tanımlı sıraya göre sırala
   // API henüz sonuç döndürmemiş key'ler için placeholder kategori oluşturulur

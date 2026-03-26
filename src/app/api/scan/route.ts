@@ -9,6 +9,12 @@ const SCAN_API_KEY = process.env.SCAN_API_KEY ?? "";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+// ── Sunucu tarafı in-memory cache (60 sn TTL) ─────────────────────────────
+// Her kullanıcı isteği için dış API'ye çağrı yapmak yerine önbellekten dön.
+// Token doğrulaması hâlâ her istekte yapılır; sadece veri önbelleklenir.
+let _cache: { payload: unknown; ts: number } | null = null;
+const CACHE_TTL = 60_000; // 60 saniye
+
 /** Supabase'deki tüm custom_indicators kayıtlarını scan API'ye yeniden kaydeder. */
 async function resyncIndicatorsToScanApi(): Promise<void> {
   if (!SCAN_API_URL || !SCAN_API_KEY) return;
@@ -84,13 +90,19 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Cache HIT — 60 sn içindeyse dış API'yi çağırma
+  if (_cache && Date.now() - _cache.ts < CACHE_TTL) {
+    return NextResponse.json(_cache.payload);
+  }
+
   try {
     const headers = { "X-API-Key": SCAN_API_KEY };
 
-    // Standart tarama + özel indikatör sonuçlarını paralel çek
-    const [scanRes, indRes] = await Promise.all([
+    // Standart tarama + özel indikatör + Supabase stored cats PARALEL çek
+    const [scanRes, indRes, storedCats] = await Promise.all([
       fetch(`${SCAN_API_URL}/api/scan/public`, { headers, cache: "no-store" }),
       fetch(`${SCAN_API_URL}/api/indicators/latest`, { headers, cache: "no-store" }),
+      getStoredIndicatorCats(),
     ]);
 
     if (!scanRes.ok) {
@@ -110,19 +122,11 @@ export async function GET(req: NextRequest) {
       indCats = indData.categories ?? [];
     }
 
-    // Scan API boş döndüyse: indikatörleri yeniden kaydet (memory reset sonrası)
+    // Scan API boş döndüyse: indikatörleri arka planda yeniden kaydet.
+    // Yanıtı BLOKLAMAZ — bir sonraki istek güncel veriyi alır.
     if (indCats.length === 0) {
-      await resyncIndicatorsToScanApi();
-      const indRes2 = await fetch(`${SCAN_API_URL}/api/indicators/latest`, { headers, cache: "no-store" });
-      if (indRes2.ok) {
-        const indData2 = await indRes2.json();
-        indCats = indData2.categories ?? [];
-      }
+      resyncIndicatorsToScanApi().catch(() => {});
     }
-
-    // Supabase'deki kaydedilmiş sonuçları çek — bunlar primary source
-    // (Scan API /latest endpoint'i manual scan sonuçlarını yansıtmıyor)
-    const storedCats = await getStoredIndicatorCats();
 
     // indCats ile storedCats'i birleştir: Supabase'de gerçek sonuç varsa o öncelikli
     const mergedIndCats = [...indCats];
@@ -152,7 +156,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json(injectTriangleSplit(data));
+    const payload = injectTriangleSplit(data);
+
+    // Cache'e yaz
+    _cache = { payload, ts: Date.now() };
+
+    return NextResponse.json(payload);
   } catch {
     return NextResponse.json(
       { error: "Tarama servisine bağlanılamadı." },
