@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/* Embed sayfalarında scrollbar tamamen gizli */
+html, body, * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
