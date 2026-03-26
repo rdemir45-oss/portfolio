@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff, TbKey, TbCopy, TbWifi, TbWifiOff, TbCode, TbPlayerPlay, TbCircleCheck, TbAlertCircle, TbChevronDown, TbChevronUp, TbClipboardCopy } from "react-icons/tb";
+import { TbPlus, TbEdit, TbTrash, TbLogout, TbPin, TbChartLine, TbBook, TbBell, TbChartCandle, TbDatabaseImport, TbMail, TbMailOpened, TbCheck, TbBrandWhatsapp, TbPhone, TbUser, TbUserCheck, TbUserX, TbClock, TbShieldCheck, TbShieldX, TbFileSpreadsheet, TbVideo, TbCalendar, TbCrown, TbRefresh, TbCalendarOff, TbKey, TbCopy, TbWifi, TbWifiOff, TbCode, TbPlayerPlay, TbCircleCheck, TbAlertCircle, TbChevronDown, TbChevronUp, TbClipboardCopy, TbSearch } from "react-icons/tb";
 import type { DbPost, DbIndicator, DbMessage, DbWhatsappRequest, DbScannerUser, DbLiveStream } from "@/lib/supabase";
 import UserScansTab from "./UserScansTab";
 
@@ -131,6 +131,7 @@ export default function AdminDashboard() {
   const [tempPasswordModal, setTempPasswordModal] = useState<{ username: string; password: string } | null>(null);
   const [clearingRateLimit, setClearingRateLimit] = useState(false);
   const [rateLimitIp, setRateLimitIp] = useState("");
+  const [memberSearch, setMemberSearch] = useState("");
   const [seeding, setSeeding] = useState(false);
   const [seedingPosts, setSeedingPosts] = useState(false);
   const router = useRouter();
@@ -929,16 +930,41 @@ export default function AdminDashboard() {
                 <p className="text-slate-500 text-sm py-8 text-center">Henüz üyelik talebi yok.</p>
               ) : (
                 <div className="space-y-3">
-                  {scannerUsers.map((u) => (
-                    <div
-                      key={u.id}
-                      className={`flex items-center gap-4 p-4 border rounded-xl transition-colors ${
-                        u.status === "pending"
-                          ? "bg-amber-950/20 border-amber-800/50"
-                          : u.status === "approved"
-                          ? "bg-emerald-950/20 border-emerald-900/50"
-                          : "bg-slate-900/30 border-slate-800"
-                      }`}
+                  {/* Üye arama */}
+                  <div className="flex items-center gap-2 bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-2.5 mb-2">
+                    <TbSearch size={15} className="text-slate-500 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Kullanıcı adı ara..."
+                      value={memberSearch}
+                      onChange={(e) => setMemberSearch(e.target.value)}
+                      className="flex-1 bg-transparent text-sm text-white placeholder-slate-600 focus:outline-none"
+                    />
+                    {memberSearch && (
+                      <button onClick={() => setMemberSearch("")} className="text-slate-500 hover:text-slate-300 text-xs">✕</button>
+                    )}
+                  </div>
+                  {(() => {
+                    const filtered = scannerUsers.filter((u) =>
+                      u.username.toLowerCase().includes(memberSearch.toLowerCase().trim())
+                    );
+                    if (filtered.length === 0) {
+                      return (
+                        <p className="text-slate-500 text-sm py-6 text-center">
+                          &quot;{memberSearch}&quot; ile eşleşen üye bulunamadı.
+                        </p>
+                      );
+                    }
+                    return filtered.map((u) => (
+                      <div
+                        key={u.id}
+                        className={`flex items-center gap-4 p-4 border rounded-xl transition-colors ${
+                          u.status === "pending"
+                            ? "bg-amber-950/20 border-amber-800/50"
+                            : u.status === "approved"
+                            ? "bg-emerald-950/20 border-emerald-900/50"
+                            : "bg-slate-900/30 border-slate-800"
+                        }`}
                     >
                       <div className="shrink-0">
                         {u.status === "pending" && <TbClock size={18} className="text-amber-400" />}
@@ -1076,12 +1102,12 @@ export default function AdminDashboard() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                  ));
+                  })()}
                 </div>
               )}
             </>
           )}
-          {/* Custom Indicators Tab */}
           {tab === "customIndicators" && (
             <>
               <div className="flex items-center justify-between mb-6">
