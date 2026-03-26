@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { upsertSession } from "@/lib/active-sessions";
+import { supabaseAdmin } from "@/lib/supabase";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import crypto from "crypto";
 
@@ -35,6 +36,17 @@ export async function POST(req: NextRequest) {
   } catch {}
 
   upsertSession(sid, page, username);
+
+  // Supabase site_stats upsert — saatlik granülite
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10); // "2026-03-26"
+  const hour = now.getUTCHours();
+  await supabaseAdmin.rpc("increment_site_stats", {
+    p_date: dateStr,
+    p_hour: hour,
+    p_visitors: isNew ? 1 : 0,
+    p_pageviews: 1,
+  });
 
   const res = NextResponse.json({ ok: true });
   if (isNew) {

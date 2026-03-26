@@ -80,6 +80,13 @@ export interface DbScannerUser {
   last_seen_at?: string | null;
 }
 
+export interface DbSiteStat {
+  date: string;
+  hour: number;
+  visitors: number;
+  pageviews: number;
+}
+
 export interface DbLiveStream {
   id: number;
   title: string;

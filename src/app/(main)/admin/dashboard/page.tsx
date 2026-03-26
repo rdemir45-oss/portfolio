@@ -133,7 +133,8 @@ export default function AdminDashboard() {
   const [rateLimitIp, setRateLimitIp] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   type AnalyticsSession = { sid: string; page: string; username?: string; lastSeen: number };
-  const [analytics, setAnalytics] = useState<{ sessions: AnalyticsSession[]; total: number } | null>(null);
+  type DailyStat = { date: string; visitors: number; pageviews: number };
+  const [analytics, setAnalytics] = useState<{ sessions: AnalyticsSession[]; total: number; daily: DailyStat[]; hourly: number[] } | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [seedingPosts, setSeedingPosts] = useState(false);
   const router = useRouter();
@@ -604,6 +605,68 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
+
+        {/* 7 Günlük Trafik Grafiği */}
+        {analytics?.daily && analytics.daily.some(d => d.pageviews > 0) && (() => {
+          const maxPv = Math.max(...analytics.daily.map(d => d.pageviews), 1);
+          const today = new Date().toISOString().slice(0, 10);
+          return (
+            <div className="mb-6 bg-[#0a1628] border border-slate-800 rounded-2xl px-5 py-4">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm font-semibold text-white">Son 7 Gün — Trafik</span>
+                <div className="flex items-center gap-4 text-xs text-slate-500">
+                  <span><span className="inline-block w-2 h-2 rounded-sm bg-emerald-500 mr-1"></span>Bugün</span>
+                  <span><span className="inline-block w-2 h-2 rounded-sm bg-slate-700 mr-1"></span>Geçmiş</span>
+                </div>
+              </div>
+              <div className="flex items-end gap-2 h-28">
+                {analytics.daily.map((d) => {
+                  const pct = d.pageviews / maxPv;
+                  const isToday = d.date === today;
+                  const label = new Date(d.date + "T00:00:00Z").toLocaleDateString("tr-TR", { weekday: "short", day: "numeric", timeZone: "UTC" });
+                  return (
+                    <div key={d.date} className="flex-1 flex flex-col items-center gap-1 group relative">
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">
+                        <div className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white whitespace-nowrap shadow-lg">
+                          <div className="font-semibold">{label}</div>
+                          <div className="text-emerald-400">{d.visitors} ziyaretçi</div>
+                          <div className="text-slate-400">{d.pageviews} görüntülenme</div>
+                        </div>
+                        <div className="w-2 h-2 bg-slate-800 border-r border-b border-slate-700 rotate-45 -mt-1"></div>
+                      </div>
+                      {/* Bar */}
+                      <div
+                        className={`w-full rounded-t-md transition-all ${
+                          isToday ? "bg-emerald-500" : "bg-slate-700"
+                        }`}
+                        style={{ height: `${Math.max(pct * 80, d.pageviews > 0 ? 4 : 0)}px` }}
+                      />
+                      <span className={`text-[10px] ${isToday ? "text-emerald-400 font-bold" : "text-slate-600"}`}>
+                        {label.split(" ")[0]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Özet satırı */}
+              <div className="flex items-center gap-6 mt-3 pt-3 border-t border-slate-800/60">
+                <div>
+                  <div className="text-xs text-slate-500">Bu hafta ziyaretçi</div>
+                  <div className="text-lg font-bold text-white">{analytics.daily.reduce((s, d) => s + d.visitors, 0)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Bu hafta görüntülenme</div>
+                  <div className="text-lg font-bold text-white">{analytics.daily.reduce((s, d) => s + d.pageviews, 0)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500">Bugün</div>
+                  <div className="text-lg font-bold text-emerald-400">{analytics.daily.find(d => d.date === today)?.visitors ?? 0} ziyaretçi</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Tabs — mobilde yatay scroll */}
         <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
