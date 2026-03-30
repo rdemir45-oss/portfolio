@@ -10,6 +10,7 @@ const links = [
   // { href: "/#paketler", label: "Paketler" },
   { href: "/#platforms", label: "Platformlar" },
   { href: "/hisse-teknik-analizi", label: "Hisse Teknik Analizi" },
+  { href: "/araci-kurum-analizi", label: "AKD Analiz" },
   { href: "/egitim", label: "Eğitim" },
   { href: "/#announcements", label: "Analiz & Eğitim" },
   { href: "/#about", label: "Hakkımda" },
