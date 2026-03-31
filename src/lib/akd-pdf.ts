@@ -161,7 +161,7 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
       body: tableData,
       startY: 30,
       theme: "grid",
-      headStyles: { fillColor: [75, 139, 190], textColor: 255, fontStyle: "bold", font: fontName },
+      headStyles: { fillColor: [75, 139, 190], textColor: 255, fontStyle: "normal", font: fontName },
       styles: { halign: "center", fontSize: 9, font: fontName },
       didDrawPage: () => addWatermark(doc),
     });
@@ -215,7 +215,7 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
           body: rows.slice(i, i + pageSize),
           startY: 30,
           theme: "grid",
-          headStyles: { fillColor: [26, 82, 118], textColor: 255, fontStyle: "bold", font: fontName },
+          headStyles: { fillColor: [26, 82, 118], textColor: 255, fontStyle: "normal", font: fontName },
           styles: { halign: "center", fontSize: 9, font: fontName },
           didDrawPage: () => addWatermark(doc),
         });
@@ -275,7 +275,7 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
           body: rows.slice(i, i + pageSize),
           startY: 30,
           theme: "grid",
-          headStyles: { fillColor: [142, 68, 173], textColor: 255, fontStyle: "bold", font: fontName },
+          headStyles: { fillColor: [142, 68, 173], textColor: 255, fontStyle: "normal", font: fontName },
           styles: { halign: "center", fontSize: 8, font: fontName },
           didDrawPage: () => addWatermark(doc),
         });
@@ -335,7 +335,7 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
           body: rows.slice(i, i + pageSize),
           startY: 30,
           theme: "grid",
-          headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: "bold", font: fontName },
+          headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: "normal", font: fontName },
           styles: { halign: "center", fontSize: 9, font: fontName },
           didDrawPage: () => addWatermark(doc),
         });
