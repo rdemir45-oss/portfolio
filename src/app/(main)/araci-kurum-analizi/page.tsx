@@ -13,7 +13,7 @@ import {
   TbAlertTriangle,
 } from "react-icons/tb";
 import type { AkdRow, AkdFilters } from "@/lib/akd-parser";
-import { parseAkdExcel, getUniqueKurumlar, getUniqueHisseler, getFilteredData, getOneCikanlar, getKurumBirinciler } from "@/lib/akd-parser";
+import { parseAkdExcel, getUniqueKurumlar, getUniqueHisseler, getFilteredData, getOneCikanlar, getKurumBirinciler, getIlk2AliciBirlesik } from "@/lib/akd-parser";
 import { generatePdf } from "@/lib/akd-pdf";
 
 export default function AraciKurumAnaliziPage() {
@@ -35,6 +35,18 @@ export default function AraciKurumAnaliziPage() {
   const [showKurumDropdown, setShowKurumDropdown] = useState(false);
   const [kurumSearch, setKurumSearch] = useState("");
   const [showFilters, setShowFilters] = useState(true);
+
+  // İlk 2 Alıcı Birleşik filter
+  const [ilk2AliciKurumlar, setIlk2AliciKurumlar] = useState<string[]>([]);
+  const [showIlk2Dropdown, setShowIlk2Dropdown] = useState(false);
+  const [ilk2Search, setIlk2Search] = useState("");
+
+  // 1. Alıcı Kurum dropdown
+  const [showBirincDropdown, setShowBirincDropdown] = useState(false);
+  const [birincSearch, setBirincSearch] = useState("");
+
+  // Font cache
+  const [fontData, setFontData] = useState<ArrayBuffer | null>(null);
 
   const handleFile = useCallback(async (file: File) => {
     const validExts = [".xlsx", ".xls"];
@@ -64,6 +76,7 @@ export default function AraciKurumAnaliziPage() {
       setMinLot("");
       setMaxLot("");
       setBirincAliciKurum("");
+      setIlk2AliciKurumlar([]);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Dosya işlenirken bir hata oluştu.");
     } finally {
@@ -107,8 +120,20 @@ export default function AraciKurumAnaliziPage() {
     ? getKurumBirinciler(data, birincAliciKurum)
     : [];
 
+  const ilk2Birlesik = data && ilk2AliciKurumlar.length >= 2
+    ? getIlk2AliciBirlesik(data, ilk2AliciKurumlar)
+    : [];
+
   const filteredKurumlar = kurumlar.filter((k) =>
     k.toLowerCase().includes(kurumSearch.toLowerCase())
+  );
+
+  const filteredBirincKurumlar = kurumlar.filter((k) =>
+    k.toLowerCase().includes(birincSearch.toLowerCase())
+  );
+
+  const filteredIlk2Kurumlar = kurumlar.filter((k) =>
+    k.toLowerCase().includes(ilk2Search.toLowerCase())
   );
 
   const stats = {
@@ -118,13 +143,23 @@ export default function AraciKurumAnaliziPage() {
     filtrelenmisKayit: filtered.length,
     oneCikanSayisi: oneCikanlar.length,
     birincAliciSayisi: birinciler.length,
+    ilk2BirlesikSayisi: ilk2Birlesik.length,
   };
 
   const handleDownloadPdf = async () => {
     if (!data) return;
     setPdfLoading(true);
     try {
-      // Small delay to let UI update
+      // Load font if not cached
+      let font = fontData;
+      if (!font) {
+        const res = await fetch("/fonts/Roboto-Regular.ttf");
+        if (res.ok) {
+          font = await res.arrayBuffer();
+          setFontData(font);
+        }
+      }
+
       await new Promise((r) => setTimeout(r, 50));
       const birincKurumlar = birincAliciKurum
         ? [birincAliciKurum]
@@ -132,6 +167,8 @@ export default function AraciKurumAnaliziPage() {
       const blob = generatePdf(data, {
         filters,
         birincAliciKurumlar: birincKurumlar,
+        ilk2AliciKurumlar: ilk2AliciKurumlar.length >= 2 ? ilk2AliciKurumlar : undefined,
+        fontData: font ?? undefined,
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -159,6 +196,7 @@ export default function AraciKurumAnaliziPage() {
     setMinLot("");
     setMaxLot("");
     setBirincAliciKurum("");
+    setIlk2AliciKurumlar([]);
   };
 
   return (
@@ -282,7 +320,8 @@ export default function AraciKurumAnaliziPage() {
                       hisseArama ||
                       minLot ||
                       maxLot ||
-                      birincAliciKurum) && (
+                      birincAliciKurum ||
+                      ilk2AliciKurumlar.length > 0) && (
                       <span className="text-xs bg-emerald-950/40 text-emerald-400 border border-emerald-800/60 rounded-full px-2 py-0.5">
                         Aktif
                       </span>
@@ -396,8 +435,8 @@ export default function AraciKurumAnaliziPage() {
                           )}
                         </div>
 
-                        {/* Row 3: Lot Aralığı + 1. Alıcı Kurum */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Row 3: Lot Aralığı */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm text-slate-400 mb-1.5">
                               Min Lot
@@ -422,22 +461,146 @@ export default function AraciKurumAnaliziPage() {
                               className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
                             />
                           </div>
-                          <div>
-                            <label className="block text-sm text-slate-400 mb-1.5">
-                              1. Alıcı Kurum
-                            </label>
-                            <input
-                              type="text"
-                              value={birincAliciKurum}
-                              onChange={(e) => setBirincAliciKurum(e.target.value)}
-                              placeholder="Örn: Bank of America"
-                              className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                            />
+                        </div>
+
+                        {/* Row 4: 1. Alıcı Kurum (dropdown) */}
+                        <div>
+                          <label className="block text-sm text-slate-400 mb-1.5">
+                            1. Alıcı Kurum{" "}
+                            {birincAliciKurum && (
+                              <span className="text-sky-400">— {birincAliciKurum}</span>
+                            )}
+                          </label>
+                          <div className="relative">
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={birincSearch}
+                                onChange={(e) => {
+                                  setBirincSearch(e.target.value);
+                                  setShowBirincDropdown(true);
+                                }}
+                                onFocus={() => setShowBirincDropdown(true)}
+                                placeholder="Kurum ara — hangi kurumun 1. alıcı olduğunu bul..."
+                                className="flex-1 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
+                              />
+                              {birincAliciKurum && (
+                                <button
+                                  onClick={() => {
+                                    setBirincAliciKurum("");
+                                    setBirincSearch("");
+                                  }}
+                                  className="px-3 py-2 rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                                >
+                                  <TbX />
+                                </button>
+                              )}
+                            </div>
+                            {showBirincDropdown && filteredBirincKurumlar.length > 0 && (
+                              <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg bg-slate-800 border border-slate-700 shadow-xl">
+                                {filteredBirincKurumlar.map((k) => (
+                                  <button
+                                    key={k}
+                                    onClick={() => {
+                                      setBirincAliciKurum(k);
+                                      setBirincSearch("");
+                                      setShowBirincDropdown(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700 transition-colors ${
+                                      birincAliciKurum === k
+                                        ? "text-sky-400 bg-sky-950/20"
+                                        : "text-slate-300"
+                                    }`}
+                                  >
+                                    {birincAliciKurum === k ? "✓ " : ""}
+                                    {k}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
 
+                        {/* Row 5: İlk 2 Alıcı Birleşik (multi-select) */}
+                        <div>
+                          <label className="block text-sm text-slate-400 mb-1.5">
+                            İlk 2 Alıcı Birleşik{" "}
+                            {ilk2AliciKurumlar.length > 0 && (
+                              <span className="text-violet-400">({ilk2AliciKurumlar.length} kurum seçili)</span>
+                            )}
+                          </label>
+                          <p className="text-xs text-slate-500 mb-2">
+                            2 kurum seçin — her ikisinin de ilk 2 alıcı olduğu hisseleri bulur
+                          </p>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={ilk2Search}
+                              onChange={(e) => {
+                                setIlk2Search(e.target.value);
+                                setShowIlk2Dropdown(true);
+                              }}
+                              onFocus={() => setShowIlk2Dropdown(true)}
+                              placeholder="Kurum ara ve seç (2 kurum)..."
+                              className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
+                            />
+                            {showIlk2Dropdown && filteredIlk2Kurumlar.length > 0 && (
+                              <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg bg-slate-800 border border-slate-700 shadow-xl">
+                                {filteredIlk2Kurumlar.map((k) => {
+                                  const selected = ilk2AliciKurumlar.includes(k);
+                                  const disabled = !selected && ilk2AliciKurumlar.length >= 2;
+                                  return (
+                                    <button
+                                      key={k}
+                                      disabled={disabled}
+                                      onClick={() => {
+                                        if (selected) {
+                                          setIlk2AliciKurumlar((prev) => prev.filter((x) => x !== k));
+                                        } else {
+                                          setIlk2AliciKurumlar((prev) => [...prev, k]);
+                                        }
+                                        setIlk2Search("");
+                                      }}
+                                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                                        disabled
+                                          ? "text-slate-600 cursor-not-allowed"
+                                          : selected
+                                          ? "text-violet-400 bg-violet-950/20 hover:bg-slate-700"
+                                          : "text-slate-300 hover:bg-slate-700"
+                                      }`}
+                                    >
+                                      {selected ? "✓ " : ""}
+                                      {k}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                          {ilk2AliciKurumlar.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {ilk2AliciKurumlar.map((k) => (
+                                <span
+                                  key={k}
+                                  className="inline-flex items-center gap-1 text-xs bg-violet-950/40 text-violet-400 border border-violet-800/60 rounded-full px-2 py-0.5"
+                                >
+                                  {k}
+                                  <button
+                                    onClick={() =>
+                                      setIlk2AliciKurumlar((prev) => prev.filter((x) => x !== k))
+                                    }
+                                    className="hover:text-white"
+                                  >
+                                    <TbX className="text-xs" />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
                         {/* Summary Info */}
-                        {(oneCikanlar.length > 0 || birinciler.length > 0) && (
+                        {(oneCikanlar.length > 0 || birinciler.length > 0 || ilk2Birlesik.length > 0) && (
                           <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-800">
                             {oneCikanlar.length > 0 && (
                               <span className="text-xs text-sky-400 bg-sky-950/40 border border-sky-800/60 rounded-full px-3 py-1">
@@ -445,8 +608,13 @@ export default function AraciKurumAnaliziPage() {
                               </span>
                             )}
                             {birincAliciKurum && birinciler.length > 0 && (
-                              <span className="text-xs text-violet-400 bg-violet-950/40 border border-violet-800/60 rounded-full px-3 py-1">
+                              <span className="text-xs text-sky-400 bg-sky-950/40 border border-sky-800/60 rounded-full px-3 py-1">
                                 {birincAliciKurum} 1. Alıcı: {birinciler.length} hisse
+                              </span>
+                            )}
+                            {ilk2AliciKurumlar.length >= 2 && (
+                              <span className="text-xs text-violet-400 bg-violet-950/40 border border-violet-800/60 rounded-full px-3 py-1">
+                                {ilk2AliciKurumlar.join(" & ")} İlk 2 Alıcı: {ilk2Birlesik.length} hisse
                               </span>
                             )}
                           </div>
@@ -504,11 +672,15 @@ export default function AraciKurumAnaliziPage() {
         </AnimatePresence>
       </div>
 
-      {/* Click outside to close kurum dropdown */}
-      {showKurumDropdown && (
+      {/* Click outside to close dropdowns */}
+      {(showKurumDropdown || showBirincDropdown || showIlk2Dropdown) && (
         <div
           className="fixed inset-0 z-10"
-          onClick={() => setShowKurumDropdown(false)}
+          onClick={() => {
+            setShowKurumDropdown(false);
+            setShowBirincDropdown(false);
+            setShowIlk2Dropdown(false);
+          }}
         />
       )}
     </main>

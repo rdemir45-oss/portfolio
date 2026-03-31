@@ -21,6 +21,12 @@ export interface KurumBirinci {
   oran: number;
 }
 
+export interface Ilk2AliciBirlesik {
+  hisse: string;
+  kurumlar: { kurum: string; lot: number; oran: number }[];
+  toplamAlis: number;
+}
+
 export interface AkdFilters {
   kurumlar?: string[];
   tip?: "Alış" | "Satış" | "Hepsi";
@@ -172,6 +178,46 @@ export function getKurumBirinciler(data: AkdRow[], kurumAdi: string): KurumBirin
   }
 
   return result.sort((a, b) => b.oran - a.oran);
+}
+
+export function getIlk2AliciBirlesik(data: AkdRow[], kurumAdlari: string[]): Ilk2AliciBirlesik[] {
+  if (kurumAdlari.length < 2) return [];
+  const hisseler = uniqueValues(data, "hisse");
+  const result: Ilk2AliciBirlesik[] = [];
+  const searchTerms = kurumAdlari.map((k) => k.toLowerCase().trim());
+
+  for (const hisse of hisseler) {
+    const sub = data.filter((d) => d.hisse === hisse && d.tip === "Alış");
+    if (sub.length === 0) continue;
+
+    const grouped = groupSum(sub);
+    const sorted = [...grouped.entries()].sort((a, b) => b[1] - a[1]);
+    const top2 = sorted.slice(0, 2).map(([k]) => k.toLowerCase().trim());
+
+    const allFound = searchTerms.every((term) =>
+      top2.some((t) => t.includes(term))
+    );
+
+    if (allFound) {
+      const toplam = sumValues(grouped);
+      const kurumlar = searchTerms.map((term) => {
+        const entry = sorted.find(([k]) => k.toLowerCase().trim().includes(term));
+        const lot = entry ? entry[1] : 0;
+        return {
+          kurum: entry ? entry[0] : term,
+          lot: Math.round(lot),
+          oran: toplam > 0 ? lot / toplam : 0,
+        };
+      });
+      result.push({ hisse, kurumlar, toplamAlis: toplam });
+    }
+  }
+
+  return result.sort((a, b) => {
+    const aTotal = a.kurumlar.reduce((s, k) => s + k.oran, 0);
+    const bTotal = b.kurumlar.reduce((s, k) => s + k.oran, 0);
+    return bTotal - aTotal;
+  });
 }
 
 export function getFilteredData(data: AkdRow[], filters: AkdFilters): AkdRow[] {

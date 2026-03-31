@@ -1,12 +1,14 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { AkdRow, OneCikan, KurumBirinci } from "./akd-parser";
-import { getOneCikanlar, getKurumBirinciler, getFilteredData } from "./akd-parser";
+import type { AkdRow, OneCikan, KurumBirinci, Ilk2AliciBirlesik } from "./akd-parser";
+import { getOneCikanlar, getKurumBirinciler, getIlk2AliciBirlesik, getFilteredData } from "./akd-parser";
 import type { AkdFilters } from "./akd-parser";
 
 export interface PdfOptions {
   filters: AkdFilters;
   birincAliciKurumlar?: string[];
+  ilk2AliciKurumlar?: string[];
+  fontData?: ArrayBuffer;
 }
 
 const WATERMARK = "YATIRIM TAVSİYESİ DEĞİLDİR";
@@ -58,32 +60,51 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
   const pageWidth = doc.internal.pageSize.getWidth();
   const dateStr = formatDate();
 
+  // Register Turkish font if provided
+  if (options.fontData) {
+    const bytes = new Uint8Array(options.fontData);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    doc.addFileToVFS("Roboto-Regular.ttf", base64);
+    doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+    doc.setFont("Roboto");
+  }
+
+  const fontName = options.fontData ? "Roboto" : "helvetica";
+  const setFont = () => {
+    if (options.fontData) doc.setFont("Roboto");
+  };
+
   // ===== Sayfa 1: Risk Bildirimi =====
+  setFont();
   doc.setFontSize(20);
   doc.setTextColor(192, 57, 43);
-  doc.text("R\u0130SK B\u0130LD\u0130R\u0130M\u0130", pageWidth / 2, 40, { align: "center" });
+  doc.text("RİSK BİLDİRİMİ", pageWidth / 2, 40, { align: "center" });
 
   doc.setFontSize(10);
   doc.setTextColor(60, 60, 60);
   const riskLines = [
-    "Bu analizlerde yer alan yatirim bilgi, yorum ve tavsiyeler yatirim",
-    "danismanligi kapsaminda degildir. Bu tavsiyeler genel nitelikte olup,",
-    "ozel olarak sizin mali durumunuz ile risk ve getiri tercihlerinize",
-    "uygun olarak hazirlanmamistir.",
+    "Bu analizlerde yer alan yatırım bilgi, yorum ve tavsiyeler yatırım",
+    "danışmanlığı kapsamında değildir. Bu tavsiyeler genel nitelikte olup,",
+    "özel olarak sizin mali durumunuz ile risk ve getiri tercihlerinize",
+    "uygun olarak hazırlanmamıştır.",
     "",
-    "Bu nedenle, sadece burada yer alan bilgilere dayanilarak yatirim",
-    "karari verilmesi beklentilerinize uygun sonuclar dogurmayabilir.",
+    "Bu nedenle, sadece burada yer alan bilgilere dayanılarak yatırım",
+    "kararı verilmesi beklentilerinize uygun sonuçlar doğurmayabilir.",
     "",
-    "Yapilan tum yorumlar analizler ve oneriler, analistlerin deneyim ve",
-    "bilgisi dahilinde yapabilecegi en iyi ve en dogru arastirmalarin",
-    "butunuyle iyi niyetli bir urunudur.",
+    "Yapılan tüm yorumlar analizler ve öneriler, analistlerin deneyim ve",
+    "bilgisi dahilinde yapabileceği en iyi ve en doğru araştırmaların",
+    "bütünüyle iyi niyetli bir ürünüdür.",
     "",
-    "Yorumlar ve bilgiler birer AL veya SAT onerisi teskil etmezler.",
+    "Yorumlar ve bilgiler birer AL veya SAT önerisi teşkil etmezler.",
     "",
-    "Daha once paylasilan piyasa analizlerinin, bilgilerin ve onerilerin",
-    "gecmiste basarili olmus olmasi ileri yonelik kesin basari anlamina",
-    "gelmemektedir, bu veriler neticesinde pozisyon almak yatirimcinin",
-    "kendi kararidir.",
+    "Daha önce paylaşılan piyasa analizlerinin, bilgilerin ve önerilerin",
+    "geçmişte başarılı olmuş olması ileri yönelik kesin başarı anlamına",
+    "gelmemektedir, bu veriler neticesinde pozisyon almak yatırımcının",
+    "kendi kararıdır.",
   ];
 
   // Draw border box
@@ -108,14 +129,15 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
 
   // ===== Sayfa 2: Kapak =====
   doc.addPage();
+  setFont();
   doc.setFontSize(26);
   doc.setTextColor(40, 40, 40);
-  doc.text("Gunluk Araci Kurum Dagilimi Raporu", pageWidth / 2, 90, { align: "center" });
+  doc.text("Günlük Aracı Kurum Dağılımı Raporu", pageWidth / 2, 90, { align: "center" });
 
   doc.setFontSize(14);
   doc.setTextColor(100, 100, 100);
-  doc.text("Araci kurumlarin alis/satis dagilimi", pageWidth / 2, 110, { align: "center" });
-  doc.text("ve ozet analizler", pageWidth / 2, 120, { align: "center" });
+  doc.text("Aracı kurumların alış/satış dağılımı", pageWidth / 2, 110, { align: "center" });
+  doc.text("ve özet analizler", pageWidth / 2, 120, { align: "center" });
 
   doc.setFontSize(10);
   doc.text(`Rapor Tarihi: ${dateStr}`, pageWidth / 2, 200, { align: "center" });
@@ -124,9 +146,10 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
   // ===== Sayfa 3: Öne Çıkan Hisseler =====
   const oneCikanlar = getOneCikanlar(data);
   doc.addPage();
+  setFont();
   doc.setFontSize(16);
   doc.setTextColor(40, 40, 40);
-  doc.text("Bolum 1: One Cikan Hisseler", pageWidth / 2, 20, { align: "center" });
+  doc.text("Bölüm 1: Öne Çıkan Hisseler", pageWidth / 2, 20, { align: "center" });
 
   if (oneCikanlar.length > 0) {
     const tableData = oneCikanlar.map((o: OneCikan) => [
@@ -135,17 +158,17 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
       formatPercent(o.digerSaticilarOrani),
     ]);
     autoTable(doc, {
-      head: [["Hisse", "Ilk 2 Alici Orani", "Diger Saticilar Orani"]],
+      head: [["Hisse", "İlk 2 Alıcı Oranı", "Diğer Satıcılar Oranı"]],
       body: tableData,
       startY: 30,
       theme: "grid",
-      headStyles: { fillColor: [75, 139, 190], textColor: 255, fontStyle: "bold" },
-      styles: { halign: "center", fontSize: 9 },
+      headStyles: { fillColor: [75, 139, 190], textColor: 255, fontStyle: "bold", font: fontName },
+      styles: { halign: "center", fontSize: 9, font: fontName },
       didDrawPage: () => addWatermark(doc),
     });
   } else {
     doc.setFontSize(12);
-    doc.text("Bu donemde one cikan hisse bulunamadi.", pageWidth / 2, 60, { align: "center" });
+    doc.text("Bu dönemde öne çıkan hisse bulunamadı.", pageWidth / 2, 60, { align: "center" });
     addWatermark(doc);
   }
 
@@ -159,9 +182,10 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
   for (const kurum of kurumListesi) {
     const birinciler = getKurumBirinciler(data, kurum);
     doc.addPage();
+    setFont();
     doc.setFontSize(16);
     doc.setTextColor(40, 40, 40);
-    doc.text(`Bolum ${bolumNo}: ${kurum.toUpperCase()} 1. Alici Oldugu Hisseler`, pageWidth / 2, 20, {
+    doc.text(`Bölüm ${bolumNo}: ${kurum.toUpperCase()} 1. Alıcı Olduğu Hisseler`, pageWidth / 2, 20, {
       align: "center",
     });
 
@@ -177,10 +201,11 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
       for (let i = 0; i < rows.length; i += pageSize) {
         if (i > 0) {
           doc.addPage();
+          setFont();
           doc.setFontSize(16);
           doc.setTextColor(40, 40, 40);
           doc.text(
-            `Bolum ${bolumNo}: ${kurum.toUpperCase()} 1. Alici (devam)`,
+            `Bölüm ${bolumNo}: ${kurum.toUpperCase()} 1. Alıcı (devam)`,
             pageWidth / 2,
             20,
             { align: "center" }
@@ -191,15 +216,75 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
           body: rows.slice(i, i + pageSize),
           startY: 30,
           theme: "grid",
-          headStyles: { fillColor: [26, 82, 118], textColor: 255, fontStyle: "bold" },
-          styles: { halign: "center", fontSize: 9 },
+          headStyles: { fillColor: [26, 82, 118], textColor: 255, fontStyle: "bold", font: fontName },
+          styles: { halign: "center", fontSize: 9, font: fontName },
           didDrawPage: () => addWatermark(doc),
         });
       }
     } else {
       doc.setFontSize(12);
       doc.text(
-        `Bu donemde ${kurum.toUpperCase()}'nin 1. alici oldugu hisse bulunamadi.`,
+        `Bu dönemde ${kurum.toUpperCase()}'nın 1. alıcı olduğu hisse bulunamadı.`,
+        pageWidth / 2,
+        60,
+        { align: "center" }
+      );
+      addWatermark(doc);
+    }
+    bolumNo++;
+  }
+
+  // ===== İlk 2 Alıcı Birleşik Bölümü =====
+  if (options.ilk2AliciKurumlar && options.ilk2AliciKurumlar.length >= 2) {
+    const birlesik = getIlk2AliciBirlesik(data, options.ilk2AliciKurumlar);
+    const kurumLabel = options.ilk2AliciKurumlar.map((k) => k.toUpperCase()).join(" & ");
+    doc.addPage();
+    setFont();
+    doc.setFontSize(16);
+    doc.setTextColor(40, 40, 40);
+    doc.text(`Bölüm ${bolumNo}: ${kurumLabel} İlk 2 Alıcı`, pageWidth / 2, 20, {
+      align: "center",
+    });
+
+    if (birlesik.length > 0) {
+      const headers = ["Hisse"];
+      for (const k of options.ilk2AliciKurumlar) {
+        headers.push(`${k} Lot`, `${k} Oran`);
+      }
+
+      const rows = birlesik.map((b: Ilk2AliciBirlesik) => {
+        const row: string[] = [b.hisse];
+        for (const k of b.kurumlar) {
+          row.push(formatLot(k.lot), formatPercent(k.oran));
+        }
+        return row;
+      });
+
+      const pageSize = 25;
+      for (let i = 0; i < rows.length; i += pageSize) {
+        if (i > 0) {
+          doc.addPage();
+          setFont();
+          doc.setFontSize(16);
+          doc.setTextColor(40, 40, 40);
+          doc.text(`Bölüm ${bolumNo}: ${kurumLabel} İlk 2 Alıcı (devam)`, pageWidth / 2, 20, {
+            align: "center",
+          });
+        }
+        autoTable(doc, {
+          head: [headers],
+          body: rows.slice(i, i + pageSize),
+          startY: 30,
+          theme: "grid",
+          headStyles: { fillColor: [142, 68, 173], textColor: 255, fontStyle: "bold", font: fontName },
+          styles: { halign: "center", fontSize: 8, font: fontName },
+          didDrawPage: () => addWatermark(doc),
+        });
+      }
+    } else {
+      doc.setFontSize(12);
+      doc.text(
+        `Bu dönemde ${kurumLabel}'nın birlikte ilk 2 alıcı olduğu hisse bulunamadı.`,
         pageWidth / 2,
         60,
         { align: "center" }
@@ -213,9 +298,10 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
   const filtered = getFilteredData(data, options.filters);
   if (filtered.length > 0) {
     doc.addPage();
+    setFont();
     doc.setFontSize(16);
     doc.setTextColor(40, 40, 40);
-    doc.text(`Bolum ${bolumNo}: Filtreli Sonuclar`, pageWidth / 2, 20, { align: "center" });
+    doc.text(`Bölüm ${bolumNo}: Filtreli Sonuçlar`, pageWidth / 2, 20, { align: "center" });
 
     // Group by hisse
     const hisseMap = new Map<string, { alis: Map<string, number>; satis: Map<string, number> }>();
@@ -249,19 +335,20 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
     for (let i = 0; i < tableRows.length; i += pageSize) {
       if (i > 0) {
         doc.addPage();
+        setFont();
         doc.setFontSize(16);
         doc.setTextColor(40, 40, 40);
-        doc.text(`Bolum ${bolumNo}: Filtreli Sonuclar (devam)`, pageWidth / 2, 20, {
+        doc.text(`Bölüm ${bolumNo}: Filtreli Sonuçlar (devam)`, pageWidth / 2, 20, {
           align: "center",
         });
       }
       autoTable(doc, {
-        head: [["Hisse", "Kurum", "Alis Lot", "Satis Lot"]],
+        head: [["Hisse", "Kurum", "Alış Lot", "Satış Lot"]],
         body: tableRows.slice(i, i + pageSize),
         startY: 30,
         theme: "grid",
-        headStyles: { fillColor: [39, 174, 96], textColor: 255, fontStyle: "bold" },
-        styles: { halign: "center", fontSize: 8 },
+        headStyles: { fillColor: [39, 174, 96], textColor: 255, fontStyle: "bold", font: fontName },
+        styles: { halign: "center", fontSize: 8, font: fontName },
         didDrawPage: () => addWatermark(doc),
       });
     }
