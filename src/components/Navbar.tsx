@@ -11,6 +11,7 @@ const links = [
   { href: "/#platforms", label: "Platformlar" },
   { href: "/hisse-teknik-analizi", label: "Hisse Teknik Analizi" },
   { href: "/araci-kurum-analizi", label: "AKD Analiz" },
+  { href: "/kurum-hareket-analizi", label: "Kurum Hareket" },
   { href: "/egitim", label: "Eğitim" },
   { href: "/#announcements", label: "Analiz & Eğitim" },
   { href: "/#about", label: "Hakkımda" },
