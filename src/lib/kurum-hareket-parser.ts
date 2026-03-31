@@ -11,12 +11,20 @@ export interface KurumSeri {
   data: KurumSeriRow[];
 }
 
+export interface RawRow {
+  zamanMs: number;
+  alanKurum: string;
+  satanKurum: string;
+  adet: number;
+}
+
 export interface KurumHareketData {
   alicilar: KurumSeri[];
   saticilar: KurumSeri[];
   minZaman: number;
   maxZaman: number;
   toplamIslem: number;
+  rawRows: RawRow[];
 }
 
 export function formatZaman(ms: number): string {
@@ -151,5 +159,5 @@ export function parseKurumHareket(buffer: ArrayBuffer): KurumHareketData {
   const minZaman = Math.min(...allTimes);
   const maxZaman = Math.max(...allTimes);
 
-  return { alicilar, saticilar, minZaman, maxZaman, toplamIslem: rows.length };
+  return { alicilar, saticilar, minZaman, maxZaman, toplamIslem: rows.length, rawRows: rows };
 }

@@ -8,6 +8,7 @@ import {
   TbAlertTriangle,
   TbX,
   TbChartLine,
+  TbSearch,
 } from "react-icons/tb";
 import {
   LineChart,
@@ -64,6 +65,7 @@ export default function KurumHareketAnaliziPage() {
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [lotAdet, setLotAdet] = useState("");
 
   const handleFile = useCallback(async (file: File) => {
     const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
@@ -79,6 +81,7 @@ export default function KurumHareketAnaliziPage() {
     setError(null);
     setData(null);
     setFileName(file.name);
+    setLotAdet("");
     try {
       const buffer = await file.arrayBuffer();
       const parsed = parseKurumHareket(buffer);
@@ -119,6 +122,30 @@ export default function KurumHareketAnaliziPage() {
         stroke: "#334155",
       }
     : {};
+
+  // Lot Sayar
+  const targetAdet = lotAdet ? parseInt(lotAdet) : null;
+  const lotSonuclar = data && targetAdet !== null && !isNaN(targetAdet)
+    ? data.rawRows.filter((r) => r.adet === targetAdet)
+    : null;
+
+  const lotKurumOzet = lotSonuclar
+    ? (() => {
+        const map = new Map<string, { alan: number; satan: number }>();
+        for (const r of lotSonuclar) {
+          const a = map.get(r.alanKurum) ?? { alan: 0, satan: 0 };
+          a.alan += 1;
+          map.set(r.alanKurum, a);
+          const s = map.get(r.satanKurum) ?? { alan: 0, satan: 0 };
+          s.satan += 1;
+          map.set(r.satanKurum, s);
+        }
+        return [...map.entries()]
+          .map(([kurum, v]) => ({ kurum, alan: v.alan, satan: v.satan, toplam: v.alan + v.satan }))
+          .sort((a, b) => b.toplam - a.toplam)
+          .slice(0, 20);
+      })()
+    : null;
 
   return (
     <main className="min-h-screen pt-24 pb-16 px-4">
@@ -207,6 +234,64 @@ export default function KurumHareketAnaliziPage() {
                 <StatCard label="Net Alıcı Kurum" value={data.alicilar.length} color="emerald" />
                 <StatCard label="Net Satıcı Kurum" value={data.saticilar.length} color="rose" />
                 <StatCard label="Saat Aralığı" timeRange={`${formatZaman(data.minZaman)} — ${formatZaman(data.maxZaman)}`} />
+              </div>
+
+              {/* Lot Sayar */}
+              <div className="rounded-2xl bg-[#0a1628] border border-slate-800 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <TbSearch className="text-amber-400 text-xl" />
+                  <h2 className="text-lg font-semibold text-amber-400">Lot Sayar</h2>
+                </div>
+                <div className="flex gap-3 items-end">
+                  <div className="flex-1 max-w-xs">
+                    <label className="block text-sm text-slate-400 mb-1.5">Adet Sayısı</label>
+                    <input
+                      type="number"
+                      value={lotAdet}
+                      onChange={(e) => setLotAdet(e.target.value)}
+                      placeholder="Örn: 71"
+                      className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                    />
+                  </div>
+                  {lotSonuclar !== null && (
+                    <div className="rounded-lg bg-amber-950/30 border border-amber-800/60 px-4 py-2 text-center">
+                      <p className="text-xs text-amber-400/70">Eşleşen İşlem</p>
+                      <p className="text-2xl font-bold text-amber-400">{lotSonuclar.length.toLocaleString("tr-TR")}</p>
+                    </div>
+                  )}
+                </div>
+
+                {lotSonuclar !== null && lotSonuclar.length === 0 && (
+                  <p className="mt-3 text-sm text-slate-500">{targetAdet} adetlik işlem bulunamadı.</p>
+                )}
+
+                {lotKurumOzet && lotKurumOzet.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-xs text-slate-500 mb-2">Kurum dağılımı (alan / satan işlem sayısı):</p>
+                    <div className="overflow-x-auto rounded-xl border border-slate-800">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-800 bg-slate-800/40">
+                            <th className="text-left px-4 py-2 text-slate-400 font-medium">Kurum</th>
+                            <th className="text-center px-4 py-2 text-emerald-400 font-medium">Alan</th>
+                            <th className="text-center px-4 py-2 text-rose-400 font-medium">Satan</th>
+                            <th className="text-center px-4 py-2 text-amber-400 font-medium">Toplam</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {lotKurumOzet.map((row, i) => (
+                            <tr key={row.kurum} className={`border-b border-slate-800/60 ${i % 2 === 0 ? "" : "bg-slate-800/20"}`}>
+                              <td className="px-4 py-2 text-slate-300">{row.kurum}</td>
+                              <td className="px-4 py-2 text-center text-emerald-400">{row.alan > 0 ? row.alan : "—"}</td>
+                              <td className="px-4 py-2 text-center text-rose-400">{row.satan > 0 ? row.satan : "—"}</td>
+                              <td className="px-4 py-2 text-center text-amber-400 font-semibold">{row.toplam}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Chart 1: Top 10 Net Alıcılar */}
