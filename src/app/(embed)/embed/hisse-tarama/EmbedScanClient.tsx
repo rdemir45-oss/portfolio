@@ -45,30 +45,6 @@ function timeAgoLabel(m: number | null): string {
   return rem > 0 ? `${h} sa ${rem} dk` : `${h} sa`;
 }
 
-// ── Sidebar grup butonu ───────────────────────────────────────────────────────
-function SidebarGroupItem({ group, cats, isActive, onSelect }: {
-  group: GroupDef; cats: ScanCategory[]; isActive: boolean; onSelect: () => void;
-}) {
-  const total = cats.reduce((a, c) => a + c.count, 0);
-  const c = colorMap[group.color];
-  return (
-    <button
-      onClick={onSelect}
-      className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${
-        isActive ? c.sidebarActive : "border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-800/30"
-      }`}
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-sm shrink-0">{group.emoji}</span>
-        <span className="text-xs font-semibold truncate">{group.label}</span>
-      </div>
-      <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0 ${
-        total > 0 ? (isActive ? c.badge : "bg-slate-800 text-slate-500") : "text-slate-700"
-      }`}>{total}</span>
-    </button>
-  );
-}
-
 // ── Kategori akordeon kartı ───────────────────────────────────────────────────
 function CategoryCard({ cat, color }: { cat: ScanCategory; color: keyof typeof colorMap }) {
   const [open, setOpen] = useState(cat.count > 0);
@@ -191,7 +167,7 @@ export default function EmbedScanClient() {
   const donusSignals  = allCats.filter((c) => activeReversalKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
 
   return (
-    <div ref={wrapperRef} className="bg-[#080a0c] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif", overflow: "hidden" }}>
+    <div ref={wrapperRef} className="bg-[#080a0c] text-slate-200 p-3" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Başlık */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
@@ -212,7 +188,7 @@ export default function EmbedScanClient() {
 
       {/* İstatistik şeridi */}
       {data && !loading && (
-        <div className="mb-5 grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+        <div className="mb-5 grid grid-cols-2 gap-1.5">
           <div className="bg-[#111115] border border-slate-800 rounded-xl p-2.5 flex flex-col items-center gap-1">
             <p className="text-lg font-black text-white">{totalSignals}</p>
             <p className="text-[9px] text-slate-600 uppercase tracking-wide">Toplam</p>
@@ -229,7 +205,7 @@ export default function EmbedScanClient() {
             <p className="text-lg font-black text-violet-400">{donusSignals}</p>
             <p className="text-[9px] text-violet-700 uppercase tracking-wide">Dönüş</p>
           </div>
-          <div className="col-span-2 sm:col-span-1 bg-slate-900/40 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-center gap-1.5">
+          <div className="col-span-2 bg-slate-900/40 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-center gap-1.5">
             <div className="flex justify-between text-[9px]">
               <span className="text-emerald-500 font-semibold">B {totalSignals > 0 ? Math.round((bullRaw / totalSignals) * 100) : 0}%</span>
               <span className="text-rose-500 font-semibold">S {totalSignals > 0 ? Math.round((bearSignals / totalSignals) * 100) : 0}%</span>
@@ -253,28 +229,20 @@ export default function EmbedScanClient() {
       {/* Skeleton */}
       {loading && !data && (
         <div>
-          <div className="flex gap-1.5 overflow-x-auto mb-3 md:hidden" style={{ scrollbarWidth: "none" }}>
-            {[...Array(5)].map((_, i) => <div key={i} className="h-9 w-28 shrink-0 rounded-xl bg-slate-800/40 animate-pulse" />)}
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {[...Array(5)].map((_, i) => <div key={i} className="h-9 w-28 rounded-xl bg-slate-800/40 animate-pulse" />)}
           </div>
-          <div className="hidden md:flex gap-3">
-            <div className="w-44 shrink-0 space-y-1.5">
-              {[...Array(7)].map((_, i) => <div key={i} className="h-10 rounded-xl bg-slate-800/40 animate-pulse" />)}
-            </div>
-            <div className="flex-1 space-y-2">
-              {[...Array(5)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-slate-800/30 animate-pulse" />)}
-            </div>
-          </div>
-          <div className="md:hidden space-y-2">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-14 rounded-xl bg-slate-800/30 animate-pulse" />)}
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-slate-800/30 animate-pulse" />)}
           </div>
         </div>
       )}
 
-      {/* Sol sidebar + sağ panel */}
+      {/* Yatay grup sekmeleri + dikey içerik */}
       {!loading && !error && data && (
         <div>
-          {/* Mobil: yatay kaydırılabilir grup sekmeleri */}
-          <div className="md:hidden overflow-x-auto mb-3" style={{ scrollbarWidth: "none" }}>
+          {/* Yatay kaydırılabilir grup sekmeleri — tüm ekran boyutları */}
+          <div className="overflow-x-auto mb-4" style={{ scrollbarWidth: "none" }}>
             <div className="flex gap-1.5 pb-1 min-w-max">
               {groupedData.map(({ group, cats }) => {
                 const total = cats.reduce((a, c) => a + c.count, 0);
@@ -299,53 +267,33 @@ export default function EmbedScanClient() {
             </div>
           </div>
 
-          <div className="flex gap-3">
-          {/* Sol sidebar — sadece masaüstü */}
-          <div className="w-44 shrink-0 hidden md:block">
-            <p className="text-[9px] font-bold tracking-widest text-slate-600 uppercase mb-2 px-1">Kategoriler</p>
-            <div className="space-y-0.5">
-              {groupedData.map(({ group, cats }) => (
-                <SidebarGroupItem
-                  key={group.id}
-                  group={group}
-                  cats={cats}
-                  isActive={group.id === effectiveSelected}
-                  onSelect={() => setSelectedId(group.id)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Sağ panel — seçili grubun kategorileri */}
-          <div className="flex-1 min-w-0">
-            {selectedGroupData && (() => {
-              const group = selectedGroupData.group;
-              const cats  = selectedGroupData.cats;
-              const total = cats.reduce((a, c) => a + c.count, 0);
-              const c = colorMap[group.color];
-              return (
-                <div>
-                  <div className={`flex items-center justify-between px-4 py-3 rounded-2xl border mb-3 ${c.border} ${c.headerBg}`}>
-                    <div className="flex items-center gap-3">
-                      <span className={`flex items-center justify-center w-8 h-8 rounded-xl border text-sm ${c.icon}`}>{group.emoji}</span>
-                      <h2 className={`text-sm font-black ${c.label}`}>{group.label}</h2>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-xl font-black ${c.label}`}>{total}</p>
-                      <p className="text-[9px] text-slate-600 uppercase tracking-widest">sinyal</p>
-                    </div>
+          {/* Seçili grubun kategorileri — dikey */}
+          {selectedGroupData && (() => {
+            const group = selectedGroupData.group;
+            const cats  = selectedGroupData.cats;
+            const total = cats.reduce((a, c) => a + c.count, 0);
+            const c = colorMap[group.color];
+            return (
+              <div>
+                <div className={`flex items-center justify-between px-4 py-3 rounded-2xl border mb-3 ${c.border} ${c.headerBg}`}>
+                  <div className="flex items-center gap-3">
+                    <span className={`flex items-center justify-center w-8 h-8 rounded-xl border text-sm ${c.icon}`}>{group.emoji}</span>
+                    <h2 className={`text-sm font-black ${c.label}`}>{group.label}</h2>
                   </div>
-                  <div className="space-y-2">
-                    {cats.length === 0
-                      ? <div className="rounded-xl border border-slate-800 bg-slate-900/20 p-4 text-center"><p className="text-slate-600 text-sm">Bu grupta kategori yok.</p></div>
-                      : cats.map((cat) => <CategoryCard key={cat.key} cat={cat} color={group.color} />)
-                    }
+                  <div className="text-right">
+                    <p className={`text-xl font-black ${c.label}`}>{total}</p>
+                    <p className="text-[9px] text-slate-600 uppercase tracking-widest">sinyal</p>
                   </div>
                 </div>
-              );
-            })()}
-          </div>
-        </div>
+                <div className="space-y-2">
+                  {cats.length === 0
+                    ? <div className="rounded-xl border border-slate-800 bg-slate-900/20 p-4 text-center"><p className="text-slate-600 text-sm">Bu grupta kategori yok.</p></div>
+                    : cats.map((cat) => <CategoryCard key={cat.key} cat={cat} color={group.color} />)
+                  }
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
