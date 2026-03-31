@@ -12,8 +12,8 @@ import {
   TbChevronUp,
   TbAlertTriangle,
 } from "react-icons/tb";
-import type { AkdRow, AkdFilters } from "@/lib/akd-parser";
-import { parseAkdExcel, getUniqueKurumlar, getUniqueHisseler, getFilteredData, getOneCikanlar, getKurumBirinciler, getIlk2AliciBirlesik } from "@/lib/akd-parser";
+import type { AkdRow } from "@/lib/akd-parser";
+import { parseAkdExcel, getUniqueKurumlar, getUniqueHisseler, getKurumMinOranFiltresi, getOneCikanlar, getKurumBirinciler, getIlk2AliciBirlesik } from "@/lib/akd-parser";
 import { generatePdf } from "@/lib/akd-pdf";
 
 export default function AraciKurumAnaliziPage() {
@@ -26,15 +26,15 @@ export default function AraciKurumAnaliziPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filters
-  const [tipFilter, setTipFilter] = useState<"Hepsi" | "Alış" | "Satış">("Hepsi");
   const [hisseArama, setHisseArama] = useState("");
-  const [selectedKurumlar, setSelectedKurumlar] = useState<string[]>([]);
-  const [minLot, setMinLot] = useState("");
-  const [maxLot, setMaxLot] = useState("");
   const [birincAliciKurum, setBirincAliciKurum] = useState("");
-  const [showKurumDropdown, setShowKurumDropdown] = useState(false);
-  const [kurumSearch, setKurumSearch] = useState("");
   const [showFilters, setShowFilters] = useState(true);
+
+  // Kurum Alış Oranı filter
+  const [oranKurum, setOranKurum] = useState("");
+  const [oranKurumSearch, setOranKurumSearch] = useState("");
+  const [showOranDropdown, setShowOranDropdown] = useState(false);
+  const [minOran, setMinOran] = useState("");
 
   // İlk 2 Alıcı Birleşik filter
   const [ilk2AliciKurumlar, setIlk2AliciKurumlar] = useState<string[]>([]);
@@ -70,13 +70,12 @@ export default function AraciKurumAnaliziPage() {
       const parsed = parseAkdExcel(buffer);
       setData(parsed);
       // Reset filters
-      setTipFilter("Hepsi");
       setHisseArama("");
-      setSelectedKurumlar([]);
-      setMinLot("");
-      setMaxLot("");
       setBirincAliciKurum("");
       setIlk2AliciKurumlar([]);
+      setOranKurum("");
+      setOranKurumSearch("");
+      setMinOran("");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Dosya işlenirken bir hata oluştu.");
     } finally {
@@ -103,15 +102,6 @@ export default function AraciKurumAnaliziPage() {
     [handleFile]
   );
 
-  const filters: AkdFilters = {
-    tip: tipFilter,
-    hisseArama: hisseArama || undefined,
-    kurumlar: selectedKurumlar.length > 0 ? selectedKurumlar : undefined,
-    minLot: minLot ? Number(minLot) : undefined,
-    maxLot: maxLot ? Number(maxLot) : undefined,
-  };
-
-  const filtered = data ? getFilteredData(data, filters) : [];
   const kurumlar = data ? getUniqueKurumlar(data) : [];
   const hisseler = data ? getUniqueHisseler(data) : [];
   const oneCikanlar = data ? getOneCikanlar(data) : [];
@@ -124,10 +114,6 @@ export default function AraciKurumAnaliziPage() {
     ? getIlk2AliciBirlesik(data, ilk2AliciKurumlar)
     : [];
 
-  const filteredKurumlar = kurumlar.filter((k) =>
-    k.toLowerCase().includes(kurumSearch.toLowerCase())
-  );
-
   const filteredBirincKurumlar = kurumlar.filter((k) =>
     k.toLowerCase().includes(birincSearch.toLowerCase())
   );
@@ -136,14 +122,22 @@ export default function AraciKurumAnaliziPage() {
     k.toLowerCase().includes(ilk2Search.toLowerCase())
   );
 
+  const filteredOranKurumlar = kurumlar.filter((k) =>
+    k.toLowerCase().includes(oranKurumSearch.toLowerCase())
+  );
+
+  const oranFiltreSonuclari = data && oranKurum && minOran
+    ? getKurumMinOranFiltresi(data, oranKurum, parseFloat(minOran))
+    : [];
+
   const stats = {
     toplamHisse: hisseler.length,
     toplamKurum: kurumlar.length,
     toplamKayit: data?.length ?? 0,
-    filtrelenmisKayit: filtered.length,
     oneCikanSayisi: oneCikanlar.length,
     birincAliciSayisi: birinciler.length,
     ilk2BirlesikSayisi: ilk2Birlesik.length,
+    oranFiltreSayisi: oranFiltreSonuclari.length,
   };
 
   const handleDownloadPdf = async () => {
@@ -165,9 +159,9 @@ export default function AraciKurumAnaliziPage() {
         ? [birincAliciKurum]
         : ["bank of america", "tera"];
       const blob = generatePdf(data, {
-        filters,
         birincAliciKurumlar: birincKurumlar,
         ilk2AliciKurumlar: ilk2AliciKurumlar.length >= 2 ? ilk2AliciKurumlar : undefined,
+        kurumOranFiltresi: oranKurum && minOran ? { kurumAdi: oranKurum, minOranYuzde: parseFloat(minOran) } : undefined,
         fontData: font ?? undefined,
       });
       const url = URL.createObjectURL(blob);
@@ -183,20 +177,13 @@ export default function AraciKurumAnaliziPage() {
     }
   };
 
-  const toggleKurum = (kurum: string) => {
-    setSelectedKurumlar((prev) =>
-      prev.includes(kurum) ? prev.filter((k) => k !== kurum) : [...prev, kurum]
-    );
-  };
-
   const clearFilters = () => {
-    setTipFilter("Hepsi");
     setHisseArama("");
-    setSelectedKurumlar([]);
-    setMinLot("");
-    setMaxLot("");
     setBirincAliciKurum("");
     setIlk2AliciKurumlar([]);
+    setOranKurum("");
+    setOranKurumSearch("");
+    setMinOran("");
   };
 
   return (
@@ -303,7 +290,7 @@ export default function AraciKurumAnaliziPage() {
                 <StatCard label="Toplam Hisse" value={stats.toplamHisse} />
                 <StatCard label="Toplam Kurum" value={stats.toplamKurum} />
                 <StatCard label="Toplam Kayıt" value={stats.toplamKayit} />
-                <StatCard label="Filtrelenen" value={stats.filtrelenmisKayit} color="emerald" />
+                <StatCard label="Oran Filtre" value={stats.oranFiltreSayisi} color="emerald" />
               </div>
 
               {/* Filters Panel */}
@@ -315,11 +302,9 @@ export default function AraciKurumAnaliziPage() {
                   <span className="flex items-center gap-2 text-lg font-semibold">
                     <TbFilter className="text-emerald-400" />
                     Filtreler
-                    {(selectedKurumlar.length > 0 ||
-                      tipFilter !== "Hepsi" ||
+                    {(oranKurum ||
+                      minOran ||
                       hisseArama ||
-                      minLot ||
-                      maxLot ||
                       birincAliciKurum ||
                       ilk2AliciKurumlar.length > 0) && (
                       <span className="text-xs bg-emerald-950/40 text-emerald-400 border border-emerald-800/60 rounded-full px-2 py-0.5">
@@ -339,131 +324,78 @@ export default function AraciKurumAnaliziPage() {
                       className="overflow-hidden"
                     >
                       <div className="px-5 pb-5 space-y-4">
-                        {/* Row 1: Tip + Hisse Arama */}
+                        {/* Row 1: Kurum Alış Oranı Filtresi */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm text-slate-400 mb-1.5">İşlem Tipi</label>
-                            <div className="flex gap-2">
-                              {(["Hepsi", "Alış", "Satış"] as const).map((t) => (
-                                <button
-                                  key={t}
-                                  onClick={() => setTipFilter(t)}
-                                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                    tipFilter === t
-                                      ? "bg-emerald-600 text-white"
-                                      : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                                  }`}
-                                >
-                                  {t}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
                             <label className="block text-sm text-slate-400 mb-1.5">
-                              Hisse Ara
+                              Kurum Seç{oranKurum && <span className="text-emerald-400"> — {oranKurum}</span>}
                             </label>
-                            <input
-                              type="text"
-                              value={hisseArama}
-                              onChange={(e) => setHisseArama(e.target.value)}
-                              placeholder="Örn: THYAO, SISE..."
-                              className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Row 2: Kurum Seçimi */}
-                        <div>
-                          <label className="block text-sm text-slate-400 mb-1.5">
-                            Kurum Seçimi{" "}
-                            {selectedKurumlar.length > 0 && (
-                              <span className="text-emerald-400">({selectedKurumlar.length})</span>
-                            )}
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={kurumSearch}
-                              onChange={(e) => {
-                                setKurumSearch(e.target.value);
-                                setShowKurumDropdown(true);
-                              }}
-                              onFocus={() => setShowKurumDropdown(true)}
-                              placeholder="Kurum ara ve seç..."
-                              className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                            />
-                            {showKurumDropdown && filteredKurumlar.length > 0 && (
-                              <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg bg-slate-800 border border-slate-700 shadow-xl">
-                                {filteredKurumlar.map((k) => (
+                            <div className="relative">
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={oranKurumSearch}
+                                  onChange={(e) => {
+                                    setOranKurumSearch(e.target.value);
+                                    setShowOranDropdown(true);
+                                  }}
+                                  onFocus={() => setShowOranDropdown(true)}
+                                  placeholder="Kurum ara — minimum alış oranı filtrelemek için..."
+                                  className="flex-1 rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                                />
+                                {oranKurum && (
                                   <button
-                                    key={k}
                                     onClick={() => {
-                                      toggleKurum(k);
-                                      setKurumSearch("");
+                                      setOranKurum("");
+                                      setOranKurumSearch("");
                                     }}
-                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700 transition-colors ${
-                                      selectedKurumlar.includes(k)
-                                        ? "text-emerald-400 bg-emerald-950/20"
-                                        : "text-slate-300"
-                                    }`}
+                                    className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors"
                                   >
-                                    {selectedKurumlar.includes(k) ? "✓ " : ""}
-                                    {k}
+                                    <TbX />
                                   </button>
-                                ))}
+                                )}
                               </div>
-                            )}
-                          </div>
-                          {selectedKurumlar.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {selectedKurumlar.map((k) => (
-                                <span
-                                  key={k}
-                                  className="inline-flex items-center gap-1 text-xs bg-emerald-950/40 text-emerald-400 border border-emerald-800/60 rounded-full px-2 py-0.5"
-                                >
-                                  {k}
-                                  <button
-                                    onClick={() => toggleKurum(k)}
-                                    className="hover:text-white"
-                                  >
-                                    <TbX className="text-xs" />
-                                  </button>
-                                </span>
-                              ))}
+                              {showOranDropdown && filteredOranKurumlar.length > 0 && (
+                                <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg bg-slate-800 border border-slate-700 shadow-xl">
+                                  {filteredOranKurumlar.map((k) => (
+                                    <button
+                                      key={k}
+                                      onClick={() => {
+                                        setOranKurum(k);
+                                        setOranKurumSearch("");
+                                        setShowOranDropdown(false);
+                                      }}
+                                      className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700 transition-colors ${
+                                        oranKurum === k
+                                          ? "text-emerald-400 bg-emerald-950/20"
+                                          : "text-slate-300"
+                                      }`}
+                                    >
+                                      {oranKurum === k ? "✓ " : ""}
+                                      {k}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-
-                        {/* Row 3: Lot Aralığı */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm text-slate-400 mb-1.5">
-                              Min Lot
-                            </label>
-                            <input
-                              type="number"
-                              value={minLot}
-                              onChange={(e) => setMinLot(e.target.value)}
-                              placeholder="0"
-                              className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-                            />
                           </div>
                           <div>
                             <label className="block text-sm text-slate-400 mb-1.5">
-                              Max Lot
+                              Min Alış Oranı (%)
                             </label>
                             <input
                               type="number"
-                              value={maxLot}
-                              onChange={(e) => setMaxLot(e.target.value)}
-                              placeholder="∞"
+                              value={minOran}
+                              onChange={(e) => setMinOran(e.target.value)}
+                              min="0"
+                              max="100"
+                              placeholder="Örn: 30 (%30 ve üstcü hisseleri bulur)"
                               className="w-full rounded-lg bg-slate-800 border border-slate-700 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
                             />
                           </div>
                         </div>
 
-                        {/* Row 4: 1. Alıcı Kurum (dropdown) */}
+                        {/* Row 2: 1. Alıcı Kurum (dropdown) */}
                         <div>
                           <label className="block text-sm text-slate-400 mb-1.5">
                             1. Alıcı Kurum{" "}
@@ -600,7 +532,7 @@ export default function AraciKurumAnaliziPage() {
                         </div>
 
                         {/* Summary Info */}
-                        {(oneCikanlar.length > 0 || birinciler.length > 0 || ilk2Birlesik.length > 0) && (
+                        {(oneCikanlar.length > 0 || birinciler.length > 0 || ilk2Birlesik.length > 0 || oranFiltreSonuclari.length > 0) && (
                           <div className="flex flex-wrap gap-3 pt-2 border-t border-slate-800">
                             {oneCikanlar.length > 0 && (
                               <span className="text-xs text-sky-400 bg-sky-950/40 border border-sky-800/60 rounded-full px-3 py-1">
@@ -615,6 +547,11 @@ export default function AraciKurumAnaliziPage() {
                             {ilk2AliciKurumlar.length >= 2 && (
                               <span className="text-xs text-violet-400 bg-violet-950/40 border border-violet-800/60 rounded-full px-3 py-1">
                                 {ilk2AliciKurumlar.join(" & ")} İlk 2 Alıcı: {ilk2Birlesik.length} hisse
+                              </span>
+                            )}
+                            {oranKurum && oranFiltreSonuclari.length > 0 && (
+                              <span className="text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-800/60 rounded-full px-3 py-1">
+                                {oranKurum} ≥{minOran}% Alış Oranı: {oranFiltreSonuclari.length} hisse
                               </span>
                             )}
                           </div>
@@ -673,11 +610,11 @@ export default function AraciKurumAnaliziPage() {
       </div>
 
       {/* Click outside to close dropdowns */}
-      {(showKurumDropdown || showBirincDropdown || showIlk2Dropdown) && (
+      {(showOranDropdown || showBirincDropdown || showIlk2Dropdown) && (
         <div
           className="fixed inset-0 z-10"
           onClick={() => {
-            setShowKurumDropdown(false);
+            setShowOranDropdown(false);
             setShowBirincDropdown(false);
             setShowIlk2Dropdown(false);
           }}

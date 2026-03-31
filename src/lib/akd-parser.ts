@@ -220,6 +220,46 @@ export function getIlk2AliciBirlesik(data: AkdRow[], kurumAdlari: string[]): Ilk
   });
 }
 
+export interface KurumOranSonuc {
+  hisse: string;
+  lot: number;
+  oran: number; // 0-1
+  toplamAlis: number;
+}
+
+export function getKurumMinOranFiltresi(
+  data: AkdRow[],
+  kurumAdi: string,
+  minOranYuzde: number // 0-100
+): KurumOranSonuc[] {
+  const hisseler = uniqueValues(data, "hisse");
+  const result: KurumOranSonuc[] = [];
+  const searchTerm = kurumAdi.toLowerCase().trim();
+  const minOran = minOranYuzde / 100;
+
+  for (const hisse of hisseler) {
+    const sub = data.filter((d) => d.hisse === hisse && d.tip === "Alış");
+    if (sub.length === 0) continue;
+
+    const grouped = groupSum(sub);
+    const toplam = sumValues(grouped);
+    if (toplam === 0) continue;
+
+    let kurumLot = 0;
+    for (const [k, v] of grouped) {
+      if (k.toLowerCase().trim().includes(searchTerm)) {
+        kurumLot += v;
+      }
+    }
+    const oran = kurumLot / toplam;
+    if (oran >= minOran) {
+      result.push({ hisse, lot: Math.round(kurumLot), oran, toplamAlis: toplam });
+    }
+  }
+
+  return result.sort((a, b) => b.oran - a.oran);
+}
+
 export function getFilteredData(data: AkdRow[], filters: AkdFilters): AkdRow[] {
   let result = data;
 

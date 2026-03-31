@@ -1,13 +1,12 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { AkdRow, OneCikan, KurumBirinci, Ilk2AliciBirlesik } from "./akd-parser";
-import { getOneCikanlar, getKurumBirinciler, getIlk2AliciBirlesik } from "./akd-parser";
-import type { AkdFilters } from "./akd-parser";
+import type { AkdRow, OneCikan, KurumBirinci, Ilk2AliciBirlesik, KurumOranSonuc } from "./akd-parser";
+import { getOneCikanlar, getKurumBirinciler, getIlk2AliciBirlesik, getKurumMinOranFiltresi } from "./akd-parser";
 
 export interface PdfOptions {
-  filters: AkdFilters;
   birincAliciKurumlar?: string[];
   ilk2AliciKurumlar?: string[];
+  kurumOranFiltresi?: { kurumAdi: string; minOranYuzde: number };
   fontData?: ArrayBuffer;
 }
 
@@ -285,6 +284,66 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
       doc.setFontSize(12);
       doc.text(
         `Bu dönemde ${kurumLabel}'nın birlikte ilk 2 alıcı olduğu hisse bulunamadı.`,
+        pageWidth / 2,
+        60,
+        { align: "center" }
+      );
+      addWatermark(doc);
+    }
+    bolumNo++;
+  }
+
+  // ===== Kurum Min Alış Oranı Bölümü =====
+  if (options.kurumOranFiltresi) {
+    const { kurumAdi, minOranYuzde } = options.kurumOranFiltresi;
+    const sonuclar: KurumOranSonuc[] = getKurumMinOranFiltresi(data, kurumAdi, minOranYuzde);
+    doc.addPage();
+    setFont();
+    doc.setFontSize(16);
+    doc.setTextColor(40, 40, 40);
+    doc.text(
+      `Bölüm ${bolumNo}: ${kurumAdi.toUpperCase()} ≥${minOranYuzde}% Alış Oranı`,
+      pageWidth / 2,
+      20,
+      { align: "center" }
+    );
+
+    if (sonuclar.length > 0) {
+      const rows = sonuclar.map((s: KurumOranSonuc) => [
+        s.hisse,
+        formatLot(s.lot),
+        formatPercent(s.oran),
+        formatLot(s.toplamAlis),
+      ]);
+
+      const pageSize = 30;
+      for (let i = 0; i < rows.length; i += pageSize) {
+        if (i > 0) {
+          doc.addPage();
+          setFont();
+          doc.setFontSize(16);
+          doc.setTextColor(40, 40, 40);
+          doc.text(
+            `Bölüm ${bolumNo}: ${kurumAdi.toUpperCase()} ≥${minOranYuzde}% Alış Oranı (devam)`,
+            pageWidth / 2,
+            20,
+            { align: "center" }
+          );
+        }
+        autoTable(doc, {
+          head: [["Hisse", "Kurum Lot", "Alış Oranı", "Toplam Alış"]],
+          body: rows.slice(i, i + pageSize),
+          startY: 30,
+          theme: "grid",
+          headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: "bold", font: fontName },
+          styles: { halign: "center", fontSize: 9, font: fontName },
+          didDrawPage: () => addWatermark(doc),
+        });
+      }
+    } else {
+      doc.setFontSize(12);
+      doc.text(
+        `Bu dönemde ${kurumAdi.toUpperCase()}'nın alış oranı ≥${minOranYuzde}% olan hisse bulunamadı.`,
         pageWidth / 2,
         60,
         { align: "center" }
