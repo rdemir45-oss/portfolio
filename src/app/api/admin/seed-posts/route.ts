@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
 
 const posts = [
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
   const results = [];
   for (const post of posts) {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("posts")
       .upsert(post, { onConflict: "slug" });
     results.push({ slug: post.slug, ok: !error, error: error?.message });

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); } catch {}
   const page = typeof body.page === "string" ? body.page.slice(0, 200) : "/";
 
-  // viewer_token varsa kullanıcı adını çıkar (best-effort, imza kontrol etmeden)
+  // viewer_token varsa kullanıcı adını çıkar (imza doğrulaması ile)
   let username: string | undefined;
   try {
     const token = req.cookies.get("viewer_token")?.value;
@@ -29,8 +29,13 @@ export async function POST(req: NextRequest) {
     if (token && secret) {
       const dot = token.lastIndexOf(".");
       if (dot !== -1) {
-        const decoded = JSON.parse(Buffer.from(token.slice(0, dot), "base64url").toString("utf-8"));
-        if (typeof decoded.username === "string") username = decoded.username;
+        const payload = token.slice(0, dot);
+        const sig = token.slice(dot + 1);
+        const expectedSig = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
+        if (sig.length === expectedSig.length && crypto.timingSafeEqual(Buffer.from(sig, "utf8"), Buffer.from(expectedSig, "utf8"))) {
+          const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf-8"));
+          if (typeof decoded.username === "string") username = decoded.username;
+        }
       }
     }
   } catch {}
@@ -64,6 +69,7 @@ export async function POST(req: NextRequest) {
   if (isNew) {
     res.cookies.set("anon_sid", sid, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24,
       path: "/",
       sameSite: "lax",

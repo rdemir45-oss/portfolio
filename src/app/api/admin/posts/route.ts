@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
 import { postWriteSchema, postUpdateSchema } from "@/lib/schemas";
 
@@ -8,15 +8,15 @@ export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
   const id = req.nextUrl.searchParams.get("id");
   if (id) {
-    const { data, error } = await supabase.from("posts").select("*").eq("id", id).single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const { data, error } = await supabaseAdmin.from("posts").select("*").eq("id", id).single();
+    if (error) return NextResponse.json({ error: "Veri alınamadı." }, { status: 500 });
     return NextResponse.json(data);
   }
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("posts")
     .select("*")
     .order("date", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Veri alınamadı." }, { status: 500 });
   return NextResponse.json(data);
 }
 
@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Geçersiz veri." }, { status: 422 });
   }
-  const { data, error } = await supabase.from("posts").insert([parsed.data]).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { data, error } = await supabaseAdmin.from("posts").insert([parsed.data]).select().single();
+  if (error) return NextResponse.json({ error: "Kayıt oluşturulamadı." }, { status: 500 });
   return NextResponse.json(data);
 }
 
@@ -44,8 +44,8 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Geçersiz veri." }, { status: 422 }); 
   }
   const { id, ...fields } = parsed.data;
-  const { data, error } = await supabase.from("posts").update(fields).eq("id", id).select().single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { data, error } = await supabaseAdmin.from("posts").update(fields).eq("id", id).select().single();
+  if (error) return NextResponse.json({ error: "Güncelleme başarısız." }, { status: 500 });
   return NextResponse.json(data);
 }
 
@@ -56,7 +56,7 @@ export async function DELETE(req: NextRequest) {
   if (!id || isNaN(Number(id))) {
     return NextResponse.json({ error: "Geçersiz ID." }, { status: 400 });
   }
-  const { error } = await supabase.from("posts").delete().eq("id", Number(id));
+  const { error } = await supabaseAdmin.from("posts").delete().eq("id", Number(id));
   if (error) return NextResponse.json({ error: "Silme işlemi başarısız." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

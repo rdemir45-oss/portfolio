@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { isAdmin } from "@/lib/admin-auth";
 
 const UNAUTHORIZED = NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
@@ -106,12 +106,12 @@ const DEFAULT_GROUPS = [
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("scan_groups")
     .select("*")
     .order("display_order", { ascending: true });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Veri alınamadı." }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
 
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
   if (url.searchParams.get("seed") === "1") {
     const results = await Promise.all(
       DEFAULT_GROUPS.map((g) =>
-        supabase.from("scan_groups").upsert(g, { onConflict: "id" })
+        supabaseAdmin.from("scan_groups").upsert(g, { onConflict: "id" })
       )
     );
     const errors = results.filter((r) => r.error).map((r) => r.error!.message);
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Geçersiz renk." }, { status: 400 });
   }
 
-  const { error } = await supabase.from("scan_groups").insert({
+  const { error } = await supabaseAdmin.from("scan_groups").insert({
     id,
     label,
     description: description ?? "",
@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
     is_bull: is_bull !== undefined ? Boolean(is_bull) : true,
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Kayıt oluşturulamadı." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
 
@@ -195,8 +195,8 @@ export async function PATCH(req: NextRequest) {
   if (body.display_order !== undefined) updates.display_order = Number(body.display_order);
   if (body.is_bull !== undefined) updates.is_bull = Boolean(body.is_bull);
 
-  const { error } = await supabase.from("scan_groups").update(updates).eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { error } = await supabaseAdmin.from("scan_groups").update(updates).eq("id", id);
+  if (error) return NextResponse.json({ error: "Güncelleme başarısız." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
 
@@ -206,7 +206,7 @@ export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id gerekli." }, { status: 400 });
 
-  const { error } = await supabase.from("scan_groups").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { error } = await supabaseAdmin.from("scan_groups").delete().eq("id", id);
+  if (error) return NextResponse.json({ error: "Silme işlemi başarısız." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

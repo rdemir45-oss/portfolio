@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
 
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("whatsapp_requests")
     .select("*")
     .order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Veri alınamadı." }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
 
@@ -18,7 +18,7 @@ export async function DELETE(req: NextRequest) {
   if (!id) {
     return NextResponse.json({ error: "Geçersiz ID." }, { status: 400 });
   }
-  const { error } = await supabase.from("whatsapp_requests").delete().eq("id", id);
+  const { error } = await supabaseAdmin.from("whatsapp_requests").delete().eq("id", id);
   if (error) return NextResponse.json({ error: "Silme işlemi başarısız." }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

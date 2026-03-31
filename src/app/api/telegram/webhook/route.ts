@@ -16,11 +16,14 @@ async function sendMessage(chatId: number, text: string) {
 export async function POST(req: NextRequest) {
   // Telegram webhook secret token doğrulaması
   // https://core.telegram.org/bots/api#setwebhook — X-Telegram-Bot-Api-Secret-Token header
-  if (TELEGRAM_WEBHOOK_SECRET) {
-    const incomingSecret = req.headers.get("x-telegram-bot-api-secret-token") ?? "";
-    if (incomingSecret !== TELEGRAM_WEBHOOK_SECRET) {
-      return NextResponse.json({ ok: true }); // 200 döndür ama işlem yapma (Telegram'ı yanıltma)
-    }
+  if (!TELEGRAM_WEBHOOK_SECRET) {
+    // Secret tanımlı değilse hiçbir isteği işleme
+    return NextResponse.json({ ok: true });
+  }
+
+  const incomingSecret = req.headers.get("x-telegram-bot-api-secret-token") ?? "";
+  if (incomingSecret !== TELEGRAM_WEBHOOK_SECRET) {
+    return NextResponse.json({ ok: true }); // 200 döndür ama işlem yapma (Telegram'ı yanıltma)
   }
 
   try {

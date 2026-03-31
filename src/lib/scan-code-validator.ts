@@ -55,6 +55,16 @@ const FORBIDDEN: { pattern: RegExp; reason: string }[] = [
   { pattern: /\\x[0-9a-fA-F]{2}/,        reason: "Hex escape karakteri kullanılamaz" },
   { pattern: /\\u[0-9a-fA-F]{4}/,        reason: "Unicode escape kullanılamaz" },
   { pattern: /\\[0-7]{1,3}/,             reason: "Octal escape kullanılamaz" },
+  // chr() ile karakter kodu bypass
+  { pattern: /\bchr\s*\(/,               reason: "chr() kullanılamaz" },
+  { pattern: /\bord\s*\(/,               reason: "ord() kullanılamaz" },
+  { pattern: /\bbytearray\s*\(/,         reason: "bytearray() kullanılamaz" },
+  { pattern: /\bbytes\s*\(/,             reason: "bytes() kullanılamaz" },
+  { pattern: /\btype\s*\(/,              reason: "type() kullanılamaz" },
+  { pattern: /\bdir\s*\(/,               reason: "dir() kullanılamaz" },
+  { pattern: /\bmap\s*\(/,               reason: "map() kullanılamaz" },
+  { pattern: /\bfilter\s*\(/,            reason: "filter() kullanılamaz" },
+  { pattern: /\breduce\s*\(/,            reason: "reduce() kullanılamaz" },
   // lambda ile exec çağrısı
   { pattern: /\blambda\b/,               reason: "lambda kullanılamaz" },
   // yield ile jeneratör
