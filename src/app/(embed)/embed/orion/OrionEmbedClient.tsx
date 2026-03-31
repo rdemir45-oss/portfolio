@@ -165,7 +165,7 @@ export default function OrionEmbedClient() {
 
   return (
     <div ref={wrapperRef} className="text-slate-200 p-3 max-w-2xl mx-auto"
-      style={{ fontFamily: "'Inter', sans-serif", background: "transparent" }}>
+      style={{ fontFamily: "'Inter', sans-serif", background: "#080a0c" }}>
 
       {/* Başlık */}
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
