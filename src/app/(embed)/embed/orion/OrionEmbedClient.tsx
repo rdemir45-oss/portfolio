@@ -34,7 +34,6 @@ const BULL_KEYS = new Set([
 ]);
 
 const REVERSAL_KEYS = new Set(["ikili_dip_break","harmonic_long"]);
-
 const VALID_COLORS = new Set(["emerald", "sky", "violet", "amber", "rose"]);
 
 function timeAgoLabel(m: number | null): string {
@@ -45,81 +44,103 @@ function timeAgoLabel(m: number | null): string {
   return rem > 0 ? `${h} sa ${rem} dk` : `${h} sa`;
 }
 
-// ── Kategori akordeon kartı ───────────────────────────────────────────────────
-function CategoryCard({ cat, color }: { cat: ScanCategory; color: keyof typeof colorMap }) {
-  const [open, setOpen] = useState(cat.count > 0);
-  const c = colorMap[color];
+// ── Grup akordeon kartı — tıkla aç/kapat ──────────────────────────────────────
+function GroupCard({ group, cats }: { group: GroupDef; cats: ScanCategory[] }) {
+  const [open, setOpen] = useState(false);
+  const total = cats.reduce((a, c) => a + c.count, 0);
+  const c = colorMap[group.color];
+
   return (
-    <div className={`rounded-xl border overflow-hidden ${cat.count > 0 ? c.border : "border-slate-800/50"}`}>
+    <div className={`rounded-xl border ${total > 0 ? c.border : "border-slate-800/50"}`}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className={`w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors ${cat.count > 0 ? c.headerBg : "bg-slate-900/20"}`}
+        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors ${total > 0 ? c.headerBg + " hover:bg-white/5" : "bg-slate-900/20"}`}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-sm leading-none">{cat.emoji}</span>
-          <span className={`text-sm font-semibold truncate text-left ${cat.count > 0 ? "text-slate-200" : "text-slate-600"}`}>{cat.label}</span>
-          {cat.count === 0 && <span className="text-[10px] text-slate-700 italic">sinyal yok</span>}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm">{group.emoji}</span>
+          <span className={`text-xs font-bold truncate ${total > 0 ? c.label : "text-slate-600"}`}>{group.label}</span>
         </div>
-        <div className="flex items-center gap-2 shrink-0 ml-2">
-          <span className={`text-xs font-black px-2 py-0.5 rounded-full ${cat.count > 0 ? c.badge : "bg-slate-800/40 text-slate-700"}`}>{cat.count}</span>
-          <span className="text-slate-600 text-xs">{open ? "▲" : "▼"}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`text-xs font-black px-2 py-0.5 rounded-full ${total > 0 ? c.badge : "bg-slate-800/40 text-slate-700"}`}>{total}</span>
+          <span className="text-slate-600 text-[10px]">{open ? "▲" : "▼"}</span>
         </div>
       </button>
       {open && (
-        <div className={`px-4 pb-4 border-t ${c.divider}`}>
-          {cat.stocks.length === 0 ? (
-            <p className="text-xs text-slate-600 italic mt-3">Bu formasyonda hisse bulunamadı.</p>
-          ) : (
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {cat.stocks.map((row) => (
-                <a key={row.ticker}
-                  href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${row.ticker}`}
-                  target="_blank" rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-1 text-xs font-mono font-bold px-2.5 py-1 rounded-lg border transition-colors ${c.ticker}`}
-                >
-                  {row.ticker}
-                  {row.changePct !== undefined && (
-                    <span className={`text-[10px] font-normal ${row.changePct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      {row.changePct >= 0 ? "+" : ""}{row.changePct.toFixed(1)}%
-                    </span>
-                  )}
-                </a>
-              ))}
-            </div>
-          )}
+        <div className="px-3 pb-3 space-y-1.5 mt-1">
+          {cats.map((cat) => (
+            <CategoryInline key={cat.key} cat={cat} color={group.color} />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-// ── Orion embed — tüm gruplar alt alta, scrollbar yok ─────────────────────────
+// ── Kategori satır kartı ──────────────────────────────────────────────────────
+function CategoryInline({ cat, color }: { cat: ScanCategory; color: keyof typeof colorMap }) {
+  const [open, setOpen] = useState(cat.count > 0);
+  const c = colorMap[color];
+  return (
+    <div className={`rounded-lg border ${cat.count > 0 ? c.border : "border-slate-800/40"}`}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs">{cat.emoji}</span>
+          <span className={`text-xs font-semibold truncate ${cat.count > 0 ? "text-slate-300" : "text-slate-600"}`}>{cat.label}</span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${cat.count > 0 ? c.badge : "bg-slate-800/40 text-slate-700"}`}>{cat.count}</span>
+          <span className="text-slate-700 text-[10px]">{open ? "▲" : "▼"}</span>
+        </div>
+      </button>
+      {open && cat.stocks.length > 0 && (
+        <div className={`px-3 pb-2.5 border-t ${c.divider}`}>
+          <div className="flex flex-wrap gap-1 mt-2">
+            {cat.stocks.map((row) => (
+              <a key={row.ticker}
+                href={`https://tr.tradingview.com/chart/?symbol=BIST%3A${row.ticker}`}
+                target="_blank" rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2 py-0.5 rounded-md border transition-colors ${c.ticker}`}
+              >
+                {row.ticker}
+                {row.changePct !== undefined && (
+                  <span className={`text-[9px] font-normal ${row.changePct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                    {row.changePct >= 0 ? "+" : ""}{row.changePct.toFixed(1)}%
+                  </span>
+                )}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Ana bileşen ────────────────────────────────────────────────────────────────
 export default function OrionEmbedClient() {
   const [data, setData]       = useState<ScanData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Yüksekliği parent iframe'e bildir — Wix + standart format
+  // Wix postMessage ile yükseklik bildir
   useEffect(() => {
     const sendHeight = () => {
       const el = wrapperRef.current;
       if (!el) return;
       const h = el.scrollHeight;
       if (h < 50) return;
-      // Standart format
       window.parent.postMessage({ type: "embed-resize", height: h }, "*");
-      // Wix HtmlComponent format
-      try { window.parent.postMessage(JSON.stringify({ type: "setHeight", data: h }), "*"); } catch {}
+      window.parent.postMessage({ height: h }, "*");
     };
     sendHeight();
-    const t1 = setTimeout(sendHeight, 200);
-    const t2 = setTimeout(sendHeight, 600);
-    const t3 = setTimeout(sendHeight, 1500);
-    const t4 = setTimeout(sendHeight, 3000);
+    const timers = [200, 500, 1000, 2000, 4000].map((ms) => setTimeout(sendHeight, ms));
     const ro = new ResizeObserver(sendHeight);
     if (wrapperRef.current) ro.observe(wrapperRef.current);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); ro.disconnect(); };
+    return () => { timers.forEach(clearTimeout); ro.disconnect(); };
   }, [data, loading, error]);
 
   const load = useCallback(async () => {
@@ -133,20 +154,12 @@ export default function OrionEmbedClient() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
-    load();
-    const id = setInterval(load, 5 * 60 * 1000);
-    return () => clearInterval(id);
-  }, [load]);
+  useEffect(() => { load(); const id = setInterval(load, 5 * 60 * 1000); return () => clearInterval(id); }, [load]);
 
   const allCats = data?.categories ?? [];
 
   const activeGroups: GroupDef[] = (data?.groups && data.groups.length > 0)
-    ? data.groups.map((g) => ({
-        id: g.id, label: g.label, emoji: g.emoji,
-        color: (VALID_COLORS.has(g.color) ? g.color : "emerald") as GroupDef["color"],
-        keys: g.keys.map((k) => k.id),
-      }))
+    ? data.groups.map((g) => ({ id: g.id, label: g.label, emoji: g.emoji, color: (VALID_COLORS.has(g.color) ? g.color : "emerald") as GroupDef["color"], keys: g.keys.map((k) => k.id) }))
     : GROUPS;
 
   const activeBullKeys: Set<string> = (data?.groups && data.groups.length > 0)
@@ -156,130 +169,86 @@ export default function OrionEmbedClient() {
 
   const groupedData = activeGroups.map((group) => ({
     group,
-    cats: allCats
-      .filter((c) => group.keys.includes(c.key))
-      .sort((a, b) => group.keys.indexOf(a.key) - group.keys.indexOf(b.key)),
+    cats: allCats.filter((c) => group.keys.includes(c.key)).sort((a, b) => group.keys.indexOf(a.key) - group.keys.indexOf(b.key)),
   }));
 
   const totalSignals = allCats.reduce((a, c) => a + c.count, 0);
   const bullRaw      = allCats.filter((c) => activeBullKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
   const bullSignals  = bullRaw - allCats.filter((c) => activeReversalKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
   const bearSignals  = allCats.filter((c) => !activeBullKeys.has(c.key) || c.key === "harmonic_short").reduce((a, c) => a + c.count, 0);
-  const donusSignals = allCats.filter((c) => activeReversalKeys.has(c.key)).reduce((a, c) => a + c.count, 0);
 
   return (
-    <div ref={wrapperRef} className="text-slate-200 p-3 max-w-2xl mx-auto"
-      style={{ fontFamily: "'Inter', sans-serif", background: "#080a0c" }}>
+    <div ref={wrapperRef} className="text-slate-200 p-2" style={{ fontFamily: "'Inter', sans-serif", background: "#080a0c" }}>
 
-      {/* Başlık */}
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
-        <div>
+      {/* Kompakt başlık */}
+      <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-800">
+        <div className="flex items-center gap-3">
           <p className="text-[10px] font-semibold tracking-widest text-[#dc2626] uppercase">RdAlgo • BIST Tarama</p>
           {data?.minutesAgo !== null && data?.minutesAgo !== undefined && (
-            <p className="text-[11px] text-slate-600 mt-0.5">Son tarama: {timeAgoLabel(data.minutesAgo)}</p>
+            <p className="text-[10px] text-slate-600">{timeAgoLabel(data.minutesAgo)}</p>
           )}
         </div>
         <button onClick={load} disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-red-700 transition-colors text-xs disabled:opacity-40">
+          className="flex items-center gap-1 px-2 py-1 rounded-md border border-slate-700 text-slate-400 hover:text-white hover:border-red-700 transition-colors text-[10px] disabled:opacity-40">
           <span className={loading ? "animate-spin inline-block" : ""}>⟳</span>
-          {loading ? "Yükleniyor" : "Yenile"}
+          {loading ? "..." : "Yenile"}
         </button>
       </div>
 
-      {/* İstatistikler */}
+      {/* Kompakt istatistik — tek satır */}
       {data && !loading && (
-        <div className="mb-5 grid grid-cols-2 gap-1.5">
-          <div className="bg-[#111115] border border-slate-800 rounded-xl p-2.5 flex flex-col items-center gap-1">
-            <p className="text-lg font-black text-white">{totalSignals}</p>
-            <p className="text-[9px] text-slate-600 uppercase tracking-wide">Toplam</p>
+        <div className="flex gap-1.5 mb-3">
+          <div className="flex-1 bg-[#111115] border border-slate-800 rounded-lg py-1.5 text-center">
+            <span className="text-sm font-black text-white">{totalSignals}</span>
+            <span className="text-[8px] text-slate-600 ml-1 uppercase">Toplam</span>
           </div>
-          <div className="bg-emerald-950/30 border border-emerald-900/50 rounded-xl p-2.5 flex flex-col items-center gap-1">
-            <p className="text-lg font-black text-emerald-400">{bullSignals}</p>
-            <p className="text-[9px] text-emerald-700 uppercase tracking-wide">Bullish</p>
+          <div className="flex-1 bg-emerald-950/30 border border-emerald-900/50 rounded-lg py-1.5 text-center">
+            <span className="text-sm font-black text-emerald-400">{bullSignals}</span>
+            <span className="text-[8px] text-emerald-700 ml-1 uppercase">Bull</span>
           </div>
-          <div className="bg-rose-950/20 border border-rose-900/40 rounded-xl p-2.5 flex flex-col items-center gap-1">
-            <p className="text-lg font-black text-rose-400">{bearSignals}</p>
-            <p className="text-[9px] text-rose-700 uppercase tracking-wide">Bearish</p>
+          <div className="flex-1 bg-rose-950/20 border border-rose-900/40 rounded-lg py-1.5 text-center">
+            <span className="text-sm font-black text-rose-400">{bearSignals}</span>
+            <span className="text-[8px] text-rose-700 ml-1 uppercase">Bear</span>
           </div>
-          <div className="bg-violet-950/20 border border-violet-900/40 rounded-xl p-2.5 flex flex-col items-center gap-1">
-            <p className="text-lg font-black text-violet-400">{donusSignals}</p>
-            <p className="text-[9px] text-violet-700 uppercase tracking-wide">Dönüş</p>
-          </div>
-          <div className="col-span-2 bg-slate-900/40 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-center gap-1.5">
-            <div className="flex justify-between text-[9px]">
-              <span className="text-emerald-500 font-semibold">B {totalSignals > 0 ? Math.round((bullRaw / totalSignals) * 100) : 0}%</span>
-              <span className="text-rose-500 font-semibold">S {totalSignals > 0 ? Math.round((bearSignals / totalSignals) * 100) : 0}%</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-rose-950/60 overflow-hidden">
-              <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
+          <div className="flex-1 bg-slate-900/40 border border-slate-800 rounded-lg py-1.5 overflow-hidden">
+            <div className="h-1 mx-2 mt-1 rounded-full bg-rose-950/60 overflow-hidden">
+              <div className="h-full rounded-full bg-emerald-500 transition-all duration-700"
                 style={{ width: totalSignals > 0 ? `${Math.round((bullRaw / totalSignals) * 100)}%` : "50%" }} />
             </div>
+            <div className="flex justify-between px-2 mt-0.5">
+              <span className="text-[7px] text-emerald-500 font-bold">{totalSignals > 0 ? Math.round((bullRaw / totalSignals) * 100) : 0}%</span>
+              <span className="text-[7px] text-rose-500 font-bold">{totalSignals > 0 ? Math.round((bearSignals / totalSignals) * 100) : 0}%</span>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Hata */}
       {error && (
-        <div className="rounded-xl border border-rose-900/50 bg-rose-950/20 p-4 text-center mb-4">
-          <p className="text-rose-400 text-sm">⚠️ {error}</p>
-          <button onClick={load} className="text-xs text-emerald-400 hover:underline mt-2">Tekrar dene</button>
+        <div className="rounded-lg border border-rose-900/50 bg-rose-950/20 p-3 text-center mb-2">
+          <p className="text-rose-400 text-xs">⚠️ {error}</p>
+          <button onClick={load} className="text-[10px] text-emerald-400 hover:underline mt-1">Tekrar dene</button>
         </div>
       )}
 
-      {/* Skeleton */}
       {loading && !data && (
-        <div className="space-y-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i}>
-              <div className="h-14 rounded-2xl bg-slate-800/30 animate-pulse mb-2" />
-              <div className="space-y-2">
-                <div className="h-12 rounded-xl bg-slate-800/20 animate-pulse" />
-                <div className="h-12 rounded-xl bg-slate-800/20 animate-pulse" />
-              </div>
-            </div>
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => <div key={i} className="h-10 rounded-xl bg-slate-800/30 animate-pulse" />)}
+        </div>
+      )}
+
+      {/* Tüm gruplar — akordeon, varsayılan kapalı */}
+      {!loading && !error && data && (
+        <div className="space-y-1.5">
+          {groupedData.map(({ group, cats }) => (
+            <GroupCard key={group.id} group={group} cats={cats} />
           ))}
         </div>
       )}
 
-      {/* Tüm gruplar alt alta — tab yok, scrollbar yok */}
-      {!loading && !error && data && (
-        <div className="space-y-5">
-          {groupedData.map(({ group, cats }) => {
-            const total = cats.reduce((a, c) => a + c.count, 0);
-            const c = colorMap[group.color];
-            return (
-              <div key={group.id}>
-                {/* Grup başlığı */}
-                <div className={`flex items-center justify-between px-4 py-3 rounded-2xl border mb-2 ${c.border} ${c.headerBg}`}>
-                  <div className="flex items-center gap-3">
-                    <span className={`flex items-center justify-center w-8 h-8 rounded-xl border text-sm ${c.icon}`}>{group.emoji}</span>
-                    <h2 className={`text-sm font-black ${c.label}`}>{group.label}</h2>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-xl font-black ${c.label}`}>{total}</p>
-                    <p className="text-[9px] text-slate-600 uppercase tracking-widest">sinyal</p>
-                  </div>
-                </div>
-                {/* Kategoriler */}
-                <div className="space-y-2">
-                  {cats.length === 0
-                    ? <div className="rounded-xl border border-slate-800 bg-slate-900/20 p-4 text-center"><p className="text-slate-600 text-sm">Bu grupta kategori yok.</p></div>
-                    : cats.map((cat) => <CategoryCard key={cat.key} cat={cat} color={group.color} />)
-                  }
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="mt-4 pt-3 border-t border-slate-800/50 flex items-center justify-between">
+      <div className="mt-3 pt-2 border-t border-slate-800/50 flex items-center justify-between">
         <a href="https://recepdemirborsa.com" target="_blank" rel="noopener noreferrer"
-          className="text-[10px] text-slate-700 hover:text-slate-500 transition-colors">
-          recepdemirborsa.com
-        </a>
-        <p className="text-[10px] text-slate-700">Yatırım tavsiyesi değildir</p>
+          className="text-[9px] text-slate-700 hover:text-slate-500 transition-colors">recepdemirborsa.com</a>
+        <p className="text-[9px] text-slate-700">Yatırım tavsiyesi değildir</p>
       </div>
     </div>
   );
