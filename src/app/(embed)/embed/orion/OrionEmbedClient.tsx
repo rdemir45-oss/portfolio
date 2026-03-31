@@ -100,22 +100,26 @@ export default function OrionEmbedClient() {
   const [error, setError]     = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Yüksekliği parent iframe'e bildir — tek scrollbar parent'ta olacak
+  // Yüksekliği parent iframe'e bildir — Wix + standart format
   useEffect(() => {
     const sendHeight = () => {
       const el = wrapperRef.current;
       if (!el) return;
       const h = el.scrollHeight;
       if (h < 50) return;
+      // Standart format
       window.parent.postMessage({ type: "embed-resize", height: h }, "*");
+      // Wix HtmlComponent format
+      try { window.parent.postMessage(JSON.stringify({ type: "setHeight", data: h }), "*"); } catch {}
     };
     sendHeight();
     const t1 = setTimeout(sendHeight, 200);
     const t2 = setTimeout(sendHeight, 600);
     const t3 = setTimeout(sendHeight, 1500);
+    const t4 = setTimeout(sendHeight, 3000);
     const ro = new ResizeObserver(sendHeight);
     if (wrapperRef.current) ro.observe(wrapperRef.current);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); ro.disconnect(); };
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); ro.disconnect(); };
   }, [data, loading, error]);
 
   const load = useCallback(async () => {
