@@ -46,7 +46,7 @@ function timeAgoLabel(m: number | null): string {
 
 // ── Grup akordeon kartı — tıkla aç/kapat ──────────────────────────────────────
 function GroupCard({ group, cats }: { group: GroupDef; cats: ScanCategory[] }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const total = cats.reduce((a, c) => a + c.count, 0);
   const c = colorMap[group.color];
 
