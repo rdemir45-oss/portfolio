@@ -1,7 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { AkdRow, OneCikan, KurumBirinci, Ilk2AliciBirlesik } from "./akd-parser";
-import { getOneCikanlar, getKurumBirinciler, getIlk2AliciBirlesik, getFilteredData } from "./akd-parser";
+import { getOneCikanlar, getKurumBirinciler, getIlk2AliciBirlesik } from "./akd-parser";
 import type { AkdFilters } from "./akd-parser";
 
 export interface PdfOptions {
@@ -292,66 +292,6 @@ export function generatePdf(data: AkdRow[], options: PdfOptions): Blob {
       addWatermark(doc);
     }
     bolumNo++;
-  }
-
-  // ===== Filtrelenmiş Veri Bölümü =====
-  const filtered = getFilteredData(data, options.filters);
-  if (filtered.length > 0) {
-    doc.addPage();
-    setFont();
-    doc.setFontSize(16);
-    doc.setTextColor(40, 40, 40);
-    doc.text(`Bölüm ${bolumNo}: Filtreli Sonuçlar`, pageWidth / 2, 20, { align: "center" });
-
-    // Group by hisse
-    const hisseMap = new Map<string, { alis: Map<string, number>; satis: Map<string, number> }>();
-    for (const row of filtered) {
-      if (!hisseMap.has(row.hisse)) {
-        hisseMap.set(row.hisse, { alis: new Map(), satis: new Map() });
-      }
-      const entry = hisseMap.get(row.hisse)!;
-      const target = row.tip === "Alış" ? entry.alis : entry.satis;
-      target.set(row.kurum, (target.get(row.kurum) ?? 0) + row.lot);
-    }
-
-    const tableRows: string[][] = [];
-    for (const [hisse, { alis, satis }] of hisseMap) {
-      const allKurumlar = new Set([...alis.keys(), ...satis.keys()]);
-      for (const kurum of allKurumlar) {
-        const alisLot = alis.get(kurum) ?? 0;
-        const satisLot = satis.get(kurum) ?? 0;
-        if (alisLot > 0 || satisLot > 0) {
-          tableRows.push([
-            hisse,
-            kurum,
-            alisLot > 0 ? formatLot(alisLot) : "-",
-            satisLot > 0 ? formatLot(satisLot) : "-",
-          ]);
-        }
-      }
-    }
-
-    const pageSize = 30;
-    for (let i = 0; i < tableRows.length; i += pageSize) {
-      if (i > 0) {
-        doc.addPage();
-        setFont();
-        doc.setFontSize(16);
-        doc.setTextColor(40, 40, 40);
-        doc.text(`Bölüm ${bolumNo}: Filtreli Sonuçlar (devam)`, pageWidth / 2, 20, {
-          align: "center",
-        });
-      }
-      autoTable(doc, {
-        head: [["Hisse", "Kurum", "Alış Lot", "Satış Lot"]],
-        body: tableRows.slice(i, i + pageSize),
-        startY: 30,
-        theme: "grid",
-        headStyles: { fillColor: [39, 174, 96], textColor: 255, fontStyle: "bold", font: fontName },
-        styles: { halign: "center", fontSize: 8, font: fontName },
-        didDrawPage: () => addWatermark(doc),
-      });
-    }
   }
 
   // Footer on all pages
