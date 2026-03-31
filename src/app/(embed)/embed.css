@@ -5,12 +5,12 @@
     margin: 0 !important;
     padding: 0 !important;
     height: auto !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     background: transparent !important;
   }
 }
 
 html, body {
-  overflow: visible !important;
+  overflow: hidden !important;
   background: transparent !important;
 }
