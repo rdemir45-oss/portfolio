@@ -1,8 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiMenuAlt3, HiX } from "react-icons/hi";
+import { TbChevronDown } from "react-icons/tb";
 
 const links = [
   { href: "/#nedir", label: "Ne İşe Yarar?" },
@@ -10,18 +11,24 @@ const links = [
   // { href: "/#paketler", label: "Paketler" },
   { href: "/#platforms", label: "Platformlar" },
   { href: "/hisse-teknik-analizi", label: "Hisse Teknik Analizi" },
-  { href: "/araci-kurum-analizi", label: "AKD Analiz" },
-  { href: "/kurum-hareket-analizi", label: "Kurum Hareket" },
   { href: "/egitim", label: "Eğitim" },
   { href: "/#announcements", label: "Analiz & Eğitim" },
   { href: "/#about", label: "Hakkımda" },
   { href: "/#contact", label: "İletişim" },
 ];
 
+const matriksLinks = [
+  { href: "/araci-kurum-analizi", label: "AKD Analiz" },
+  { href: "/kurum-hareket-analizi", label: "Kurum Hareket" },
+];
+
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [matriksOpen, setMatriksOpen] = useState(false);
+  const [matriksMobileOpen, setMatriksMobileOpen] = useState(false);
   const pathname = usePathname();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -29,13 +36,24 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Ana sayfadayken anchor linkleri #section olarak kullan (smooth scroll için)
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setMatriksOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   function resolveHref(href: string) {
     if (href.startsWith("/#") && pathname === "/") {
-      return href.slice(1); // "/#indicators" → "#indicators"
+      return href.slice(1);
     }
     return href;
   }
+
+  const isMatriksActive = matriksLinks.some((l) => pathname === l.href);
 
   return (
     <header
@@ -74,6 +92,50 @@ export default function Navbar() {
               </a>
             )
           )}
+
+          {/* Matriks IQ Araçları dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setMatriksOpen((p) => !p)}
+              className={`flex items-center gap-1 text-sm transition-colors ${
+                isMatriksActive
+                  ? "text-emerald-400"
+                  : "text-slate-400 hover:text-emerald-400"
+              }`}
+            >
+              Matriks IQ Araçları
+              <TbChevronDown
+                className={`text-base transition-transform duration-200 ${matriksOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {matriksOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-[#0a1628] border border-slate-700 shadow-xl overflow-hidden"
+                >
+                  {matriksLinks.map((l) => (
+                    <a
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setMatriksOpen(false)}
+                      className={`block px-4 py-2.5 text-sm transition-colors hover:bg-slate-800 ${
+                        pathname === l.href
+                          ? "text-emerald-400 bg-emerald-950/30"
+                          : "text-slate-300"
+                      }`}
+                    >
+                      {l.label}
+                    </a>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </nav>
 
         <a
@@ -122,6 +184,41 @@ export default function Navbar() {
                 </a>
               )
             )}
+
+            {/* Matriks IQ Araçları — mobile accordion */}
+            <div className="border-b border-slate-800">
+              <button
+                onClick={() => setMatriksMobileOpen((p) => !p)}
+                className="w-full flex items-center justify-between py-3 text-slate-300 hover:text-emerald-400 transition-colors"
+              >
+                <span>Matriks IQ Araçları</span>
+                <TbChevronDown
+                  className={`text-base transition-transform duration-200 ${matriksMobileOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              <AnimatePresence>
+                {matriksMobileOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    {matriksLinks.map((l) => (
+                      <a
+                        key={l.href}
+                        href={l.href}
+                        onClick={() => { setMenuOpen(false); setMatriksMobileOpen(false); }}
+                        className="block py-2.5 pl-4 text-sm text-slate-400 hover:text-emerald-400 transition-colors"
+                      >
+                        {l.label}
+                      </a>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <a
               href="https://twitter.com/0TheBigShort1"
               target="_blank"
