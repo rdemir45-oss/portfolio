@@ -13,7 +13,8 @@ export default function EmbedLayout({ children }: { children: React.ReactNode })
       <body style={{
         margin: 0,
         padding: 0,
-        overflow: "hidden",
+        overflowY: "auto",
+        overflowX: "hidden",
         background: "transparent",
         color: "#e2e8f0",
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
