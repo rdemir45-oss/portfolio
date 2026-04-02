@@ -1,7 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rl = await rateLimit(`live-stream:${ip}`, { limit: 30, windowSec: 60 });
+  if (!rl.success) return NextResponse.json({ stream: null }, { status: 429 });
+
   const { data, error } = await supabase
     .from("live_streams")
     .select("id, title, stream_at, description")

@@ -49,6 +49,9 @@ const FORBIDDEN: { pattern: RegExp; reason: string }[] = [
   // Döngü/kontrol akışı
   { pattern: /\bwhile\b/,                reason: "while döngüsü kullanılamaz" },
   { pattern: /\bfor\s+\w+\s+in\b/,       reason: "for döngüsü kullanılamaz" },
+  // Triple-quote string ile bypass engeli
+  { pattern: /"""/,                       reason: "Triple-quote string kullanılamaz" },
+  { pattern: /'''/,                       reason: "Triple-quote string kullanılamaz" },
   // String concat ile bypass: "ex" + "ec", "im"+"port" vb.
   { pattern: /["']\s*\+\s*["']/,         reason: "String birleştirme ile fonksiyon kaçışı kullanılamaz" },
   // Hex/octal/unicode escape ile gizleme

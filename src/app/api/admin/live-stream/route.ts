@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
+import { liveStreamWriteSchema } from "@/lib/schemas";
 
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
@@ -16,15 +17,17 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
-  let body: { title?: string; stream_at?: string; description?: string };
-  try { body = await req.json(); } catch {
+  let raw: unknown;
+  try { raw = await req.json(); } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
 
-  const { title, stream_at, description } = body;
-  if (!title?.trim() || !stream_at) {
-    return NextResponse.json({ error: "Başlık ve tarih gerekli." }, { status: 400 });
+  const parsed = liveStreamWriteSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Geçersiz veri." }, { status: 422 });
   }
+
+  const { title, stream_at, description } = parsed.data;
 
   const { data, error } = await supabaseAdmin
     .from("live_streams")

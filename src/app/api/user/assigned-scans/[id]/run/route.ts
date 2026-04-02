@@ -2,29 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import type { ScanRule, ScanRuleGroup } from "@/lib/supabase";
-import crypto from "crypto";
+import { verifyViewerToken } from "@/lib/viewer-auth";
 
 export const dynamic = "force-dynamic";
 
 const SCAN_API_URL = process.env.SCAN_API_URL ?? "";
 const SCAN_API_KEY = process.env.SCAN_API_KEY ?? "";
-
-function getUser(req: NextRequest) {
-  const token  = req.cookies.get("viewer_token")?.value;
-  const secret = process.env.SCAN_SESSION_SECRET;
-  if (!token || !secret) return null;
-  const dot = token.lastIndexOf(".");
-  if (dot === -1) return null;
-  try {
-    const payload  = token.slice(0, dot);
-    const sig      = token.slice(dot + 1);
-    const expected = crypto.createHmac("sha256", secret).update(payload).digest("base64url");
-    if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) return null;
-    const decoded  = JSON.parse(Buffer.from(payload, "base64url").toString("utf-8"));
-    if (!decoded.id || !decoded.username) return null;
-    return { id: decoded.id as string, username: decoded.username as string };
-  } catch { return null; }
-}
 
 function rulesToQueryString(ruleGroup: ScanRuleGroup): string {
   const parts = ruleGroup.rules.map((r: ScanRule) => {
@@ -76,8 +59,12 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = getUser(req);
-  if (!user) return NextResponse.json({ error: "Giriş gerekli." }, { status: 401 });
+  const auth = verifyViewerToken(
+    req.cookies.get("viewer_token")?.value,
+    process.env.SCAN_SESSION_SECRET
+  );
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const user = auth.user;
 
   const ip = getClientIp(req);
   const rl = await rateLimit(`assigned-scan-run:${user.id}`, { limit: 10, windowSec: 60 });

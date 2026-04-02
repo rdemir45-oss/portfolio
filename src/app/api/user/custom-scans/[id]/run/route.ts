@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { ScanRule, ScanRuleGroup } from "@/lib/supabase";
 import { verifyViewerToken } from "@/lib/viewer-auth";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,9 @@ export async function POST(
   );
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const user = auth.user;
+
+  const rl = await rateLimit(`custom-scan-run:${user.id}`, { limit: 10, windowSec: 60 });
+  if (!rl.success) return NextResponse.json({ error: "Çok fazla istek. Bir dakika bekleyiniz." }, { status: 429 });
 
   const { id } = await params;
 

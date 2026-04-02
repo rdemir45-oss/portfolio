@@ -47,6 +47,11 @@ async function verifyHmacToken(
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // ── Admin-app (PWA kurulum sayfası) — koruma dışı ──────────────────
+  if (pathname.startsWith("/admin-app")) {
+    return NextResponse.next();
+  }
+
   // ── Admin koruma ──────────────────────────────────────────────────────
   if (pathname === "/admin/login") {
     // Zaten giriş yapılmışsa anahtara gerek yok
@@ -68,12 +73,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith("/admin")) {
+  if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
     const token = request.cookies.get("admin_token")?.value;
     const secret = process.env.ADMIN_SECRET;
     const valid = secret && token ? await verifyHmacToken(token, secret, true) : false;
     if (!valid) {
-      // Redirect yerine 404 — admin panelinin varlığını ele verme
+      // API route'ları için 401, sayfa route'ları için 404
+      if (pathname.startsWith("/api/admin")) {
+        return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
+      }
       return new NextResponse("404 Not Found", {
         status: 404,
         headers: { "Content-Type": "text/plain" },
@@ -141,5 +149,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/hisse-teknik-analizi/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/hisse-teknik-analizi/:path*"],
 };

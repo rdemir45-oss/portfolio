@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { customIndicatorWriteSchema } from "@/lib/schemas";
 
 const SCAN_API_URL = process.env.SCAN_API_URL ?? "";
 const SCAN_API_KEY = process.env.SCAN_API_KEY ?? "";
@@ -72,12 +73,17 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
 
-  const body = await req.json();
-  const { code, name, description = "", script = "" } = body;
-
-  if (!code || !name) {
-    return NextResponse.json({ error: "code ve name zorunludur." }, { status: 400 });
+  let raw: unknown;
+  try { raw = await req.json(); } catch {
+    return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
+
+  const parsed = customIndicatorWriteSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Geçersiz veri." }, { status: 422 });
+  }
+
+  const { code, name, description, script } = parsed.data;
 
   // 1. Supabase'e kaydet (kaynak of truth)
   const { error } = await supabaseAdmin.from("custom_indicators").upsert(

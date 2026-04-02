@@ -10,6 +10,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Server-taraflı API route'larında kullanılır — RLS'yi atlar.
 // Railway'e SUPABASE_SERVICE_ROLE_KEY env değişkeni eklenmeli.
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Production'da service key yoksa uyarı logla (build sırasında throw yapamayız)
+if (process.env.NODE_ENV === "production" && !supabaseServiceKey && typeof window === "undefined") {
+  console.error("SUPABASE_SERVICE_ROLE_KEY is missing in production — admin operations will fail!");
+}
+
 export const supabaseAdmin = supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { userProfileUpdateSchema } from "@/lib/schemas";
 import crypto from "crypto";
 
 // GROUP_KEYS: GROUPS tanımıyla senkron olmalı (StockScanner.tsx)
@@ -81,15 +82,20 @@ export async function POST(req: NextRequest) {
   const user = getUserFromToken(token, secret);
   if (!user) return NextResponse.json({ error: "Geçersiz token." }, { status: 401 });
 
-  let body: { telegramChatId?: string; alertCategories?: string[]; alertsEnabled?: boolean };
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
 
-  const telegramChatId  = (body.telegramChatId ?? "").toString().trim();
-  const rawCategories   = Array.isArray(body.alertCategories) ? body.alertCategories : [];
+  const parsed = userProfileUpdateSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Geçersiz veri." }, { status: 422 });
+  }
+
+  const telegramChatId  = parsed.data.telegramChatId ?? "";
+  const rawCategories   = parsed.data.alertCategories ?? [];
 
   // Dinamik doğrulama: scan_groups tablosundan geçerli anahtarları al
   // Tablo yoksa veya hata olursa statik listeye dön
@@ -107,7 +113,7 @@ export async function POST(req: NextRequest) {
   const alertCategories = rawCategories.filter(
     (k) => typeof k === "string" && /^[a-z][a-z0-9_]{1,49}$/.test(k) && validKeySet.has(k)
   );
-  const alertsEnabled = Boolean(body.alertsEnabled);
+  const alertsEnabled = parsed.data.alertsEnabled ?? false;
 
   // Chat ID: rakam veya eksi+rakam (grup ID -100xxx gibi olabilir)
   if (telegramChatId && !/^-?\d{5,15}$/.test(telegramChatId)) {

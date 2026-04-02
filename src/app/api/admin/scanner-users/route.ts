@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { isAdmin, UNAUTHORIZED } from "@/lib/admin-auth";
 import { clearRateLimit } from "@/lib/rate-limit";
+import { scannerUserPatchSchema } from "@/lib/schemas";
 import crypto from "crypto";
 
 const SUBSCRIPTION_DURATIONS: Record<string, number> = {
@@ -34,12 +35,18 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   if (!isAdmin(req)) return UNAUTHORIZED;
   const id = req.nextUrl.searchParams.get("id");
-  let body: { status?: string; plan?: string; subscription_plan?: string; action?: string; ip?: string };
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
+
+  const parsed = scannerUserPatchSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Geçersiz veri." }, { status: 422 });
+  }
+  const body = parsed.data;
 
   // ── Şifre sıfırlama ──────────────────────────────────────────────────────
   if (body.action === "reset-password") {
@@ -66,9 +73,6 @@ export async function PATCH(req: NextRequest) {
   const updates: Record<string, string | null> = {};
 
   if (body.status) {
-    if (!["approved", "rejected", "pending"].includes(body.status)) {
-      return NextResponse.json({ error: "Geçersiz durum." }, { status: 400 });
-    }
     updates.status = body.status;
 
     // "approved" yapılınca: eğer mevcut aboneliği yoksa veya süresi dolmuşsa
@@ -94,20 +98,14 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (body.plan) {
-    if (!["starter", "pro", "elite"].includes(body.plan)) {
-      return NextResponse.json({ error: "Geçersiz paket." }, { status: 400 });
-    }
     updates.plan = body.plan;
   }
 
   if (body.subscription_plan !== undefined) {
-    if (body.subscription_plan === null || body.subscription_plan === "") {
+    if (body.subscription_plan === null) {
       updates.subscription_plan = null;
       updates.subscription_expires_at = null;
     } else {
-      if (!["weekly", "monthly", "yearly"].includes(body.subscription_plan)) {
-        return NextResponse.json({ error: "Geçersiz abonelik planı." }, { status: 400 });
-      }
       const duration = SUBSCRIPTION_DURATIONS[body.subscription_plan];
       updates.subscription_plan = body.subscription_plan;
       updates.subscription_expires_at = new Date(Date.now() + duration).toISOString();

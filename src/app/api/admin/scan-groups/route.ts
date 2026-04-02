@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { isAdmin } from "@/lib/admin-auth";
+import { scanGroupWriteSchema, scanGroupUpdateSchema } from "@/lib/schemas";
 
 const UNAUTHORIZED = NextResponse.json({ error: "Yetkisiz erişim." }, { status: 401 });
-
-const VALID_COLORS = ["emerald", "sky", "violet", "amber", "rose"];
 
 const DEFAULT_GROUPS = [
   {
@@ -133,35 +132,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, count: DEFAULT_GROUPS.length });
   }
 
-  let body: Record<string, unknown>;
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
 
-  const { id, label, description, emoji, icon, color, keys, display_order, is_bull } = body as Record<string, unknown>;
+  const parsed = scanGroupWriteSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Geçersiz veri." }, { status: 422 });
+  }
 
-  if (!id || typeof id !== "string" || !label || typeof label !== "string") {
-    return NextResponse.json({ error: "id ve label zorunludur." }, { status: 400 });
-  }
-  if (!/^[a-z][a-z0-9_]{0,49}$/.test(id)) {
-    return NextResponse.json({ error: "id: küçük harf, rakam ve alt çizgi içerebilir." }, { status: 400 });
-  }
-  if (color && !VALID_COLORS.includes(color as string)) {
-    return NextResponse.json({ error: "Geçersiz renk." }, { status: 400 });
-  }
+  const { id, label, description, emoji, icon, color, keys, display_order, is_bull } = parsed.data;
 
   const { error } = await supabaseAdmin.from("scan_groups").insert({
     id,
     label,
-    description: description ?? "",
-    emoji: emoji ?? "📊",
-    icon: icon ?? "chart",
-    color: color ?? "emerald",
-    keys: Array.isArray(keys) ? keys : [],
-    display_order: typeof display_order === "number" ? display_order : 0,
-    is_bull: is_bull !== undefined ? Boolean(is_bull) : true,
+    description,
+    emoji,
+    icon,
+    color,
+    keys,
+    display_order,
+    is_bull,
   });
 
   if (error) return NextResponse.json({ error: "Kayıt oluşturulamadı." }, { status: 500 });
@@ -174,26 +168,19 @@ export async function PATCH(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id gerekli." }, { status: 400 });
 
-  let body: Record<string, unknown>;
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
   }
 
-  const updates: Record<string, unknown> = {};
-  if (body.label !== undefined) updates.label = String(body.label);
-  if (body.description !== undefined) updates.description = String(body.description);
-  if (body.emoji !== undefined) updates.emoji = String(body.emoji);
-  if (body.icon !== undefined) updates.icon = String(body.icon);
-  if (body.color !== undefined) {
-    if (!VALID_COLORS.includes(body.color as string))
-      return NextResponse.json({ error: "Geçersiz renk." }, { status: 400 });
-    updates.color = body.color;
+  const parsed = scanGroupUpdateSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Geçersiz veri." }, { status: 422 });
   }
-  if (body.keys !== undefined && Array.isArray(body.keys)) updates.keys = body.keys;
-  if (body.display_order !== undefined) updates.display_order = Number(body.display_order);
-  if (body.is_bull !== undefined) updates.is_bull = Boolean(body.is_bull);
+
+  const updates = parsed.data;
 
   const { error } = await supabaseAdmin.from("scan_groups").update(updates).eq("id", id);
   if (error) return NextResponse.json({ error: "Güncelleme başarısız." }, { status: 500 });

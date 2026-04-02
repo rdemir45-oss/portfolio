@@ -21,10 +21,18 @@ const nextConfig: NextConfig = {
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       // Tarayıcı özelliklerini kısıtla
       { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
-      // Kısmi CSP — script/style unsafe-inline Next.js gereği bırakıldı
+      // HSTS — HTTPS zorunlu kıl
+      { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+      // CSP — XSS koruması dahil
       {
         key: "Content-Security-Policy",
         value: [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob: https://*.supabase.co",
+          "font-src 'self'",
+          "connect-src 'self' https://*.supabase.co",
           "base-uri 'self'",
           "object-src 'none'",
           "form-action 'self'",
@@ -49,13 +57,7 @@ const nextConfig: NextConfig = {
           { key: "Content-Security-Policy", value: "frame-ancestors *; object-src 'none'; base-uri 'self';" },
         ],
       },
-      {
-        source: "/api/embed/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Origin", value: "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET, OPTIONS" },
-        ],
-      },
+      // Embed API CORS: route handler kendi CORS'unu yönetir, wildcard kaldırıldı
     ];
   },
 };
