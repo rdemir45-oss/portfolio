@@ -73,6 +73,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Login API'si token olmadan erişilebilmeli
+  if (pathname === "/api/admin/login") {
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
     const token = request.cookies.get("admin_token")?.value;
     const secret = process.env.ADMIN_SECRET;
