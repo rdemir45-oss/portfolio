@@ -9,6 +9,10 @@ export default function AdminInstallPage() {
   const [installed, setInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [needsLogin, setNeedsLogin] = useState(false);
 
   useEffect(() => {
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -18,9 +22,17 @@ export default function AdminInstallPage() {
     setIsIOS(ios);
     setIsStandalone(standalone);
 
-    // Zaten uygulama olarak açıldıysa direkt panele git
+    // Zaten uygulama olarak açıldıysa: token kontrolü yap
     if (standalone) {
-      router.replace("/admin/dashboard");
+      fetch("/api/admin/members", { credentials: "include" })
+        .then((r) => {
+          if (r.ok) {
+            router.replace("/admin/dashboard");
+          } else {
+            setNeedsLogin(true);
+          }
+        })
+        .catch(() => setNeedsLogin(true));
       return;
     }
 
@@ -32,6 +44,25 @@ export default function AdminInstallPage() {
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, [router]);
+
+  async function handlePWALogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!password) return;
+    setLoginLoading(true);
+    setLoginError("");
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+      credentials: "include",
+    });
+    if (res.ok) {
+      router.replace("/admin/dashboard");
+    } else {
+      setLoginError("Yanlış şifre.");
+      setLoginLoading(false);
+    }
+  }
 
   async function handleInstall() {
     if (!deferredPrompt) return;
@@ -77,7 +108,52 @@ export default function AdminInstallPage() {
         Yönetim paneli — sadece yetkili kullanıcılar
       </p>
 
-      {installed ? (
+      {/* Standalone PWA login formu */}
+      {needsLogin ? (
+        <form onSubmit={handlePWALogin} style={{ width: "100%", maxWidth: 300, marginBottom: 24 }}>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Admin şifresi"
+            autoFocus
+            style={{
+              width: "100%",
+              background: "#0f172a",
+              border: "1px solid #334155",
+              borderRadius: 12,
+              padding: "12px 16px",
+              color: "#e2e8f0",
+              fontSize: 15,
+              marginBottom: 12,
+              outline: "none",
+            }}
+          />
+          {loginError && (
+            <p style={{ color: "#f87171", fontSize: 13, textAlign: "center", marginBottom: 12 }}>
+              {loginError}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={loginLoading || !password}
+            style={{
+              width: "100%",
+              background: loginLoading ? "#7f1d1d" : "linear-gradient(135deg, #dc2626, #b91c1c)",
+              color: "white",
+              border: "none",
+              borderRadius: 12,
+              padding: "12px",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: loginLoading ? "wait" : "pointer",
+              opacity: !password ? 0.4 : 1,
+            }}
+          >
+            {loginLoading ? "Giriş yapılıyor…" : "Giriş Yap"}
+          </button>
+        </form>
+      ) : installed ? (
         <div style={{
           background: "#052e16",
           border: "1px solid #166534",
